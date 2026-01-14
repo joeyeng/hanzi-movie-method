@@ -180,12 +180,17 @@ def lookup_characters_batch():
                 
                 # Sort definitions: surnames last, variants second-to-last
                 def definition_sort_key(d):
-                    definition_lower = d.get('definition', '').lower()
+                    definition_lower = d.get('definition', '').lower().strip()
+                    
+                    # Surnames always last
                     if 'surname' in definition_lower:
-                        return 2  # surnames last
-                    elif 'variant' in definition_lower or 'old variant' in definition_lower:
-                        return 1  # variants second-to-last
-                    return 0  # everything else first
+                        return 2
+                    
+                    # Variants second-to-last
+                    if 'variant of' in definition_lower or 'variant' in definition_lower.split('/')[0]:
+                        return 1
+                    
+                    return 0  # Regular definitions first
                 
                 sorted_definitions = sorted(definitions, key=definition_sort_key)
                 
