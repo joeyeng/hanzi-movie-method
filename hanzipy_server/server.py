@@ -178,11 +178,33 @@ def lookup_characters_batch():
                 # Convert tone numbers to tone marks
                 pinyin = convert_pinyin_tone_number_to_mark(pinyin)
                 
+                # Sort definitions: surnames go last
+                sorted_definitions = sorted(definitions, key=lambda d: 1 if 'surname' in d.get('definition', '').lower() else 0)
+                
+                # Convert all pinyin in definitions to tone marks
+                all_defs_converted = []
+                for d in sorted_definitions:
+                    d_pinyin = d.get('pinyin', '')
+                    if isinstance(d_pinyin, list):
+                        d_pinyin = ' '.join(d_pinyin)
+                    all_defs_converted.append({
+                        'pinyin': convert_pinyin_tone_number_to_mark(d_pinyin),
+                        'definition': d.get('definition', '')
+                    })
+                
+                # Use the first non-surname definition as primary
+                primary_def = sorted_definitions[0]
+                primary_pinyin = primary_def.get('pinyin', '')
+                if isinstance(primary_pinyin, list):
+                    primary_pinyin = ' '.join(primary_pinyin)
+                primary_pinyin = convert_pinyin_tone_number_to_mark(primary_pinyin)
+                
                 results.append({
                     'character': char,
-                    'pinyin': pinyin,
-                    'definition': definition,
-                    'found': True
+                    'pinyin': primary_pinyin,
+                    'definition': primary_def.get('definition', ''),
+                    'found': True,
+                    'all_definitions': all_defs_converted
                 })
             else:
                 results.append({

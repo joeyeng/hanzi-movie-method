@@ -14,6 +14,7 @@ interface PreviewCharacter {
     pinyin: string | null;
     definition: string | null;
     found: boolean;
+    all_definitions?: { pinyin: string; definition: string }[];
 }
 
 // Parse pinyin to extract initial, final, and tone
@@ -315,6 +316,7 @@ export default function DatabasePage() {
                     hanzi: char.hanzi,
                     pinyin: '',
                     meaning: char.definition || 'Unknown meaning',
+                    allDefinitions: char.all_definitions,
                     keyword: 'Unknown',
                     actorId: undefined,
                     roomId: undefined,
@@ -341,6 +343,7 @@ export default function DatabasePage() {
                 hanzi: char.hanzi,
                 pinyin: char.pinyin,
                 meaning: char.definition || '',
+                allDefinitions: char.all_definitions,
                 keyword: (char.definition || '').split(',')[0].trim() || char.hanzi,
                 actorId: actor?.id,
                 roomId: room?.id,

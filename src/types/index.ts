@@ -40,11 +40,17 @@ export interface Prop {
   updatedAt: Date;
 }
 
+export interface CharacterDefinition {
+  pinyin: string;
+  definition: string;
+}
+
 export interface Character {
   id: string;
   hanzi: string;
   pinyin: string;
   meaning: string;
+  allDefinitions?: CharacterDefinition[]; // All definitions from dictionary, sorted with surnames last
   actorId?: string;
   setId?: string;
   roomId?: string;

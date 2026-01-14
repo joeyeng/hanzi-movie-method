@@ -34,6 +34,9 @@ export function CharacterCard({ character, compounds = [], onEdit, onDelete, onT
     // Filter compounds that contain this character
     const relatedCompounds = compounds.filter(c => c.characters.includes(character.hanzi));
 
+    // Check if there are additional definitions beyond the primary one
+    const hasMultipleDefinitions = character.allDefinitions && character.allDefinitions.length > 1;
+
     return (
         <div className="bg-slate-800 rounded-lg p-3 sm:p-4 hover:bg-slate-750 transition-colors">
             <div className="flex justify-between items-start mb-3 gap-2">
@@ -44,6 +47,22 @@ export function CharacterCard({ character, compounds = [], onEdit, onDelete, onT
                         <p className="text-slate-400 text-sm sm:text-base break-words">{character.meaning}</p>
                         {character.keyword && (
                             <p className="text-amber-300 text-xs sm:text-sm break-words">Keyword: {character.keyword}</p>
+                        )}
+                        {hasMultipleDefinitions && (
+                            <details className="mt-2">
+                                <summary className="text-xs text-slate-500 cursor-pointer hover:text-slate-400">
+                                    +{character.allDefinitions!.length - 1} more definition{character.allDefinitions!.length > 2 ? 's' : ''}
+                                </summary>
+                                <div className="mt-1 space-y-1 pl-2 border-l-2 border-slate-700">
+                                    {character.allDefinitions!.slice(1).map((def, index) => (
+                                        <div key={index} className="text-xs">
+                                            <span className="text-slate-400">{def.pinyin}</span>
+                                            <span className="text-slate-500 mx-1">—</span>
+                                            <span className="text-slate-400 break-words">{def.definition}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </details>
                         )}
                     </div>
                 </div>

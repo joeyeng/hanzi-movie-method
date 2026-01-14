@@ -1,11 +1,17 @@
 // HanziPy API Client - Looks up Chinese characters via the HanziPy server
 
+export interface HanziDefinition {
+  pinyin: string;
+  definition: string;
+}
+
 export interface HanziEntry {
   character: string;
   pinyin: string | null;
   definition: string | null;
   found: boolean;
   error?: string;
+  all_definitions?: HanziDefinition[];
 }
 
 export interface ParsedCharacter {
@@ -13,6 +19,7 @@ export interface ParsedCharacter {
   pinyin: string | null;
   definition: string | null;
   found: boolean;
+  all_definitions?: HanziDefinition[];
 }
 
 /**
@@ -96,6 +103,7 @@ export async function lookupCharactersAPI(characters: string[]): Promise<Map<str
           pinyin: entry.pinyin,
           definition: entry.definition,
           found: entry.found,
+          all_definitions: entry.all_definitions,
         });
       }
     }
@@ -218,6 +226,7 @@ export async function parseCharacterFileAsync(content: string): Promise<ParsedCh
       pinyin: entry?.pinyin || null,
       definition: entry?.definition || null,
       found: entry?.found || false,
+      all_definitions: entry?.all_definitions,
     };
   });
 }
