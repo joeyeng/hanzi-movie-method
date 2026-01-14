@@ -1,0 +1,257 @@
+// HanziPy API Client - Looks up Chinese characters via the HanziPy server
+
+export interface HanziEntry {
+  character: string;
+  pinyin: string | null;
+  definition: string | null;
+  found: boolean;
+  error?: string;
+}
+
+export interface ParsedCharacter {
+  hanzi: string;
+  pinyin: string | null;
+  definition: string | null;
+  found: boolean;
+}
+
+/**
+ * Check if a character is a Chinese character
+ */
+export function isChineseCharacter(char: string): boolean {
+  const code = char.charCodeAt(0);
+  // CJK Unified Ideographs (most common)
+  if (code >= 0x4e00 && code <= 0x9fff) return true;
+  // CJK Unified Ideographs Extension A
+  if (code >= 0x3400 && code <= 0x4dbf) return true;
+  return false;
+}
+
+/**
+ * Split a string into individual Chinese characters
+ * Filters out non-Chinese characters and removes duplicates
+ */
+export function splitIntoCharacters(text: string): string[] {
+  const chineseCharRegex = /[\u4e00-\u9fff\u3400-\u4dbf]/g;
+  const matches = text.match(chineseCharRegex);
+  return matches ? [...new Set(matches)] : [];
+}
+
+/**
+ * Extract compound words (sequences of 2+ Chinese characters) from text
+ * Returns unique compound words
+ */
+export function extractCompoundWords(content: string): string[] {
+  const lines = content.split(/\r?\n/);
+  const compounds = new Set<string>();
+  
+  // Match sequences of 2+ Chinese characters
+  const compoundRegex = /[\u4e00-\u9fff\u3400-\u4dbf]{2,}/g;
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    const matches = trimmed.match(compoundRegex);
+    if (matches) {
+      for (const match of matches) {
+        compounds.add(match);
+      }
+    }
+  }
+  
+  return [...compounds];
+}
+
+/**
+ * Look up multiple Chinese characters via the HanziPy API
+ */
+export async function lookupCharactersAPI(characters: string[]): Promise<Map<string, HanziEntry>> {
+  const results = new Map<string, HanziEntry>();
+  
+  if (characters.length === 0) {
+    return results;
+  }
+
+  try {
+    const response = await fetch('/api/hanzi', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ characters }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.results && Array.isArray(data.results)) {
+      for (const entry of data.results) {
+        results.set(entry.character, {
+          character: entry.character,
+          pinyin: entry.pinyin,
+          definition: entry.definition,
+          found: entry.found,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error looking up characters:', error);
+    // Return entries marked as not found on error
+    for (const char of characters) {
+      results.set(char, {
+        character: char,
+        pinyin: null,
+        definition: null,
+        found: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }
+
+  return results;
+}
+
+export interface CompoundWordResult {
+  word: string;
+  characters: string[];
+  pinyin: string | null;
+  definition: string | null;
+  found: boolean;
+}
+
+/**
+ * Look up multiple compound words via the HanziPy API
+ */
+export async function lookupCompoundWordsAPI(words: string[]): Promise<CompoundWordResult[]> {
+  const results: CompoundWordResult[] = [];
+  
+  if (words.length === 0) {
+    return results;
+  }
+
+  try {
+    const response = await fetch('/api/hanzi', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ characters: words }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.results && Array.isArray(data.results)) {
+      for (const entry of data.results) {
+        results.push({
+          word: entry.character,
+          characters: Array.from(entry.character),
+          pinyin: entry.pinyin,
+          definition: entry.definition,
+          found: entry.found,
+        });
+      }
+    }
+  } catch (error) {
+    console.error('Error looking up compound words:', error);
+    // Return entries marked as not found on error
+    for (const word of words) {
+      results.push({
+        word,
+        characters: Array.from(word),
+        pinyin: null,
+        definition: null,
+        found: false,
+      });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Parse a plain text file containing Chinese characters
+ * Returns unique characters ready for API lookup
+ */
+export function extractCharactersFromText(content: string): string[] {
+  const lines = content.split(/\r?\n/);
+  const allCharacters: string[] = [];
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    
+    const chars = splitIntoCharacters(trimmed);
+    allCharacters.push(...chars);
+  }
+  
+  // Remove duplicates while preserving order
+  return [...new Set(allCharacters)];
+}
+
+/**
+ * Parse a plain text file and look up all characters via the API
+ * This is the main function for the import page
+ */
+export async function parseCharacterFileAsync(content: string): Promise<ParsedCharacter[]> {
+  const characters = extractCharactersFromText(content);
+  
+  if (characters.length === 0) {
+    return [];
+  }
+
+  const lookupResults = await lookupCharactersAPI(characters);
+  
+  return characters.map(hanzi => {
+    const entry = lookupResults.get(hanzi);
+    return {
+      hanzi,
+      pinyin: entry?.pinyin || null,
+      definition: entry?.definition || null,
+      found: entry?.found || false,
+    };
+  });
+}
+
+/**
+ * Check if the HanziPy server is available
+ */
+export async function checkHanziPyServer(): Promise<{ available: boolean; message: string }> {
+  try {
+    const response = await fetch('/api/hanzi', {
+      method: 'GET',
+    });
+    
+    if (response.ok) {
+      return { available: true, message: 'HanziPy server is running' };
+    } else {
+      const data = await response.json().catch(() => ({}));
+      return { available: false, message: data.message || 'HanziPy server returned an error' };
+    }
+  } catch {
+    return { 
+      available: false, 
+      message: 'Cannot connect to HanziPy server. Start it with: python hanzipy_server/server.py' 
+    };
+  }
+}
+
+// Keep the synchronous version for backwards compatibility, but it won't have data
+export function parseCharacterFile(content: string): ParsedCharacter[] {
+  const characters = extractCharactersFromText(content);
+  return characters.map(hanzi => ({
+    hanzi,
+    pinyin: null,
+    definition: null,
+    found: false,
+  }));
+}

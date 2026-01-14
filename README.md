@@ -1,36 +1,91 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hanzi Movie Method - Chinese Character Learning Database
+
+A Next.js web application for learning Chinese characters using the **Hanzi Movie Method** from Mandarin Blueprint.
+
+## What is the Hanzi Movie Method?
+
+The Hanzi Movie Method is a mnemonic system for learning Chinese characters that combines:
+
+- **Actors** - Represent the initial sound of the pinyin (e.g., Jackie Chan for "j-")
+- **Sets** - Locations that represent the final sound + tone (e.g., your childhood home for "-an" tone 1)
+- **Props** - Objects that represent character components/radicals
+- **Movie Scenes** - Vivid, memorable scenes combining all elements to encode the character
+
+## Features
+
+- 📝 **Character Management** - Add, edit, and delete Chinese characters with their movie scenes
+- 🎭 **Actor Database** - Manage actors for each pinyin initial sound
+- 🎬 **Set Database** - Organize locations by final sound and tone
+- 🎪 **Props Database** - Track components/radicals as memorable props
+- 📖 **Review System** - Flashcard-style review with progress tracking
+- 🔍 **Search & Filter** - Find characters by hanzi, pinyin, or meaning
+- 💾 **Local Storage** - All data persisted in browser storage
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Node.js 18.17 or later
+- npm (comes with Node.js)
+
+### Installation
+
+1. Install dependencies:
+
+   ```bash
+   npm install
+   ```
+
+2. Run the development server:
+
+   ```bash
+   npm run dev
+   ```
+
+3. Open [http://localhost:3000](http://localhost:3000) in your browser
+
+## Usage
+
+1. **Start by creating Actors** - Go to the Actors page and add actors for each pinyin initial you want to learn
+2. **Create Sets** - Add locations for each final sound + tone combination
+3. **Add Props** - Create props for character components/radicals
+4. **Add Characters** - Combine actors, sets, and props into vivid movie scenes
+5. **Review Regularly** - Use the Review feature to strengthen your memory
+
+## Tech Stack
+
+- [Next.js 15](https://nextjs.org/) - React framework
+- [TypeScript](https://www.typescriptlang.org/) - Type safety
+- [Tailwind CSS](https://tailwindcss.com/) - Styling
+- Local Storage - Data persistence
+
+## Project Structure
+
+```
+src/
+├── app/                  # Next.js App Router pages
+│   ├── actors/          # Actors management page
+│   ├── characters/      # Characters management page
+│   ├── props/           # Props management page
+│   ├── review/          # Review/flashcard page
+│   ├── sets/            # Sets management page
+│   ├── layout.tsx       # Root layout with sidebar
+│   └── page.tsx         # Dashboard/home page
+├── components/          # React components
+│   ├── ActorForm.tsx
+│   ├── CharacterCard.tsx
+│   ├── CharacterForm.tsx
+│   ├── PropForm.tsx
+│   ├── SetForm.tsx
+│   └── Sidebar.tsx
+├── hooks/               # Custom React hooks
+│   └── useLocalStorage.ts
+├── lib/                 # Utility functions
+│   └── storage.ts       # Local storage operations
+└── types/               # TypeScript type definitions
+    └── index.ts
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## License
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
