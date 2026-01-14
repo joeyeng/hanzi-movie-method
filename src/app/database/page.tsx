@@ -479,7 +479,7 @@ export default function DatabasePage() {
         const characters = storage.getCharacters();
         const learnedCount = characters.filter(c => c.learned).length;
         const unlearnedCount = characters.filter(c => !c.learned).length;
-        
+
         const backup = {
             version: 1,
             exportedAt: new Date().toISOString(),
@@ -492,7 +492,7 @@ export default function DatabasePage() {
                 compounds: storage.getCompounds(),
             }
         };
-        
+
         const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -502,9 +502,9 @@ export default function DatabasePage() {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        
+
         setImportStatus(prev => [...prev, `Backup exported successfully! (${learnedCount} learned, ${unlearnedCount} unlearned characters)`]);
-    };    const importBackup = (file: File) => {
+    }; const importBackup = (file: File) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {

@@ -70,8 +70,8 @@ export function Sidebar() {
                                     href={item.href}
                                     onClick={() => setIsOpen(false)}
                                     className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors ${pathname === item.href
-                                            ? 'bg-amber-500 text-slate-900'
-                                            : 'hover:bg-slate-800'
+                                        ? 'bg-amber-500 text-slate-900'
+                                        : 'hover:bg-slate-800'
                                         }`}
                                 >
                                     <span className="text-xl">{item.icon}</span>
