@@ -122,6 +122,7 @@ export default function DatabasePage() {
     const [importing, setImporting] = useState(false);
     const [parsing, setParsing] = useState(false);
     const [importStatus, setImportStatus] = useState<string[]>([]);
+    const [importProgress, setImportProgress] = useState({ current: 0, total: 0, phase: '' });
     const [dragActive, setDragActive] = useState(false);
     const [previewData, setPreviewData] = useState<PreviewCharacter[]>([]);
     const [previewCompounds, setPreviewCompounds] = useState<CompoundWordResult[]>([]);
@@ -282,12 +283,15 @@ export default function DatabasePage() {
         return { actorCount, roomCount, setCount };
     };
 
-    const importCharactersFromPreview = () => {
+    const importCharactersFromPreview = async () => {
         if (previewData.length === 0 && previewCompounds.length === 0) return;
 
         setImporting(true);
+        const totalItems = previewData.length + previewCompounds.length;
+        let processedItems = 0;
 
         // First ensure we have actors, rooms, and sets
+        setImportProgress({ current: 0, total: totalItems, phase: 'Setting up actors, rooms, and sets...' });
         const { actorCount, roomCount, setCount } = ensureActorsAndSets();
 
         // Read fresh data from storage (they now have proper IDs)
@@ -300,10 +304,17 @@ export default function DatabasePage() {
         let skipped = 0;
         let notFoundCount = 0;
 
-        previewData.forEach(char => {
+        setImportProgress({ current: 0, total: totalItems, phase: 'Importing characters...' });
+
+        for (const char of previewData) {
+            processedItems++;
+            if (processedItems % 10 === 0 || processedItems === previewData.length) {
+                setImportProgress({ current: processedItems, total: totalItems, phase: `Importing characters... (${processedItems}/${previewData.length})` });
+                await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI to update
+            }
             if (existingHanzi.has(char.hanzi)) {
                 skipped++;
-                return;
+                continue;
             }
 
             // Skip characters without pinyin if user wants
@@ -325,7 +336,7 @@ export default function DatabasePage() {
                     props: [],
                 });
                 charCount++;
-                return;
+                continue;
             }
 
             // Parse pinyin to get initial, final, tone
@@ -353,17 +364,24 @@ export default function DatabasePage() {
             });
 
             charCount++;
-        });
+        }
 
         // Import compound words
+        setImportProgress({ current: processedItems, total: totalItems, phase: 'Importing compound words...' });
         const existingCompoundWords = new globalThis.Set(compounds.map(c => c.word));
         let compoundCount = 0;
         let compoundSkipped = 0;
 
-        previewCompounds.forEach(compound => {
+        for (const compound of previewCompounds) {
+            processedItems++;
+            if (processedItems % 20 === 0 || processedItems === totalItems) {
+                setImportProgress({ current: processedItems, total: totalItems, phase: `Importing compound words... (${compoundCount + compoundSkipped + 1}/${previewCompounds.length})` });
+                await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI to update
+            }
+
             if (existingCompoundWords.has(compound.word)) {
                 compoundSkipped++;
-                return;
+                continue;
             }
 
             addCompound({
@@ -374,7 +392,7 @@ export default function DatabasePage() {
             });
 
             compoundCount++;
-        });
+        }
 
         setImportStatus(prev => [
             ...prev,
@@ -391,6 +409,7 @@ export default function DatabasePage() {
         setPreviewData([]);
         setPreviewCompounds([]);
         setPasteText('');
+        setImportProgress({ current: 0, total: 0, phase: '' });
         setImporting(false);
     };
 
@@ -666,6 +685,26 @@ export default function DatabasePage() {
                             {importing ? 'Importing...' : 'Import All Characters'}
                         </button>
                     </div>
+
+                    {/* Import Progress */}
+                    {importing && importProgress.total > 0 && (
+                        <div className="mb-4 bg-slate-700/50 rounded-lg p-4">
+                            <div className="flex justify-between text-sm text-slate-400 mb-2">
+                                <span>{importProgress.phase}</span>
+                                <span>{importProgress.current} / {importProgress.total}</span>
+                            </div>
+                            <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                                <div
+                                    className="h-full bg-amber-500 transition-all duration-150"
+                                    style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                                />
+                            </div>
+                            <div className="text-xs text-slate-500 mt-2 text-center">
+                                {Math.round((importProgress.current / importProgress.total) * 100)}% complete
+                            </div>
+                        </div>
+                    )}
+
                     <div className="max-h-96 overflow-y-auto">
                         <table className="w-full text-sm">
                             <thead className="text-slate-400 border-b border-slate-700 sticky top-0 bg-slate-800">
@@ -673,16 +712,11 @@ export default function DatabasePage() {
                                     <th className="text-left py-2 px-2">Character</th>
                                     <th className="text-left py-2 px-2">Pinyin</th>
                                     <th className="text-left py-2 px-2">Definition</th>
-                                    <th className="text-left py-2 px-2">Actor</th>
-                                    <th className="text-left py-2 px-2">Room</th>
-                                    <th className="text-left py-2 px-2">Set</th>
                                     <th className="text-left py-2 px-2">Status</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {previewData.slice(0, 50).map((char, i) => {
-                                    const info = getPreviewInfo(char);
-
                                     return (
                                         <tr key={i} className="border-b border-slate-700/50">
                                             <td className="py-2 px-2">
@@ -691,35 +725,8 @@ export default function DatabasePage() {
                                             <td className="py-2 px-2 text-slate-300">
                                                 {char.pinyin || <span className="text-slate-500">—</span>}
                                             </td>
-                                            <td className="py-2 px-2 text-slate-400 truncate max-w-32">
+                                            <td className="py-2 px-2 text-slate-400 max-w-xs">
                                                 {char.definition || <span className="text-slate-500">—</span>}
-                                            </td>
-                                            <td className="py-2 px-2">
-                                                {info.actor ? (
-                                                    <span className={info.hasActor ? 'text-blue-400' : 'text-blue-400/50'}>
-                                                        {info.actor.name}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-slate-500">—</span>
-                                                )}
-                                            </td>
-                                            <td className="py-2 px-2">
-                                                {info.room ? (
-                                                    <span className={info.hasRoom ? 'text-orange-400' : 'text-orange-400/50'}>
-                                                        {info.room.name}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-slate-500">—</span>
-                                                )}
-                                            </td>
-                                            <td className="py-2 px-2">
-                                                {info.set ? (
-                                                    <span className={info.hasSet ? 'text-purple-400' : 'text-purple-400/50'}>
-                                                        {info.set.name}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-slate-500">—</span>
-                                                )}
                                             </td>
                                             <td className="py-2 px-2">
                                                 {char.found ? (
@@ -740,8 +747,7 @@ export default function DatabasePage() {
                         )}
                     </div>
                     <p className="text-slate-500 text-xs mt-4">
-                        💡 Characters will be automatically assigned actors (initial), rooms (tone), and sets (final).
-                        Faded colors indicate defaults that will be imported.
+                        💡 Characters will be automatically assigned actors (initial), rooms (tone), and sets (final) on import.
                     </p>
                 </div>
             )}
