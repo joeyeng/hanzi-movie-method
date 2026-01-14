@@ -229,36 +229,27 @@ export default function ReviewPage() {
                 {showAnswer ? (
                     <div className="space-y-4 mb-8">
                         <div className="bg-slate-700/50 rounded-lg p-4">
-                            <div className="grid grid-cols-2 gap-4 text-center">
-                                <div>
-                                    <div className="text-slate-400 text-sm">Pinyin</div>
-                                    <div className="text-2xl text-white">{currentCharacter.pinyin}</div>
-                                </div>
-                                <div>
-                                    <div className="text-slate-400 text-sm">Meaning</div>
-                                    <div className="text-2xl text-white">{currentCharacter.meaning}</div>
-                                </div>
+                            <div className="text-center mb-4">
+                                <div className="text-slate-400 text-sm">Pinyin</div>
+                                <div className="text-2xl text-white">{currentCharacter.pinyin}</div>
                             </div>
-                            {currentCharacter.keyword && (
-                                <div className="text-center mt-4">
-                                    <div className="text-slate-400 text-sm">Keyword</div>
-                                    <div className="text-amber-300">{currentCharacter.keyword}</div>
-                                </div>
-                            )}
-                            {/* All Definitions */}
-                            {currentCharacter.allDefinitions && currentCharacter.allDefinitions.length > 1 && (
-                                <div className="mt-4 pt-4 border-t border-slate-600">
-                                    <div className="text-slate-400 text-sm mb-2">All Definitions</div>
+                            {/* Definitions */}
+                            <div className="text-center">
+                                <div className="text-slate-400 text-sm mb-2">Definitions</div>
+                                {currentCharacter.allDefinitions && currentCharacter.allDefinitions.length > 0 ? (
                                     <div className="space-y-2">
                                         {currentCharacter.allDefinitions.map((def, index) => (
-                                            <div key={index} className="flex items-start gap-2 text-sm">
-                                                <span className="text-amber-400 font-medium min-w-[60px]">{def.pinyin}</span>
+                                            <div key={index} className="text-left">
+                                                <span className="text-amber-400 font-medium">{def.pinyin}</span>
+                                                <span className="text-slate-500 mx-2">—</span>
                                                 <span className="text-slate-300">{def.definition}</span>
                                             </div>
                                         ))}
                                     </div>
-                                </div>
-                            )}
+                                ) : (
+                                    <div className="text-xl text-white">{currentCharacter.meaning}</div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="grid grid-cols-3 gap-4 text-sm">
