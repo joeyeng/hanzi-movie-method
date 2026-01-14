@@ -263,7 +263,7 @@ export default function CompoundsPage() {
                                         return charId ? (
                                             <Link
                                                 key={index}
-                                                href={`/characters?highlight=${charId}`}
+                                                href={`/characters?search=${encodeURIComponent(char)}`}
                                                 className="text-4xl text-amber-400 hover:text-amber-300 hover:scale-110 transition-all cursor-pointer"
                                                 title={`View character: ${char}`}
                                             >

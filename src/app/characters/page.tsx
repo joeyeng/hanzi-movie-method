@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
 import { CharacterCard } from '@/components/CharacterCard';
 import { CharacterForm } from '@/components/CharacterForm';
@@ -24,11 +25,20 @@ function normalizePinyin(pinyin: string): string {
 export default function CharactersPage() {
     const { characters, actors, rooms, sets, props, loading, add, update, remove, toggleLearned } = useCharactersWithRelations();
     const { compounds } = useCompounds();
+    const searchParams = useSearchParams();
     const [showForm, setShowForm] = useState(false);
     const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLearned, setFilterLearned] = useState<'all' | 'learned' | 'unlearned'>('all');
     const [currentPage, setCurrentPage] = useState(1);
+
+    // Initialize search from URL parameter
+    useEffect(() => {
+        const searchFromUrl = searchParams.get('search');
+        if (searchFromUrl) {
+            setSearchQuery(searchFromUrl);
+        }
+    }, [searchParams]);
 
     const filteredCharacters = characters.filter(char => {
         const searchLower = searchQuery.toLowerCase();

@@ -475,6 +475,74 @@ export default function ImportPage() {
         }
     };
 
+    const exportBackup = () => {
+        const backup = {
+            version: 1,
+            exportedAt: new Date().toISOString(),
+            data: {
+                actors: storage.getActors(),
+                rooms: storage.getRooms(),
+                sets: storage.getSets(),
+                props: storage.getProps(),
+                characters: storage.getCharacters(),
+                compounds: storage.getCompounds(),
+            }
+        };
+        
+        const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `hanzi-movie-method-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        setImportStatus(prev => [...prev, 'Backup exported successfully!']);
+    };
+
+    const importBackup = (file: File) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const backup = JSON.parse(e.target?.result as string);
+                
+                if (!backup.data) {
+                    setImportStatus(['Error: Invalid backup file format']);
+                    return;
+                }
+                
+                if (confirm('This will replace ALL current data with the backup. Continue?')) {
+                    const { actors: backupActors, rooms: backupRooms, sets: backupSets, props: backupProps, characters: backupCharacters, compounds: backupCompounds } = backup.data;
+                    
+                    if (backupActors) storage.saveActors(backupActors);
+                    if (backupRooms) storage.saveRooms(backupRooms);
+                    if (backupSets) storage.saveSets(backupSets);
+                    if (backupProps) storage.saveProps(backupProps);
+                    if (backupCharacters) storage.saveCharacters(backupCharacters);
+                    if (backupCompounds) storage.saveCompounds(backupCompounds);
+                    
+                    setImportStatus([
+                        'Backup restored successfully!',
+                        `Restored ${backupActors?.length || 0} actors`,
+                        `Restored ${backupRooms?.length || 0} rooms`,
+                        `Restored ${backupSets?.length || 0} sets`,
+                        `Restored ${backupProps?.length || 0} props`,
+                        `Restored ${backupCharacters?.length || 0} characters`,
+                        `Restored ${backupCompounds?.length || 0} compounds`,
+                    ]);
+                    
+                    // Reload page to refresh all data
+                    setTimeout(() => window.location.reload(), 1500);
+                }
+            } catch (error) {
+                setImportStatus(['Error: Could not parse backup file', error instanceof Error ? error.message : 'Unknown error']);
+            }
+        };
+        reader.readAsText(file);
+    };
+
     // Look up character info for preview
     const getPreviewInfo = (char: PreviewCharacter) => {
         if (!char.pinyin) {
@@ -792,10 +860,14 @@ export default function ImportPage() {
             {/* Current Stats */}
             <div className="bg-slate-800 rounded-lg p-6 mb-8">
                 <h2 className="text-xl font-semibold mb-4">Current Database</h2>
-                <div className="grid grid-cols-5 gap-4 text-center">
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 text-center">
                     <div>
                         <div className="text-3xl font-bold text-amber-400">{characters.length}</div>
                         <div className="text-slate-400 text-sm">Characters</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-cyan-400">{compounds.length}</div>
+                        <div className="text-slate-400 text-sm">Compounds</div>
                     </div>
                     <div>
                         <div className="text-3xl font-bold text-blue-400">{actors.length}</div>
@@ -813,6 +885,33 @@ export default function ImportPage() {
                         <div className="text-3xl font-bold text-pink-400">{props.length}</div>
                         <div className="text-slate-400 text-sm">Props</div>
                     </div>
+                </div>
+            </div>
+
+            {/* Backup & Restore */}
+            <div className="bg-slate-800 rounded-lg p-6 mb-8">
+                <h2 className="text-xl font-semibold mb-4">Backup & Restore</h2>
+                <p className="text-slate-400 text-sm mb-4">
+                    Export your entire database as a JSON file for backup, or restore from a previous backup.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                    <button
+                        onClick={exportBackup}
+                        className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-500 transition-colors"
+                    >
+                        📤 Export Backup
+                    </button>
+                    <label className="flex-1">
+                        <input
+                            type="file"
+                            accept=".json"
+                            onChange={(e) => e.target.files?.[0] && importBackup(e.target.files[0])}
+                            className="hidden"
+                        />
+                        <span className="block w-full bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-500 transition-colors text-center cursor-pointer">
+                            📥 Restore from Backup
+                        </span>
+                    </label>
                 </div>
             </div>
 
