@@ -300,8 +300,8 @@ export default function ReviewPage() {
                     <button
                         onClick={handleMarkLearned}
                         className={`px-4 py-2 rounded-lg text-sm transition-colors ${currentCharacter.learned
-                                ? 'bg-green-500/20 text-green-400'
-                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            ? 'bg-green-500/20 text-green-400'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             }`}
                     >
                         {currentCharacter.learned ? '✓ Learned' : 'Mark Learned'}
