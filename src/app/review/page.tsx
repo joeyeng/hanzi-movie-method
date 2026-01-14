@@ -31,27 +31,42 @@ export default function ReviewPage() {
     const [showAnswer, setShowAnswer] = useState(false);
     const [sessionStarted, setSessionStarted] = useState(false);
 
+    // Build review queue only when mode changes or session starts, not on every character update
+    const buildReviewQueue = () => {
+        let filtered: CharacterWithRelations[];
+        switch (reviewMode) {
+            case 'unlearned':
+                filtered = characters.filter(c => !c.learned);
+                break;
+            case 'due':
+                // Characters not reviewed in the last 24 hours
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                filtered = characters.filter(c => !c.lastReviewed || new Date(c.lastReviewed) < oneDayAgo);
+                break;
+            default:
+                filtered = [...characters];
+        }
+        // Shuffle the array
+        return filtered.sort(() => Math.random() - 0.5);
+    };
+
+    // Only rebuild queue when loading finishes initially
     useEffect(() => {
-        if (!loading) {
-            let filtered: CharacterWithRelations[];
-            switch (reviewMode) {
-                case 'unlearned':
-                    filtered = characters.filter(c => !c.learned);
-                    break;
-                case 'due':
-                    // Characters not reviewed in the last 24 hours
-                    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-                    filtered = characters.filter(c => !c.lastReviewed || new Date(c.lastReviewed) < oneDayAgo);
-                    break;
-                default:
-                    filtered = [...characters];
-            }
-            // Shuffle the array
-            setReviewQueue(filtered.sort(() => Math.random() - 0.5));
+        if (!loading && !sessionStarted) {
+            setReviewQueue(buildReviewQueue());
             setCurrentIndex(0);
             setShowAnswer(false);
         }
-    }, [characters, reviewMode, loading]);
+    }, [loading, sessionStarted]);
+
+    // Rebuild queue when review mode changes (only when not in active session)
+    useEffect(() => {
+        if (!loading && !sessionStarted) {
+            setReviewQueue(buildReviewQueue());
+            setCurrentIndex(0);
+            setShowAnswer(false);
+        }
+    }, [reviewMode]);
 
     const currentCharacter = reviewQueue[currentIndex];
     const progress = reviewQueue.length > 0 ? ((currentIndex + 1) / reviewQueue.length) * 100 : 0;
