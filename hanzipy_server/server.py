@@ -178,8 +178,16 @@ def lookup_characters_batch():
                 # Convert tone numbers to tone marks
                 pinyin = convert_pinyin_tone_number_to_mark(pinyin)
                 
-                # Sort definitions: surnames go last
-                sorted_definitions = sorted(definitions, key=lambda d: 1 if 'surname' in d.get('definition', '').lower() else 0)
+                # Sort definitions: surnames last, variants second-to-last
+                def definition_sort_key(d):
+                    definition_lower = d.get('definition', '').lower()
+                    if 'surname' in definition_lower:
+                        return 2  # surnames last
+                    elif 'variant' in definition_lower or 'old variant' in definition_lower:
+                        return 1  # variants second-to-last
+                    return 0  # everything else first
+                
+                sorted_definitions = sorted(definitions, key=definition_sort_key)
                 
                 # Convert all pinyin in definitions to tone marks
                 all_defs_converted = []

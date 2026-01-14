@@ -245,6 +245,20 @@ export default function ReviewPage() {
                                     <div className="text-amber-300">{currentCharacter.keyword}</div>
                                 </div>
                             )}
+                            {/* All Definitions */}
+                            {currentCharacter.allDefinitions && currentCharacter.allDefinitions.length > 1 && (
+                                <div className="mt-4 pt-4 border-t border-slate-600">
+                                    <div className="text-slate-400 text-sm mb-2">All Definitions</div>
+                                    <div className="space-y-2">
+                                        {currentCharacter.allDefinitions.map((def, index) => (
+                                            <div key={index} className="flex items-start gap-2 text-sm">
+                                                <span className="text-amber-400 font-medium min-w-[60px]">{def.pinyin}</span>
+                                                <span className="text-slate-300">{def.definition}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
                         <div className="grid grid-cols-3 gap-4 text-sm">
