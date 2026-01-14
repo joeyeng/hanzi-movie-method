@@ -13,7 +13,7 @@ const navItems = [
     { href: '/sets', label: 'Sets', icon: '🎬' },
     { href: '/props', label: 'Props', icon: '🎪' },
     { href: '/review', label: 'Review', icon: '📖' },
-    { href: '/import', label: 'Import Data', icon: '📥' },
+    { href: '/database', label: 'Database', icon: '📥' },
 ];
 
 export function Sidebar() {

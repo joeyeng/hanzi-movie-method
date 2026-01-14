@@ -110,7 +110,7 @@ function generateMovieScene(hanzi: string, meaning: string): string {
     return `{{ACTOR}} is in the {{ROOM}} at {{SET}}. They see a ${meaning.split(',')[0].trim()} (${hanzi}) and interact with it memorably.`;
 }
 
-export default function ImportPage() {
+export default function DatabasePage() {
     const { actors, add: addActor } = useActors();
     const { rooms, add: addRoom } = useRooms();
     const { sets, add: addSet } = useSets();
@@ -476,6 +476,10 @@ export default function ImportPage() {
     };
 
     const exportBackup = () => {
+        const characters = storage.getCharacters();
+        const learnedCount = characters.filter(c => c.learned).length;
+        const unlearnedCount = characters.filter(c => !c.learned).length;
+        
         const backup = {
             version: 1,
             exportedAt: new Date().toISOString(),
@@ -484,7 +488,7 @@ export default function ImportPage() {
                 rooms: storage.getRooms(),
                 sets: storage.getSets(),
                 props: storage.getProps(),
-                characters: storage.getCharacters(),
+                characters: characters,
                 compounds: storage.getCompounds(),
             }
         };
@@ -499,40 +503,41 @@ export default function ImportPage() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        setImportStatus(prev => [...prev, 'Backup exported successfully!']);
-    };
-
-    const importBackup = (file: File) => {
+        setImportStatus(prev => [...prev, `Backup exported successfully! (${learnedCount} learned, ${unlearnedCount} unlearned characters)`]);
+    };    const importBackup = (file: File) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
                 const backup = JSON.parse(e.target?.result as string);
-                
+
                 if (!backup.data) {
                     setImportStatus(['Error: Invalid backup file format']);
                     return;
                 }
-                
+
                 if (confirm('This will replace ALL current data with the backup. Continue?')) {
                     const { actors: backupActors, rooms: backupRooms, sets: backupSets, props: backupProps, characters: backupCharacters, compounds: backupCompounds } = backup.data;
-                    
+
                     if (backupActors) storage.saveActors(backupActors);
                     if (backupRooms) storage.saveRooms(backupRooms);
                     if (backupSets) storage.saveSets(backupSets);
                     if (backupProps) storage.saveProps(backupProps);
                     if (backupCharacters) storage.saveCharacters(backupCharacters);
                     if (backupCompounds) storage.saveCompounds(backupCompounds);
-                    
+
+                    const learnedCount = backupCharacters?.filter((c: Character) => c.learned).length || 0;
+                    const unlearnedCount = backupCharacters?.filter((c: Character) => !c.learned).length || 0;
+
                     setImportStatus([
                         'Backup restored successfully!',
                         `Restored ${backupActors?.length || 0} actors`,
                         `Restored ${backupRooms?.length || 0} rooms`,
                         `Restored ${backupSets?.length || 0} sets`,
                         `Restored ${backupProps?.length || 0} props`,
-                        `Restored ${backupCharacters?.length || 0} characters`,
+                        `Restored ${backupCharacters?.length || 0} characters (${learnedCount} learned, ${unlearnedCount} unlearned)`,
                         `Restored ${backupCompounds?.length || 0} compounds`,
                     ]);
-                    
+
                     // Reload page to refresh all data
                     setTimeout(() => window.location.reload(), 1500);
                 }
@@ -573,8 +578,8 @@ export default function ImportPage() {
     return (
         <div className="max-w-4xl mx-auto">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-amber-400 mb-2">Import Characters</h1>
-                <p className="text-slate-400">Upload a text file with Chinese characters or paste them directly</p>
+                <h1 className="text-3xl font-bold text-amber-400 mb-2">Database</h1>
+                <p className="text-slate-400">Import characters, manage data, and backup your database</p>
             </div>
 
             {/* HanziPy Server Status */}
@@ -601,9 +606,9 @@ export default function ImportPage() {
                 onDragLeave={handleDragLeave}
                 onClick={() => !parsing && fileInputRef.current?.click()}
                 className={`mb-6 border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-colors ${parsing ? 'opacity-50 cursor-wait' :
-                        dragActive
-                            ? 'border-amber-400 bg-amber-400/10'
-                            : 'border-slate-600 hover:border-slate-500 hover:bg-slate-800/50'
+                    dragActive
+                        ? 'border-amber-400 bg-amber-400/10'
+                        : 'border-slate-600 hover:border-slate-500 hover:bg-slate-800/50'
                     }`}
             >
                 <input
