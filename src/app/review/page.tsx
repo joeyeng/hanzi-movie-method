@@ -72,7 +72,7 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export default function ReviewPage() {
     const { characters, loading, markReviewed, toggleLearned } = useCharactersWithRelations();
-    const [reviewMode, setReviewMode] = useState<ReviewMode>('all');
+    const [reviewMode, setReviewMode] = useState<ReviewMode>('unlearned');
     const [reviewQueue, setReviewQueue] = useState<CharacterWithRelations[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [sessionStarted, setSessionStarted] = useState(false);
@@ -283,20 +283,6 @@ export default function ReviewPage() {
                                 <input
                                     type="radio"
                                     name="reviewMode"
-                                    checked={reviewMode === 'all'}
-                                    onChange={() => setReviewMode('all')}
-                                    className="w-4 h-4 text-amber-500"
-                                />
-                                <div>
-                                    <div className="font-medium">All Characters</div>
-                                    <div className="text-sm text-slate-400">{reviewableCharacters.length} characters in review list</div>
-                                </div>
-                            </label>
-
-                            <label className="flex items-center gap-3 p-3 bg-slate-700 rounded-lg cursor-pointer hover:bg-slate-600 transition-colors">
-                                <input
-                                    type="radio"
-                                    name="reviewMode"
                                     checked={reviewMode === 'unlearned'}
                                     onChange={() => setReviewMode('unlearned')}
                                     className="w-4 h-4 text-amber-500"
@@ -306,6 +292,20 @@ export default function ReviewPage() {
                                     <div className="text-sm text-slate-400">
                                         {reviewableCharacters.filter(c => !c.learned).length} characters
                                     </div>
+                                </div>
+                            </label>
+
+                            <label className="flex items-center gap-3 p-3 bg-slate-700 rounded-lg cursor-pointer hover:bg-slate-600 transition-colors">
+                                <input
+                                    type="radio"
+                                    name="reviewMode"
+                                    checked={reviewMode === 'all'}
+                                    onChange={() => setReviewMode('all')}
+                                    className="w-4 h-4 text-amber-500"
+                                />
+                                <div>
+                                    <div className="font-medium">All Characters</div>
+                                    <div className="text-sm text-slate-400">{reviewableCharacters.length} characters in review list</div>
                                 </div>
                             </label>
 
