@@ -1,41 +1,34 @@
 'use client';
 
 import { useState } from 'react';
-import { useProps } from '@/hooks/useLocalStorage';
-import { PropForm } from '@/components/PropForm';
-import { Prop } from '@/types';
+import { useComponents, useCharactersWithRelations } from '@/hooks/useLocalStorage';
+import Link from 'next/link';
 
 export default function PropsPage() {
-    const { props, loading, add, update, remove } = useProps();
-    const [showForm, setShowForm] = useState(false);
-    const [editingProp, setEditingProp] = useState<Prop | null>(null);
+    const { components, loading } = useComponents();
+    const { characters } = useCharactersWithRelations();
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredProps = props.filter(prop =>
-        prop.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        prop.component.includes(searchQuery)
+    // Count how many characters use each component
+    const componentUsageCounts = new Map<string, number>();
+    characters.forEach(char => {
+        (char.components || []).forEach(comp => {
+            componentUsageCounts.set(comp.id, (componentUsageCounts.get(comp.id) || 0) + 1);
+        });
+    });
+
+    // Sort components by usage count (most used first)
+    const sortedComponents = [...components].sort((a, b) => {
+        const countA = componentUsageCounts.get(a.id) || 0;
+        const countB = componentUsageCounts.get(b.id) || 0;
+        return countB - countA;
+    });
+
+    const filteredComponents = sortedComponents.filter(comp =>
+        comp.character.includes(searchQuery) ||
+        (comp.pinyin && comp.pinyin.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (comp.definition && comp.definition.toLowerCase().includes(searchQuery.toLowerCase()))
     );
-
-    const handleSubmit = (data: Omit<Prop, 'id' | 'createdAt' | 'updatedAt'>) => {
-        if (editingProp) {
-            update(editingProp.id, data);
-        } else {
-            add(data);
-        }
-        setShowForm(false);
-        setEditingProp(null);
-    };
-
-    const handleEdit = (prop: Prop) => {
-        setEditingProp(prop);
-        setShowForm(true);
-    };
-
-    const handleDelete = (id: string) => {
-        if (confirm('Are you sure you want to delete this prop?')) {
-            remove(id);
-        }
-    };
 
     if (loading) {
         return (
@@ -49,83 +42,62 @@ export default function PropsPage() {
         <div className="max-w-6xl mx-auto">
             <div className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-3xl font-bold text-pink-400 mb-2">Props</h1>
-                    <p className="text-slate-400">Props represent character components/radicals</p>
+                    <h1 className="text-3xl font-bold text-pink-400 mb-2">Props (Components)</h1>
+                    <p className="text-slate-400">Character components/radicals extracted from your characters ({components.length} total)</p>
                 </div>
-                <button
-                    onClick={() => {
-                        setEditingProp(null);
-                        setShowForm(true);
-                    }}
-                    className="bg-pink-500 text-white px-6 py-2 rounded-lg font-medium hover:bg-pink-400 transition-colors"
-                >
-                    + Add Prop
-                </button>
             </div>
-
-            {showForm && (
-                <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-4">
-                        {editingProp ? 'Edit Prop' : 'Add New Prop'}
-                    </h2>
-                    <PropForm
-                        initialData={editingProp || undefined}
-                        onSubmit={handleSubmit}
-                        onCancel={() => {
-                            setShowForm(false);
-                            setEditingProp(null);
-                        }}
-                    />
-                </div>
-            )}
 
             {/* Search */}
             <div className="mb-6">
                 <input
                     type="text"
-                    placeholder="Search props..."
+                    placeholder="Search components..."
                     value={searchQuery}
                     onChange={e => setSearchQuery(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500"
                 />
             </div>
 
-            {/* Props Grid */}
-            {filteredProps.length === 0 ? (
+            {/* Components Grid */}
+            {filteredComponents.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
-                    {props.length === 0
-                        ? 'No props yet. Add your first prop!'
-                        : 'No props match your search.'}
+                    {components.length === 0
+                        ? 'No components yet. Import characters to auto-extract components!'
+                        : 'No components match your search.'}
                 </div>
             ) : (
-                <div className="grid grid-cols-4 gap-4">
-                    {filteredProps.map(prop => (
-                        <div key={prop.id} className="bg-slate-800 rounded-lg p-4">
-                            <div className="text-center mb-3">
-                                <span className="text-4xl text-pink-400">{prop.component}</span>
-                            </div>
-                            <div className="text-center mb-3">
-                                <h3 className="text-lg font-semibold text-white">{prop.name}</h3>
-                            </div>
-                            {prop.description && (
-                                <p className="text-slate-400 text-sm mb-3 text-center">{prop.description}</p>
-                            )}
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleEdit(prop)}
-                                    className="flex-1 py-1.5 bg-slate-700 text-slate-300 rounded text-sm hover:bg-slate-600 transition-colors"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(prop.id)}
-                                    className="px-4 py-1.5 bg-red-600/20 text-red-400 rounded text-sm hover:bg-red-600/30 transition-colors"
-                                >
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    ))}
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {filteredComponents.map(comp => {
+                        const usageCount = componentUsageCounts.get(comp.id) || 0;
+                        return (
+                            <Link
+                                key={comp.id}
+                                href={`/component?char=${encodeURIComponent(comp.character)}`}
+                                className="bg-slate-800 rounded-lg p-4 hover:bg-slate-700 transition-colors group"
+                            >
+                                <div className="text-center mb-2">
+                                    <span className="text-5xl text-pink-400 group-hover:text-pink-300 transition-colors">
+                                        {comp.character}
+                                    </span>
+                                </div>
+                                {comp.pinyin && (
+                                    <div className="text-center text-white text-sm mb-1">
+                                        {comp.pinyin}
+                                    </div>
+                                )}
+                                {comp.definition && (
+                                    <p className="text-slate-400 text-xs text-center line-clamp-2" title={comp.definition}>
+                                        {comp.definition.split('/')[0]}
+                                    </p>
+                                )}
+                                <div className="text-center mt-2">
+                                    <span className="text-xs text-slate-500">
+                                        Used in {usageCount} character{usageCount !== 1 ? 's' : ''}
+                                    </span>
+                                </div>
+                            </Link>
+                        );
+                    })}
                 </div>
             )}
         </div>
