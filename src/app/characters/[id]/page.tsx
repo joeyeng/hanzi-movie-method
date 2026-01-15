@@ -203,6 +203,30 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                 )}
 
+                {/* Character Components (Radicals) */}
+                {character.components && character.components.length > 0 && (
+                    <div className="mb-6">
+                        <h3 className="text-slate-400 text-sm mb-2">Components</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {character.components.map((comp, index) => (
+                                <Link
+                                    key={index}
+                                    href={`/component?char=${encodeURIComponent(comp.character)}`}
+                                    className="bg-slate-700 hover:bg-slate-600 rounded px-3 py-2 text-slate-300 transition-colors group"
+                                >
+                                    <span className="text-2xl text-amber-400 group-hover:text-amber-300">{comp.character}</span>
+                                    {comp.pinyin && (
+                                        <span className="ml-2 text-sm text-slate-400">{comp.pinyin}</span>
+                                    )}
+                                    {comp.definition && (
+                                        <span className="ml-1 text-xs text-slate-500">({comp.definition.split(',')[0].split('/')[0].trim()})</span>
+                                    )}
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Movie Scene - Editable */}
                 <div className="bg-slate-700/30 rounded-lg p-4 mb-6">
                     <div className="flex justify-between items-center mb-2">

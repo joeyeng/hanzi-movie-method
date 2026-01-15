@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useActors, useRooms, useSets, useProps, useCharacters, useCompounds } from '@/hooks/useLocalStorage';
 import { exampleActors, exampleRooms, exampleSets, exampleProps } from '@/lib/seedData';
-import { parseCharacterFileAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult } from '@/lib/hanzipy';
+import { parseCharacterFileWithComponentsAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult, HanziComponent } from '@/lib/hanzipy';
 import * as storage from '@/lib/storage';
 import type { Actor, Room, Set, Character } from '@/types';
 
@@ -15,6 +15,7 @@ interface PreviewCharacter {
     definition: string | null;
     found: boolean;
     all_definitions?: { pinyin: string; definition: string }[];
+    components?: HanziComponent[];
 }
 
 // Parse pinyin to extract initial, final, and tone using Hanzi Movie Method system
@@ -263,11 +264,11 @@ export default function DatabasePage() {
         reader.onload = async (e) => {
             const content = e.target?.result as string;
             setParsing(true);
-            setImportStatus(['Looking up characters and compound words via HanziPy...']);
+            setImportStatus(['Looking up characters, components, and compound words via HanziPy...']);
 
             try {
-                // Use the async character file parser that calls the HanziPy API
-                const parsed = await parseCharacterFileAsync(content);
+                // Use the async character file parser that calls the HanziPy API with components
+                const parsed = await parseCharacterFileWithComponentsAsync(content);
                 setPreviewData(parsed);
 
                 // Also extract and look up compound words
@@ -278,10 +279,12 @@ export default function DatabasePage() {
                 const foundCount = parsed.filter(p => p.found).length;
                 const notFoundCount = parsed.filter(p => !p.found).length;
                 const compoundFoundCount = compoundResults.filter(c => c.found).length;
+                const componentsCount = parsed.reduce((acc, p) => acc + (p.components?.length || 0), 0);
 
                 setImportStatus([
                     `Parsed ${parsed.length} unique characters from file`,
                     foundCount > 0 ? `Found ${foundCount} characters in HanziPy` : '',
+                    componentsCount > 0 ? `Found ${componentsCount} total components` : '',
                     notFoundCount > 0 ? `${notFoundCount} characters not found (will import without pinyin)` : '',
                     compoundWords.length > 0 ? `Found ${compoundWords.length} compound words (${compoundFoundCount} with definitions)` : '',
                 ].filter(Boolean));
@@ -325,10 +328,10 @@ export default function DatabasePage() {
     const handlePasteImport = async () => {
         if (!pasteText.trim()) return;
         setParsing(true);
-        setImportStatus(['Looking up characters and compound words via HanziPy...']);
+        setImportStatus(['Looking up characters, components, and compound words via HanziPy...']);
 
         try {
-            const parsed = await parseCharacterFileAsync(pasteText);
+            const parsed = await parseCharacterFileWithComponentsAsync(pasteText);
             setPreviewData(parsed);
 
             // Also extract and look up compound words
@@ -339,10 +342,12 @@ export default function DatabasePage() {
             const foundCount = parsed.filter(p => p.found).length;
             const notFoundCount = parsed.filter(p => !p.found).length;
             const compoundFoundCount = compoundResults.filter(c => c.found).length;
+            const componentsCount = parsed.reduce((acc, p) => acc + (p.components?.length || 0), 0);
 
             setImportStatus([
                 `Parsed ${parsed.length} unique characters from text`,
                 foundCount > 0 ? `Found ${foundCount} characters in HanziPy` : '',
+                componentsCount > 0 ? `Found ${componentsCount} total components` : '',
                 notFoundCount > 0 ? `${notFoundCount} characters not found (will import without pinyin)` : '',
                 compoundWords.length > 0 ? `Found ${compoundWords.length} compound words (${compoundFoundCount} with definitions)` : '',
             ].filter(Boolean));
@@ -455,6 +460,7 @@ export default function DatabasePage() {
                     pinyin: '',
                     meaning: char.definition || 'Unknown meaning',
                     allDefinitions: char.all_definitions,
+                    components: char.components,
                     keyword: 'Unknown',
                     actorId: undefined,
                     roomId: undefined,
@@ -482,6 +488,7 @@ export default function DatabasePage() {
                 pinyin: char.pinyin,
                 meaning: char.definition || '',
                 allDefinitions: char.all_definitions,
+                components: char.components,
                 keyword: (char.definition || '').split(',')[0].trim() || char.hanzi,
                 actorId: actor?.id,
                 roomId: room?.id,

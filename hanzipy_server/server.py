@@ -269,6 +269,82 @@ def decompose_character():
         })
 
 
+@app.route('/decompose/batch', methods=['POST'])
+def decompose_characters_batch():
+    """
+    Decompose multiple Chinese characters into their components
+    Request body: { "characters": ["我", "你"] }
+    Response: { "results": [{ "character": "我", "components": [...] }, ...] }
+    """
+    if not HANZIPY_AVAILABLE:
+        return jsonify({'error': 'HanziPy not installed'}), 500
+    
+    data = request.get_json()
+    if not data or 'characters' not in data:
+        return jsonify({'error': 'Missing characters parameter'}), 400
+    
+    characters = data['characters']
+    if not isinstance(characters, list):
+        return jsonify({'error': 'Characters must be a list'}), 400
+    
+    results = []
+    for char in characters:
+        try:
+            # Decompose the character
+            decomposition = decomposer.decompose(char)
+            
+            # Extract unique component characters from 'once' and 'radical' keys
+            # (excluding the character itself)
+            components = []
+            seen = set()
+            
+            if decomposition:
+                # Combine 'once' (immediate components) and 'radical' keys
+                component_chars = []
+                if 'once' in decomposition:
+                    component_chars.extend(decomposition['once'])
+                if 'radical' in decomposition:
+                    component_chars.extend(decomposition['radical'])
+                
+                for comp in component_chars:
+                    # Skip if it's the same as the character, already seen, or a radical stroke
+                    if comp and comp != char and comp not in seen and len(comp) == 1 and ord(comp) >= 0x4e00:
+                        seen.add(comp)
+                        # Look up the component's definition
+                        comp_def = None
+                        comp_pinyin = None
+                        try:
+                            comp_defs = dictionary.definition_lookup(comp)
+                            if comp_defs and len(comp_defs) > 0:
+                                comp_pinyin = comp_defs[0].get('pinyin', '')
+                                if isinstance(comp_pinyin, list):
+                                    comp_pinyin = ' '.join(comp_pinyin)
+                                comp_pinyin = convert_pinyin_tone_number_to_mark(comp_pinyin)
+                                comp_def = comp_defs[0].get('definition', '')
+                        except:
+                            pass
+                        
+                        components.append({
+                            'character': comp,
+                            'pinyin': comp_pinyin,
+                            'definition': comp_def
+                        })
+            
+            results.append({
+                'character': char,
+                'components': components,
+                'decomposition': decomposition
+            })
+        except Exception as e:
+            results.append({
+                'character': char,
+                'components': [],
+                'error': str(e)
+            })
+    
+    return jsonify({'results': results})
+
+
 if __name__ == '__main__':
     print(f"HanziPy available: {HANZIPY_AVAILABLE}")
     print("Starting HanziPy server on http://localhost:5000")

@@ -5,6 +5,12 @@ export interface HanziDefinition {
   definition: string;
 }
 
+export interface HanziComponent {
+  character: string;
+  pinyin?: string;
+  definition?: string;
+}
+
 export interface HanziEntry {
   character: string;
   pinyin: string | null;
@@ -20,6 +26,7 @@ export interface ParsedCharacter {
   definition: string | null;
   found: boolean;
   all_definitions?: HanziDefinition[];
+  components?: HanziComponent[];
 }
 
 /**
@@ -263,4 +270,77 @@ export function parseCharacterFile(content: string): ParsedCharacter[] {
     definition: null,
     found: false,
   }));
+}
+
+/**
+ * Look up character decomposition (components) via the HanziPy API
+ */
+export async function decomposeCharactersAPI(characters: string[]): Promise<Map<string, HanziComponent[]>> {
+  const results = new Map<string, HanziComponent[]>();
+  
+  if (characters.length === 0) {
+    return results;
+  }
+
+  try {
+    const response = await fetch('/api/hanzi/decompose', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ characters }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || `API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    
+    if (data.results && Array.isArray(data.results)) {
+      for (const entry of data.results) {
+        results.set(entry.character, entry.components || []);
+      }
+    }
+  } catch (error) {
+    console.error('Error decomposing characters:', error);
+    // Return empty arrays on error
+    for (const char of characters) {
+      results.set(char, []);
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Parse a plain text file, look up all characters, and get their components
+ * This is the enhanced import function with component decomposition
+ */
+export async function parseCharacterFileWithComponentsAsync(content: string): Promise<ParsedCharacter[]> {
+  const characters = extractCharactersFromText(content);
+  
+  if (characters.length === 0) {
+    return [];
+  }
+
+  // Look up definitions and decompose in parallel
+  const [lookupResults, decomposeResults] = await Promise.all([
+    lookupCharactersAPI(characters),
+    decomposeCharactersAPI(characters),
+  ]);
+  
+  return characters.map(hanzi => {
+    const entry = lookupResults.get(hanzi);
+    const components = decomposeResults.get(hanzi) || [];
+    return {
+      hanzi,
+      pinyin: entry?.pinyin || null,
+      definition: entry?.definition || null,
+      found: entry?.found || false,
+      all_definitions: entry?.all_definitions,
+      components,
+    };
+  });
 }

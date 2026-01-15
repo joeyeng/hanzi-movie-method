@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useCharactersWithRelations } from '@/hooks/useLocalStorage';
 import { CharacterWithRelations } from '@/types';
 import Link from 'next/link';
 
 type ReviewMode = 'all' | 'unlearned' | 'due';
+type AnswerState = 'answering' | 'correct' | 'incorrect';
 
 // Resolve placeholders in movie scene with actual actor/room/set names
 function resolveMovieScene(
@@ -17,10 +18,56 @@ function resolveMovieScene(
     const actorName = actor?.name || '[Actor]';
     const roomName = room?.name || '[Room]';
     const setName = set?.name || '[Set]';
-    return scene
-        .replace(/\{\{ACTOR\}\}/g, actorName)
-        .replace(/\{\{ROOM\}\}/g, roomName)
-        .replace(/\{\{SET\}\}/g, setName);
+
+    // Strip any existing template prefix from the scene (for backwards compatibility)
+    const cleanScene = scene.replace(/^\{\{ACTOR\}\} is at \{\{SET\}\} in the \{\{ROOM\}\}\.\s*/i, '');
+
+    // Build the full scene with template prepended
+    const template = `${actorName} is at ${setName} in the ${roomName}.`;
+
+    return cleanScene ? `${template} ${cleanScene}` : template;
+}
+
+// Normalize pinyin for comparison (remove tones marks, spaces, lowercase)
+function normalizePinyin(pinyin: string): string {
+    const toneMap: Record<string, string> = {
+        'ā': 'a', 'á': 'a', 'ǎ': 'a', 'à': 'a',
+        'ē': 'e', 'é': 'e', 'ě': 'e', 'è': 'e',
+        'ī': 'i', 'í': 'i', 'ǐ': 'i', 'ì': 'i',
+        'ō': 'o', 'ó': 'o', 'ǒ': 'o', 'ò': 'o',
+        'ū': 'u', 'ú': 'u', 'ǔ': 'u', 'ù': 'u',
+        'ǖ': 'ü', 'ǘ': 'ü', 'ǚ': 'ü', 'ǜ': 'ü',
+    };
+    return pinyin
+        .toLowerCase()
+        .split('')
+        .map(c => toneMap[c] || c)
+        .join('')
+        .replace(/\s+/g, '');
+}
+
+// Extract tone from pinyin with tone marks
+function extractTone(pinyin: string): number {
+    const tone1 = /[āēīōūǖ]/;
+    const tone2 = /[áéíóúǘ]/;
+    const tone3 = /[ǎěǐǒǔǚ]/;
+    const tone4 = /[àèìòùǜ]/;
+
+    if (tone1.test(pinyin)) return 1;
+    if (tone2.test(pinyin)) return 2;
+    if (tone3.test(pinyin)) return 3;
+    if (tone4.test(pinyin)) return 4;
+    return 5; // neutral tone
+}
+
+// Shuffle array helper
+function shuffleArray<T>(array: T[]): T[] {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    return shuffled;
 }
 
 export default function ReviewPage() {
@@ -28,8 +75,14 @@ export default function ReviewPage() {
     const [reviewMode, setReviewMode] = useState<ReviewMode>('all');
     const [reviewQueue, setReviewQueue] = useState<CharacterWithRelations[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [showAnswer, setShowAnswer] = useState(false);
     const [sessionStarted, setSessionStarted] = useState(false);
+
+    // Quiz state
+    const [pinyinInput, setPinyinInput] = useState('');
+    const [selectedTone, setSelectedTone] = useState<number | null>(null);
+    const [selectedDefinition, setSelectedDefinition] = useState<string | null>(null);
+    const [answerState, setAnswerState] = useState<AnswerState>('answering');
+    const [definitionChoices, setDefinitionChoices] = useState<string[]>([]);
 
     // Only include characters marked as "reviewed" (ready for review)
     const reviewableCharacters = characters.filter(c => c.reviewed);
@@ -58,7 +111,7 @@ export default function ReviewPage() {
         if (!loading && !sessionStarted) {
             setReviewQueue(buildReviewQueue());
             setCurrentIndex(0);
-            setShowAnswer(false);
+            resetQuizState();
         }
     }, [loading, sessionStarted]);
 
@@ -67,18 +120,84 @@ export default function ReviewPage() {
         if (!loading && !sessionStarted) {
             setReviewQueue(buildReviewQueue());
             setCurrentIndex(0);
-            setShowAnswer(false);
+            resetQuizState();
         }
     }, [reviewMode]);
 
     const currentCharacter = reviewQueue[currentIndex];
     const progress = reviewQueue.length > 0 ? ((currentIndex + 1) / reviewQueue.length) * 100 : 0;
 
+    // Generate definition choices when current character changes
+    useEffect(() => {
+        if (currentCharacter && sessionStarted) {
+            generateDefinitionChoices();
+        }
+    }, [currentIndex, sessionStarted]);
+
+    // Reset quiz state for new question
+    const resetQuizState = () => {
+        setPinyinInput('');
+        setSelectedTone(null);
+        setSelectedDefinition(null);
+        setAnswerState('answering');
+        setDefinitionChoices([]);
+    };
+
+    // Generate multiple choice options for definitions
+    const generateDefinitionChoices = () => {
+        if (!currentCharacter) return;
+
+        // Get correct answer - first definition or meaning
+        const correctDef = currentCharacter.allDefinitions?.[0]?.definition || currentCharacter.meaning;
+
+        // Get random wrong definitions from other characters
+        const otherDefinitions = characters
+            .filter(c => c.id !== currentCharacter.id)
+            .flatMap(c => {
+                if (c.allDefinitions && c.allDefinitions.length > 0) {
+                    return c.allDefinitions.map(d => d.definition);
+                }
+                return [c.meaning];
+            })
+            .filter(d => d && d !== correctDef);
+
+        // Shuffle and pick 3 wrong answers
+        const wrongAnswers = shuffleArray(otherDefinitions).slice(0, 3);
+
+        // Combine and shuffle all options
+        const allChoices = shuffleArray([correctDef, ...wrongAnswers]);
+        setDefinitionChoices(allChoices);
+    };
+
+    // Check if the user's answer is correct
+    const checkAnswer = () => {
+        if (!currentCharacter) return;
+
+        const correctPinyin = normalizePinyin(currentCharacter.pinyin.split(',')[0].split(' ')[0]);
+        const userPinyin = normalizePinyin(pinyinInput);
+        const correctTone = extractTone(currentCharacter.pinyin);
+        const correctDef = currentCharacter.allDefinitions?.[0]?.definition || currentCharacter.meaning;
+
+        const pinyinCorrect = userPinyin === correctPinyin;
+        const toneCorrect = selectedTone === correctTone;
+        const definitionCorrect = selectedDefinition === correctDef;
+
+        if (pinyinCorrect && toneCorrect && definitionCorrect) {
+            setAnswerState('correct');
+            // Auto advance after short delay
+            setTimeout(() => {
+                handleNext();
+            }, 1500);
+        } else {
+            setAnswerState('incorrect');
+        }
+    };
+
     const handleNext = () => {
         if (currentCharacter) {
             markReviewed(currentCharacter.id);
         }
-        setShowAnswer(false);
+        resetQuizState();
         if (currentIndex < reviewQueue.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
@@ -91,6 +210,11 @@ export default function ReviewPage() {
             toggleLearned(currentCharacter.id);
         }
     };
+
+    // Get correct answers for display
+    const correctPinyin = currentCharacter?.pinyin.split(',')[0].split(' ')[0] || '';
+    const correctTone = currentCharacter ? extractTone(currentCharacter.pinyin) : 5;
+    const correctDefinition = currentCharacter?.allDefinitions?.[0]?.definition || currentCharacter?.meaning || '';
 
     if (loading) {
         return (
@@ -224,52 +348,117 @@ export default function ReviewPage() {
 
             {/* Character Card */}
             <div className="bg-slate-800 rounded-lg p-8">
-                {/* Question */}
+                {/* Question - Character */}
                 <div className="text-center mb-8">
                     <div className="text-8xl font-bold text-amber-400 mb-4">
                         {currentCharacter.hanzi}
                     </div>
-                    <p className="text-slate-400">What is the pinyin and meaning?</p>
                 </div>
 
-                {/* Answer */}
-                {showAnswer ? (
-                    <div className="space-y-4 mb-8">
-                        <div className="bg-slate-700/50 rounded-lg p-4">
-                            <div className="text-center mb-4">
-                                <div className="text-slate-400 text-sm">Pinyin</div>
-                                <div className="text-2xl text-white">{currentCharacter.pinyin}</div>
+                {/* Correct Answer Feedback */}
+                {answerState === 'correct' && (
+                    <div className="bg-green-500/20 border border-green-500 rounded-lg p-4 mb-6 text-center">
+                        <div className="text-green-400 text-xl font-bold">✓ Correct!</div>
+                    </div>
+                )}
+
+                {/* Incorrect Answer Feedback */}
+                {answerState === 'incorrect' && (
+                    <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-6">
+                        <div className="text-red-400 text-xl font-bold text-center mb-4">✗ Incorrect</div>
+                        <div className="space-y-3 text-sm">
+                            <div>
+                                <span className="text-slate-400">Correct Pinyin:</span>
+                                <span className="text-white ml-2 font-medium">{correctPinyin}</span>
                             </div>
-                            {/* Definitions */}
-                            <div className="text-center">
-                                <div className="text-slate-400 text-sm mb-2">Definitions</div>
-                                {currentCharacter.allDefinitions && currentCharacter.allDefinitions.length > 0 ? (
-                                    <div className="space-y-2">
-                                        {currentCharacter.allDefinitions.map((def, index) => (
-                                            <div key={index} className="text-left">
-                                                <span className="text-amber-400 font-medium">{def.pinyin}</span>
-                                                <span className="text-slate-500 mx-2">—</span>
-                                                <span className="text-slate-300">{def.definition}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-xl text-white">{currentCharacter.meaning}</div>
-                                )}
+                            <div>
+                                <span className="text-slate-400">Correct Tone:</span>
+                                <span className="text-white ml-2 font-medium">Tone {correctTone}</span>
+                            </div>
+                            <div>
+                                <span className="text-slate-400">Correct Definition:</span>
+                                <span className="text-white ml-2">{correctDefinition}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Quiz Form */}
+                {answerState === 'answering' && (
+                    <div className="space-y-6 mb-8">
+                        {/* Pinyin Input */}
+                        <div>
+                            <label className="block text-slate-400 text-sm mb-2">Enter Pinyin (without tone marks)</label>
+                            <input
+                                type="text"
+                                value={pinyinInput}
+                                onChange={(e) => setPinyinInput(e.target.value)}
+                                placeholder="e.g., wo, ni, hao"
+                                className="w-full bg-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                                autoComplete="off"
+                            />
+                        </div>
+
+                        {/* Tone Selection */}
+                        <div>
+                            <label className="block text-slate-400 text-sm mb-2">Select Tone</label>
+                            <div className="flex gap-2">
+                                {[1, 2, 3, 4, 5].map(tone => (
+                                    <button
+                                        key={tone}
+                                        onClick={() => setSelectedTone(tone)}
+                                        className={`flex-1 py-3 rounded-lg font-medium transition-colors ${selectedTone === tone
+                                            ? 'bg-amber-500 text-slate-900'
+                                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                            }`}
+                                    >
+                                        <div className="text-lg">{tone}</div>
+                                        <div className="text-xs opacity-75">
+                                            {tone === 1 ? '¯' : tone === 2 ? '/' : tone === 3 ? 'ˇ' : tone === 4 ? '\\' : '·'}
+                                        </div>
+                                    </button>
+                                ))}
                             </div>
                         </div>
 
+                        {/* Definition Multiple Choice */}
+                        <div>
+                            <label className="block text-slate-400 text-sm mb-2">Select Definition</label>
+                            <div className="space-y-2">
+                                {definitionChoices.map((def, index) => (
+                                    <button
+                                        key={index}
+                                        onClick={() => setSelectedDefinition(def)}
+                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${selectedDefinition === def
+                                            ? 'bg-amber-500 text-slate-900'
+                                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                            }`}
+                                    >
+                                        {def}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Check Answer Button */}
+                        <button
+                            onClick={checkAnswer}
+                            disabled={!pinyinInput || selectedTone === null || !selectedDefinition}
+                            className="w-full bg-amber-500 text-slate-900 py-3 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Check Answer
+                        </button>
+                    </div>
+                )}
+
+                {/* Show full answer details after incorrect */}
+                {answerState === 'incorrect' && (
+                    <div className="space-y-4 mb-8">
                         <div className="grid grid-cols-3 gap-4 text-sm">
                             {currentCharacter.actor && (
                                 <div className="bg-slate-700/30 rounded p-3">
                                     <div className="text-blue-400">Actor</div>
                                     <div className="text-white">{currentCharacter.actor.name} ({currentCharacter.actor.initial})</div>
-                                </div>
-                            )}
-                            {currentCharacter.room && (
-                                <div className="bg-slate-700/30 rounded p-3">
-                                    <div className="text-orange-400">Room</div>
-                                    <div className="text-white">{currentCharacter.room.name} (T{currentCharacter.room.tone})</div>
                                 </div>
                             )}
                             {currentCharacter.set && (
@@ -278,33 +467,19 @@ export default function ReviewPage() {
                                     <div className="text-white">{currentCharacter.set.name} ({currentCharacter.set.final})</div>
                                 </div>
                             )}
-                        </div>
-
-                        {currentCharacter.props.length > 0 && (
-                            <div className="bg-slate-700/30 rounded p-3">
-                                <div className="text-pink-400 text-sm mb-1">Props</div>
-                                <div className="flex flex-wrap gap-2">
-                                    {currentCharacter.props.map(prop => (
-                                        <span key={prop.id} className="bg-slate-700 px-2 py-1 rounded text-sm">
-                                            {prop.name} ({prop.component})
-                                        </span>
-                                    ))}
+                            {currentCharacter.room && (
+                                <div className="bg-slate-700/30 rounded p-3">
+                                    <div className="text-orange-400">Room</div>
+                                    <div className="text-white">{currentCharacter.room.name} (T{currentCharacter.room.tone})</div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
 
                         <div className="bg-slate-700/30 rounded p-4">
                             <div className="text-slate-400 text-sm mb-2">Movie Scene</div>
                             <p className="text-slate-200 italic">&quot;{resolveMovieScene(currentCharacter.movieScene, currentCharacter.actor, currentCharacter.room, currentCharacter.set)}&quot;</p>
                         </div>
                     </div>
-                ) : (
-                    <button
-                        onClick={() => setShowAnswer(true)}
-                        className="w-full bg-slate-700 text-white py-4 rounded-lg font-medium hover:bg-slate-600 transition-colors mb-8"
-                    >
-                        Show Answer
-                    </button>
                 )}
 
                 {/* Actions */}
@@ -324,12 +499,14 @@ export default function ReviewPage() {
                     >
                         End Session
                     </button>
-                    <button
-                        onClick={handleNext}
-                        className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
-                    >
-                        {currentIndex < reviewQueue.length - 1 ? 'Next Character →' : 'Finish Review'}
-                    </button>
+                    {answerState === 'incorrect' && (
+                        <button
+                            onClick={handleNext}
+                            className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
+                        >
+                            {currentIndex < reviewQueue.length - 1 ? 'Next Character →' : 'Finish Review'}
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

@@ -49,12 +49,19 @@ export interface CharacterDefinition {
   definition: string;
 }
 
+export interface CharacterComponent {
+  character: string;  // The component character
+  pinyin?: string;    // Pinyin if available
+  definition?: string; // Definition if available
+}
+
 export interface Character {
   id: string;
   hanzi: string;
   pinyin: string;
   meaning: string;
   allDefinitions?: CharacterDefinition[]; // All definitions from dictionary, sorted with surnames last
+  components?: CharacterComponent[]; // Character components (radicals/sub-characters)
   actorId?: string;
   setId?: string;
   roomId?: string;
