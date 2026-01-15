@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Hanzi Movie Method",
   description: "Chinese character learning database using the Hanzi Movie Method",
+  icons: {
+    icon: '/icon.svg',
+  },
 };
 
 export default function RootLayout({
