@@ -49,10 +49,22 @@ export interface CharacterDefinition {
   definition: string;
 }
 
+// Component stored in its own collection (for deduplication)
+export interface Component {
+  id: string;
+  character: string;  // The component character (e.g., "女", "子")
+  pinyin?: string;    // Primary pinyin if available
+  definition?: string; // Primary definition if available
+  allDefinitions?: CharacterDefinition[]; // All definitions, sorted with surnames/variants last
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// Legacy inline component format (for migration compatibility)
 export interface CharacterComponent {
-  character: string;  // The component character
-  pinyin?: string;    // Pinyin if available
-  definition?: string; // Definition if available
+  character: string;
+  pinyin?: string;
+  definition?: string;
 }
 
 export interface Character {
@@ -61,7 +73,8 @@ export interface Character {
   pinyin: string;
   meaning: string;
   allDefinitions?: CharacterDefinition[]; // All definitions from dictionary, sorted with surnames last
-  components?: CharacterComponent[]; // Character components (radicals/sub-characters)
+  componentIds?: string[]; // References to Component entities
+  components?: CharacterComponent[]; // Legacy: inline components (deprecated, for migration)
   actorId?: string;
   setId?: string;
   roomId?: string;
@@ -77,11 +90,12 @@ export interface Character {
   updatedAt: Date;
 }
 
-export interface CharacterWithRelations extends Omit<Character, 'actorId' | 'setId' | 'roomId' | 'props'> {
+export interface CharacterWithRelations extends Omit<Character, 'actorId' | 'setId' | 'roomId' | 'props' | 'componentIds' | 'components'> {
   actor?: Actor;
   set?: Set;
   room?: Room;
   props: Prop[];
+  components: Component[]; // Resolved component entities
 }
 
 export interface CompoundWord {

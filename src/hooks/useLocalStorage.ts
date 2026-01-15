@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Actor, Room, Set, Prop, Character, CharacterWithRelations, CompoundWord } from '@/types';
+import { Actor, Room, Set, Prop, Character, CharacterWithRelations, CompoundWord, Component, CharacterDefinition } from '@/types';
 import * as storage from '@/lib/storage';
 
 export function useActors() {
@@ -198,24 +198,87 @@ export function useCharacters() {
   return { characters, loading, add, update, remove, markReviewed, toggleLearned, toggleReviewed };
 }
 
+export function useComponents() {
+  const [components, setComponents] = useState<Component[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setComponents(storage.getComponents());
+    setLoading(false);
+  }, []);
+
+  const add = useCallback((component: Omit<Component, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newComponent = storage.addComponent(component);
+    setComponents(prev => [...prev, newComponent]);
+    return newComponent;
+  }, []);
+
+  const findOrCreate = useCallback((char: string, pinyin?: string, definition?: string, allDefinitions?: CharacterDefinition[]) => {
+    const component = storage.findOrCreateComponent(char, pinyin, definition, allDefinitions);
+    // Refresh the list to ensure we have latest
+    setComponents(storage.getComponents());
+    return component;
+  }, []);
+
+  const update = useCallback((id: string, updates: Partial<Component>) => {
+    const updated = storage.updateComponent(id, updates);
+    if (updated) {
+      setComponents(prev => prev.map(c => c.id === id ? updated : c));
+    }
+    return updated;
+  }, []);
+
+  const remove = useCallback((id: string) => {
+    const success = storage.deleteComponent(id);
+    if (success) {
+      setComponents(prev => prev.filter(c => c.id !== id));
+    }
+    return success;
+  }, []);
+
+  return { components, loading, add, findOrCreate, update, remove };
+}
+
 export function useCharactersWithRelations() {
   const { characters, loading: charsLoading, ...charActions } = useCharacters();
   const { actors, loading: actorsLoading } = useActors();
   const { rooms, loading: roomsLoading } = useRooms();
   const { sets, loading: setsLoading } = useSets();
   const { props, loading: propsLoading } = useProps();
+  const { components, loading: componentsLoading } = useComponents();
 
-  const loading = charsLoading || actorsLoading || roomsLoading || setsLoading || propsLoading;
+  const loading = charsLoading || actorsLoading || roomsLoading || setsLoading || propsLoading || componentsLoading;
 
-  const charactersWithRelations: CharacterWithRelations[] = characters.map(char => ({
-    ...char,
-    actor: actors.find(a => a.id === char.actorId),
-    room: rooms.find(r => r.id === char.roomId),
-    set: sets.find(s => s.id === char.setId),
-    props: char.props.map(propId => props.find(p => p.id === propId)).filter((p): p is Prop => p !== undefined),
-  }));
+  const charactersWithRelations: CharacterWithRelations[] = characters.map(char => {
+    // Resolve components - first try componentIds, then fall back to legacy inline components
+    let resolvedComponents: Component[] = [];
+    if (char.componentIds && char.componentIds.length > 0) {
+      resolvedComponents = char.componentIds
+        .map(compId => components.find(c => c.id === compId))
+        .filter((c): c is Component => c !== undefined);
+    } else if (char.components && char.components.length > 0) {
+      // Legacy: convert inline components to Component format (without id/dates)
+      resolvedComponents = char.components.map(c => ({
+        id: '',
+        character: c.character,
+        pinyin: c.pinyin,
+        definition: c.definition,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }));
+    }
 
-  return { characters: charactersWithRelations, loading, ...charActions, actors, rooms, sets, props };
+    return {
+      ...char,
+      actor: actors.find(a => a.id === char.actorId),
+      room: rooms.find(r => r.id === char.roomId),
+      set: sets.find(s => s.id === char.setId),
+      props: char.props.map(propId => props.find(p => p.id === propId)).filter((p): p is Prop => p !== undefined),
+      components: resolvedComponents,
+    };
+  });
+
+  return { characters: charactersWithRelations, loading, ...charActions, actors, rooms, sets, props, components };
 }
 
 export function useCompounds() {

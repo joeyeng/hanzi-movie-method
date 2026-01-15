@@ -3,35 +3,39 @@
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useCharacters } from '@/hooks/useLocalStorage';
+import { useCharactersWithRelations, useComponents } from '@/hooks/useLocalStorage';
 import { lookupCharactersAPI, HanziDefinition } from '@/lib/hanzipy';
 
 function ComponentContent() {
     const searchParams = useSearchParams();
-    const component = searchParams.get('char') || '';
-    const { characters, loading } = useCharacters();
-    const [allDefinitions, setAllDefinitions] = useState<HanziDefinition[]>([]);
-    const [primaryPinyin, setPrimaryPinyin] = useState<string | null>(null);
+    const componentChar = searchParams.get('char') || '';
+    const { characters, loading } = useCharactersWithRelations();
+    const { components: allComponents, loading: componentsLoading } = useComponents();
+    const [apiDefinitions, setApiDefinitions] = useState<HanziDefinition[]>([]);
+    const [apiPinyin, setApiPinyin] = useState<string | null>(null);
     const [lookupLoading, setLookupLoading] = useState(false);
 
-    // Look up all definitions for the component
+    // Get the stored component info
+    const storedComponentInfo = allComponents.find(c => c.character === componentChar);
+
+    // Only look up from API if the stored component doesn't have allDefinitions
     useEffect(() => {
-        if (component) {
+        if (componentChar && (!storedComponentInfo?.allDefinitions || storedComponentInfo.allDefinitions.length === 0)) {
             setLookupLoading(true);
-            lookupCharactersAPI([component]).then(results => {
-                const entry = results.get(component);
+            lookupCharactersAPI([componentChar]).then(results => {
+                const entry = results.get(componentChar);
                 if (entry) {
-                    setPrimaryPinyin(entry.pinyin);
-                    setAllDefinitions(entry.all_definitions || []);
+                    setApiPinyin(entry.pinyin);
+                    setApiDefinitions(entry.all_definitions || []);
                 }
                 setLookupLoading(false);
             }).catch(() => {
                 setLookupLoading(false);
             });
         }
-    }, [component]);
+    }, [componentChar, storedComponentInfo?.allDefinitions]);
 
-    if (loading || lookupLoading) {
+    if (loading || lookupLoading || componentsLoading) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-slate-400">Loading...</div>
@@ -39,7 +43,7 @@ function ComponentContent() {
         );
     }
 
-    if (!component) {
+    if (!componentChar) {
         return (
             <div className="max-w-4xl mx-auto text-center py-12">
                 <h1 className="text-2xl font-bold text-red-400 mb-4">No Component Specified</h1>
@@ -53,17 +57,13 @@ function ComponentContent() {
 
     // Find all characters that have this component
     const charactersWithComponent = characters.filter(char =>
-        char.components?.some(c => c.character === component)
+        char.components?.some(c => c.character === componentChar)
     );
 
-    // Get the component info from stored data as fallback
-    const storedComponentInfo = characters
-        .flatMap(char => char.components || [])
-        .find(c => c.character === component);
-
-    // Use API definitions if available, otherwise fall back to stored info
+    // Use stored definitions if available, otherwise fall back to API
+    const allDefinitions = storedComponentInfo?.allDefinitions || apiDefinitions;
+    const displayPinyin = storedComponentInfo?.pinyin || apiPinyin;
     const hasDefinitions = allDefinitions.length > 0;
-    const displayPinyin = primaryPinyin || storedComponentInfo?.pinyin;
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -74,7 +74,7 @@ function ComponentContent() {
             <div className="bg-slate-800 rounded-lg p-6">
                 {/* Component Header */}
                 <div className="flex items-start gap-6 mb-8">
-                    <span className="text-8xl font-bold text-amber-400">{component}</span>
+                    <span className="text-8xl font-bold text-amber-400">{componentChar}</span>
                     <div className="pt-2 flex-1">
                         {displayPinyin && (
                             <p className="text-2xl text-white mb-2">{displayPinyin}</p>
@@ -130,7 +130,7 @@ function ComponentContent() {
                 {/* Lookup link */}
                 <div className="mt-8 pt-6 border-t border-slate-700">
                     <a
-                        href={`https://translate.google.com/?sl=zh-CN&tl=en&text=${encodeURIComponent(component)}&op=translate`}
+                        href={`https://translate.google.com/?sl=zh-CN&tl=en&text=${encodeURIComponent(componentChar)}&op=translate`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-slate-400 hover:text-blue-400 transition-colors inline-flex items-center gap-2"

@@ -1,5 +1,5 @@
 // Local storage utilities for persisting data
-import { Actor, Room, Set, Prop, Character, CompoundWord } from '@/types';
+import { Actor, Room, Set, Prop, Character, CompoundWord, Component, CharacterDefinition } from '@/types';
 
 const STORAGE_KEYS = {
   actors: 'hmm-actors',
@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   props: 'hmm-props',
   characters: 'hmm-characters',
   compounds: 'hmm-compounds',
+  components: 'hmm-components',
 };
 
 // Generic storage functions
@@ -296,5 +297,67 @@ export function deleteCompound(id: string): boolean {
   const filtered = compounds.filter(c => c.id !== id);
   if (filtered.length === compounds.length) return false;
   saveCompounds(filtered);
+  return true;
+}
+
+// Components (character radicals/sub-characters)
+export function getComponents(): Component[] {
+  return getItem<Component>(STORAGE_KEYS.components);
+}
+
+export function saveComponents(components: Component[]): void {
+  setItem(STORAGE_KEYS.components, components);
+}
+
+export function addComponent(component: Omit<Component, 'id' | 'createdAt' | 'updatedAt'>): Component {
+  const components = getComponents();
+  const newComponent: Component = {
+    ...component,
+    id: crypto.randomUUID(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  components.push(newComponent);
+  saveComponents(components);
+  return newComponent;
+}
+
+export function findComponentByCharacter(char: string): Component | undefined {
+  const components = getComponents();
+  return components.find(c => c.character === char);
+}
+
+export function findOrCreateComponent(char: string, pinyin?: string, definition?: string, allDefinitions?: CharacterDefinition[]): Component {
+  const existing = findComponentByCharacter(char);
+  if (existing) {
+    // Update if we have better data (allDefinitions or missing pinyin/definition)
+    if ((allDefinitions && (!existing.allDefinitions || existing.allDefinitions.length === 0)) ||
+        (pinyin && !existing.pinyin) || 
+        (definition && !existing.definition)) {
+      return updateComponent(existing.id, { 
+        pinyin: pinyin || existing.pinyin, 
+        definition: definition || existing.definition,
+        allDefinitions: allDefinitions || existing.allDefinitions
+      }) || existing;
+    }
+    return existing;
+  }
+  return addComponent({ character: char, pinyin, definition, allDefinitions });
+}
+
+export function updateComponent(id: string, updates: Partial<Component>): Component | null {
+  const components = getComponents();
+  const index = components.findIndex(c => c.id === id);
+  if (index === -1) return null;
+  components[index] = { ...components[index], ...updates, updatedAt: new Date() };
+  saveComponents(components);
+  return components[index];
+}
+
+export function deleteComponent(id: string): boolean {
+  const components = getComponents();
+  const filtered = components.filter(c => c.id !== id);
+  if (filtered.length === components.length) return false;
+  saveComponents(filtered);
   return true;
 }

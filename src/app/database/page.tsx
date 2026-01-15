@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useActors, useRooms, useSets, useProps, useCharacters, useCompounds } from '@/hooks/useLocalStorage';
+import { useActors, useRooms, useSets, useProps, useCharacters, useCompounds, useComponents } from '@/hooks/useLocalStorage';
 import { exampleActors, exampleRooms, exampleSets, exampleProps } from '@/lib/seedData';
 import { parseCharacterFileWithComponentsAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult, HanziComponent } from '@/lib/hanzipy';
 import * as storage from '@/lib/storage';
@@ -242,6 +242,7 @@ export default function DatabasePage() {
     const { props, add: addProp } = useProps();
     const { characters, add: addCharacter } = useCharacters();
     const { compounds, add: addCompound } = useCompounds();
+    const { components, findOrCreate: findOrCreateComponent } = useComponents();
 
     const [importing, setImporting] = useState(false);
     const [parsing, setParsing] = useState(false);
@@ -419,11 +420,9 @@ export default function DatabasePage() {
         if (previewData.length === 0 && previewCompounds.length === 0) return;
 
         setImporting(true);
-        const totalItems = previewData.length + previewCompounds.length;
-        let processedItems = 0;
 
         // First ensure we have actors, rooms, and sets
-        setImportProgress({ current: 0, total: totalItems, phase: 'Setting up actors, rooms, and sets...' });
+        setImportProgress({ current: 0, total: 100, phase: 'Setting up actors, rooms, and sets...' });
         const { actorCount, roomCount, setCount } = ensureActorsAndSets();
 
         // Read fresh data from storage (they now have proper IDs)
@@ -432,18 +431,21 @@ export default function DatabasePage() {
         const currentSets = storage.getSets();
 
         const existingHanzi = new globalThis.Set(characters.map(c => c.hanzi));
+        
+        // Calculate actual new items to import
+        const newChars = previewData.filter(c => !existingHanzi.has(c.hanzi));
+        const existingCompounds = new globalThis.Set(compounds.map(c => c.word));
+        const newCompounds = previewCompounds.filter(c => !existingCompounds.has(c.word));
+        const totalNewItems = newChars.length + newCompounds.length;
+        
         let charCount = 0;
         let skipped = 0;
         let notFoundCount = 0;
+        let processedNew = 0;
 
-        setImportProgress({ current: 0, total: totalItems, phase: 'Importing characters...' });
+        setImportProgress({ current: 0, total: totalNewItems, phase: `Importing ${newChars.length} new characters...` });
 
         for (const char of previewData) {
-            processedItems++;
-            if (processedItems % 10 === 0 || processedItems === previewData.length) {
-                setImportProgress({ current: processedItems, total: totalItems, phase: `Importing characters... (${processedItems}/${previewData.length})` });
-                await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI to update
-            }
             if (existingHanzi.has(char.hanzi)) {
                 skipped++;
                 continue;
@@ -455,12 +457,17 @@ export default function DatabasePage() {
                 // Still import but with placeholder data
                 const movieScene = `Complete this movie scene for ${char.hanzi}...`;
 
+                // Convert components to componentIds (deduplicated)
+                const componentIds = char.components?.map(comp => 
+                    findOrCreateComponent(comp.character, comp.pinyin, comp.definition, comp.all_definitions).id
+                ) || [];
+
                 addCharacter({
                     hanzi: char.hanzi,
                     pinyin: '',
                     meaning: char.definition || 'Unknown meaning',
                     allDefinitions: char.all_definitions,
-                    components: char.components,
+                    componentIds,
                     keyword: 'Unknown',
                     actorId: undefined,
                     roomId: undefined,
@@ -469,6 +476,11 @@ export default function DatabasePage() {
                     props: [],
                 });
                 charCount++;
+                processedNew++;
+                if (processedNew % 10 === 0) {
+                    setImportProgress({ current: processedNew, total: totalNewItems, phase: `Importing characters... (${charCount}/${newChars.length})` });
+                    await new Promise(resolve => setTimeout(resolve, 0));
+                }
                 continue;
             }
 
@@ -483,12 +495,17 @@ export default function DatabasePage() {
             // Generate movie scene template
             const movieScene = generateMovieScene(char.hanzi, char.definition || 'meaning');
 
+            // Convert components to componentIds (deduplicated)
+            const componentIds = char.components?.map(comp => 
+                findOrCreateComponent(comp.character, comp.pinyin, comp.definition, comp.all_definitions).id
+            ) || [];
+
             addCharacter({
                 hanzi: char.hanzi,
                 pinyin: char.pinyin,
                 meaning: char.definition || '',
                 allDefinitions: char.all_definitions,
-                components: char.components,
+                componentIds,
                 keyword: (char.definition || '').split(',')[0].trim() || char.hanzi,
                 actorId: actor?.id,
                 roomId: room?.id,
@@ -498,22 +515,20 @@ export default function DatabasePage() {
             });
 
             charCount++;
+            processedNew++;
+            if (processedNew % 10 === 0) {
+                setImportProgress({ current: processedNew, total: totalNewItems, phase: `Importing characters... (${charCount}/${newChars.length})` });
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
         }
 
         // Import compound words
-        setImportProgress({ current: processedItems, total: totalItems, phase: 'Importing compound words...' });
-        const existingCompoundWords = new globalThis.Set(compounds.map(c => c.word));
+        setImportProgress({ current: processedNew, total: totalNewItems, phase: `Importing ${newCompounds.length} new compound words...` });
         let compoundCount = 0;
         let compoundSkipped = 0;
 
         for (const compound of previewCompounds) {
-            processedItems++;
-            if (processedItems % 20 === 0 || processedItems === totalItems) {
-                setImportProgress({ current: processedItems, total: totalItems, phase: `Importing compound words... (${compoundCount + compoundSkipped + 1}/${previewCompounds.length})` });
-                await new Promise(resolve => setTimeout(resolve, 0)); // Allow UI to update
-            }
-
-            if (existingCompoundWords.has(compound.word)) {
+            if (existingCompounds.has(compound.word)) {
                 compoundSkipped++;
                 continue;
             }
@@ -526,7 +541,14 @@ export default function DatabasePage() {
             });
 
             compoundCount++;
+            processedNew++;
+            if (processedNew % 20 === 0) {
+                setImportProgress({ current: processedNew, total: totalNewItems, phase: `Importing compound words... (${compoundCount}/${newCompounds.length})` });
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
         }
+
+        setImportProgress({ current: totalNewItems, total: totalNewItems, phase: 'Complete!' });
 
         setImportStatus(prev => [
             ...prev,
@@ -641,7 +663,7 @@ export default function DatabasePage() {
         const unlearnedCount = characters.filter(c => !c.learned).length;
 
         const backup = {
-            version: 1,
+            version: 2,
             exportedAt: new Date().toISOString(),
             data: {
                 actors: storage.getActors(),
@@ -650,6 +672,7 @@ export default function DatabasePage() {
                 props: storage.getProps(),
                 characters: characters,
                 compounds: storage.getCompounds(),
+                components: storage.getComponents(),
             }
         };
 
@@ -676,7 +699,7 @@ export default function DatabasePage() {
                 }
 
                 if (confirm('This will replace ALL current data with the backup. Continue?')) {
-                    const { actors: backupActors, rooms: backupRooms, sets: backupSets, props: backupProps, characters: backupCharacters, compounds: backupCompounds } = backup.data;
+                    const { actors: backupActors, rooms: backupRooms, sets: backupSets, props: backupProps, characters: backupCharacters, compounds: backupCompounds, components: backupComponents } = backup.data;
 
                     if (backupActors) storage.saveActors(backupActors);
                     if (backupRooms) storage.saveRooms(backupRooms);
@@ -684,6 +707,7 @@ export default function DatabasePage() {
                     if (backupProps) storage.saveProps(backupProps);
                     if (backupCharacters) storage.saveCharacters(backupCharacters);
                     if (backupCompounds) storage.saveCompounds(backupCompounds);
+                    if (backupComponents) storage.saveComponents(backupComponents);
 
                     const learnedCount = backupCharacters?.filter((c: Character) => c.learned).length || 0;
                     const unlearnedCount = backupCharacters?.filter((c: Character) => !c.learned).length || 0;
@@ -696,6 +720,7 @@ export default function DatabasePage() {
                         `Restored ${backupProps?.length || 0} props`,
                         `Restored ${backupCharacters?.length || 0} characters (${learnedCount} learned, ${unlearnedCount} unlearned)`,
                         `Restored ${backupCompounds?.length || 0} compounds`,
+                        `Restored ${backupComponents?.length || 0} components`,
                     ]);
 
                     // Reload page to refresh all data
@@ -811,13 +836,19 @@ export default function DatabasePage() {
             </div>
 
             {/* Preview */}
-            {previewData.length > 0 && (
+            {previewData.length > 0 && (() => {
+                const existingHanziSet = new globalThis.Set(characters.map(c => c.hanzi));
+                const newChars = previewData.filter(c => !existingHanziSet.has(c.hanzi));
+                const existingChars = previewData.filter(c => existingHanziSet.has(c.hanzi));
+                return (
                 <div className="bg-slate-800 rounded-lg p-6 mb-8">
                     <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold">Preview ({previewData.length} characters)</h2>
+                        <h2 className="text-xl font-semibold">
+                            Preview ({newChars.length} new{existingChars.length > 0 && <span className="text-slate-500">, {existingChars.length} existing</span>})
+                        </h2>
                         <button
                             onClick={importCharactersFromPreview}
-                            disabled={importing}
+                            disabled={importing || newChars.length === 0}
                             className="bg-amber-500 text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50"
                         >
                             {importing ? 'Importing...' : 'Import All Characters'}
@@ -855,8 +886,9 @@ export default function DatabasePage() {
                             </thead>
                             <tbody>
                                 {previewData.slice(0, 50).map((char, i) => {
+                                    const isExisting = existingHanziSet.has(char.hanzi);
                                     return (
-                                        <tr key={i} className="border-b border-slate-700/50">
+                                        <tr key={i} className={`border-b border-slate-700/50 ${isExisting ? 'opacity-50' : ''}`}>
                                             <td className="py-2 px-2">
                                                 <span className="text-2xl text-amber-400">{char.hanzi}</span>
                                             </td>
@@ -867,7 +899,9 @@ export default function DatabasePage() {
                                                 {char.definition || <span className="text-slate-500">—</span>}
                                             </td>
                                             <td className="py-2 px-2">
-                                                {char.found ? (
+                                                {isExisting ? (
+                                                    <span className="text-slate-500 text-xs">Already imported</span>
+                                                ) : char.found ? (
                                                     <span className="text-green-400 text-xs">✓ Found</span>
                                                 ) : (
                                                     <span className="text-yellow-400 text-xs">⚠ Not in dict</span>
@@ -888,7 +922,8 @@ export default function DatabasePage() {
                         💡 Characters will be automatically assigned actors (initial), rooms (tone), and sets (final) on import.
                     </p>
                 </div>
-            )}
+                );
+            })()}
 
             {/* Compound Words Preview */}
             {previewCompounds.length > 0 && (

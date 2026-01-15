@@ -310,24 +310,45 @@ def decompose_characters_batch():
                     # Skip if it's the same as the character, already seen, or a radical stroke
                     if comp and comp != char and comp not in seen and len(comp) == 1 and ord(comp) >= 0x4e00:
                         seen.add(comp)
-                        # Look up the component's definition
+                        # Look up the component's definitions (all of them)
                         comp_def = None
                         comp_pinyin = None
+                        all_defs = []
                         try:
                             comp_defs = dictionary.definition_lookup(comp)
                             if comp_defs and len(comp_defs) > 0:
-                                comp_pinyin = comp_defs[0].get('pinyin', '')
-                                if isinstance(comp_pinyin, list):
-                                    comp_pinyin = ' '.join(comp_pinyin)
-                                comp_pinyin = convert_pinyin_tone_number_to_mark(comp_pinyin)
-                                comp_def = comp_defs[0].get('definition', '')
+                                # Sort definitions: surnames last, variants second-to-last
+                                def definition_sort_key(d):
+                                    definition_lower = d.get('definition', '').lower().strip()
+                                    if 'surname' in definition_lower:
+                                        return 2
+                                    if 'variant of' in definition_lower or 'variant' in definition_lower.split('/')[0]:
+                                        return 1
+                                    return 0
+                                
+                                sorted_defs = sorted(comp_defs, key=definition_sort_key)
+                                
+                                # Convert all definitions with proper pinyin
+                                for d in sorted_defs:
+                                    d_pinyin = d.get('pinyin', '')
+                                    if isinstance(d_pinyin, list):
+                                        d_pinyin = ' '.join(d_pinyin)
+                                    all_defs.append({
+                                        'pinyin': convert_pinyin_tone_number_to_mark(d_pinyin),
+                                        'definition': d.get('definition', '')
+                                    })
+                                
+                                # Primary is first sorted definition
+                                comp_pinyin = all_defs[0]['pinyin'] if all_defs else None
+                                comp_def = all_defs[0]['definition'] if all_defs else None
                         except:
                             pass
                         
                         components.append({
                             'character': comp,
                             'pinyin': comp_pinyin,
-                            'definition': comp_def
+                            'definition': comp_def,
+                            'all_definitions': all_defs
                         })
             
             results.append({

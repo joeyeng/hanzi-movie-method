@@ -9,6 +9,7 @@ export interface HanziComponent {
   character: string;
   pinyin?: string;
   definition?: string;
+  all_definitions?: HanziDefinition[];
 }
 
 export interface HanziEntry {
