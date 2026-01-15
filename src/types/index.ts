@@ -14,6 +14,7 @@ export interface Room {
   id: string;
   name: string;
   tone: number; // 1-5 (5 for neutral tone)
+  emoji?: string; // Optional emoji to represent this room
   imageUrl?: string;
   description?: string;
   createdAt: Date;
@@ -24,6 +25,7 @@ export interface Set {
   id: string;
   name: string;
   final: string; // The final sound this set represents
+  emoji?: string; // Optional emoji to represent this set
   imageUrl?: string;
   description?: string;
   createdAt: Date;

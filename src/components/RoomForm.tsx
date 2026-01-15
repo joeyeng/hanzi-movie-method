@@ -12,6 +12,7 @@ interface RoomFormProps {
 export function RoomForm({ initialData, onSubmit, onCancel }: RoomFormProps) {
     const [name, setName] = useState(initialData?.name || '');
     const [tone, setTone] = useState(initialData?.tone || 1);
+    const [emoji, setEmoji] = useState(initialData?.emoji || '');
     const [description, setDescription] = useState(initialData?.description || '');
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -19,6 +20,7 @@ export function RoomForm({ initialData, onSubmit, onCancel }: RoomFormProps) {
         onSubmit({
             name,
             tone,
+            emoji: emoji || undefined,
             description: description || undefined,
         });
     };
@@ -33,18 +35,33 @@ export function RoomForm({ initialData, onSubmit, onCancel }: RoomFormProps) {
 
     return (
         <form onSubmit={handleSubmit} className="bg-slate-800 rounded-lg p-6 space-y-4">
-            <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Room Name *
-                </label>
-                <input
-                    type="text"
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="e.g., Living Room, Kitchen, Bathroom..."
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                    required
-                />
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-4">
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                        Room Name *
+                    </label>
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={e => setName(e.target.value)}
+                        placeholder="e.g., Living Room, Kitchen, Bathroom..."
+                        className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        required
+                    />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                        Emoji
+                    </label>
+                    <input
+                        type="text"
+                        value={emoji}
+                        onChange={e => setEmoji(e.target.value)}
+                        placeholder="🛋️"
+                        className="w-20 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-center text-xl placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        maxLength={2}
+                    />
+                </div>
             </div>
 
             <div>
