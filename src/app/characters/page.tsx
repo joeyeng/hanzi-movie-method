@@ -37,7 +37,7 @@ function CharactersContent() {
     useEffect(() => {
         const savedPage = sessionStorage.getItem(PAGE_STORAGE_KEY);
         const savedFilter = sessionStorage.getItem(FILTER_STORAGE_KEY);
-        
+
         if (savedPage) {
             setCurrentPage(parseInt(savedPage, 10));
         }
