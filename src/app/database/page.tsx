@@ -229,9 +229,9 @@ function findSetForFinal(final: string, sets: Set[]): Set | undefined {
     });
 }
 
-// Generate movie scene template - order is Actor at Set in Room
+// Generate movie scene description (template is auto-prepended in CharacterCard)
 function generateMovieScene(hanzi: string, meaning: string): string {
-    return `{{ACTOR}} is at {{SET}} in the {{ROOM}}. They see a ${meaning.split(',')[0].trim()} (${hanzi}) and interact with it memorably.`;
+    return `They see a ${meaning.split(',')[0].trim()} (${hanzi}) and interact with it memorably.`;
 }
 
 export default function DatabasePage() {

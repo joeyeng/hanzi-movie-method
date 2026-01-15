@@ -13,7 +13,7 @@ interface CharacterCardProps {
     showActions?: boolean;
 }
 
-// Resolve placeholders in movie scene with actual actor/room/set names
+// Build movie scene with auto-prepended template and resolved names
 function resolveMovieScene(
     scene: string,
     actor?: { name: string },
@@ -23,10 +23,14 @@ function resolveMovieScene(
     const actorName = actor?.name || '[Actor]';
     const roomName = room?.name || '[Room]';
     const setName = set?.name || '[Set]';
-    return scene
-        .replace(/\{\{ACTOR\}\}/g, actorName)
-        .replace(/\{\{ROOM\}\}/g, roomName)
-        .replace(/\{\{SET\}\}/g, setName);
+
+    // Strip any existing template prefix from the scene (for backwards compatibility)
+    const cleanScene = scene.replace(/^\{\{ACTOR\}\} is at \{\{SET\}\} in the \{\{ROOM\}\}\.\s*/i, '');
+
+    // Build the full scene with template prepended
+    const template = `${actorName} is at ${setName} in the ${roomName}.`;
+
+    return cleanScene ? `${template} ${cleanScene}` : template;
 }
 
 export function CharacterCard({ character, compounds = [], onEdit, onDelete, onToggleLearned, onToggleReviewed, showActions = true }: CharacterCardProps) {

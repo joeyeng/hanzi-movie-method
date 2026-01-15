@@ -188,8 +188,8 @@ export function CharacterForm({ actors, rooms, sets, props, onSubmit, onCancel, 
                         <span className="text-blue-400">{"{{ACTOR}}"}</span> is at <span className="text-green-400">{"{{SET}}"}</span> in the <span className="text-amber-400">{"{{ROOM}}"}</span>.
                     </p>
                     <textarea
-                        value={formData.movieScene.replace(/^\{\{ACTOR\}\} is at \{\{SET\}\} in the \{\{ROOM\}\}\.\s*/, '')}
-                        onChange={e => setFormData(prev => ({ ...prev, movieScene: `{{ACTOR}} is at {{SET}} in the {{ROOM}}. ${e.target.value}` }))}
+                        value={formData.movieScene.replace(/^\{\{ACTOR\}\} is at \{\{SET\}\} in the \{\{ROOM\}\}\.\s*/i, '')}
+                        onChange={e => setFormData(prev => ({ ...prev, movieScene: e.target.value }))}
                         className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white h-24"
                         placeholder="They see a [meaning] and interact with it memorably..."
                     />
