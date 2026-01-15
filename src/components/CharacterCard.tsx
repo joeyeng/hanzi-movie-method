@@ -86,6 +86,23 @@ export function CharacterCard({ character, compounds = [], onEdit, onDelete, onT
                 </div>
             </div>
 
+            {/* Emojis for Actor, Room, Set */}
+            {(character.actor?.emoji || character.room?.emoji || character.set?.emoji) && (
+                <div className="bg-slate-700/30 rounded-lg p-3 mb-3">
+                    <div className="flex justify-center items-center gap-6 text-4xl">
+                        {character.actor?.emoji && (
+                            <span title={`Actor: ${character.actor.name}`} className="hover:scale-110 transition-transform cursor-default">{character.actor.emoji}</span>
+                        )}
+                        {character.set?.emoji && (
+                            <span title={`Set: ${character.set.name}`} className="hover:scale-110 transition-transform cursor-default">{character.set.emoji}</span>
+                        )}
+                        {character.room?.emoji && (
+                            <span title={`Room: ${character.room.name}`} className="hover:scale-110 transition-transform cursor-default">{character.room.emoji}</span>
+                        )}
+                    </div>
+                </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3 text-sm">
                 {character.actor && (
                     <div className="bg-slate-700/50 rounded px-2 py-1">

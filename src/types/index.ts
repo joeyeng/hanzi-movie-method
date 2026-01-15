@@ -4,6 +4,7 @@ export interface Actor {
   id: string;
   name: string;
   initial: string; // The initial sound this actor represents
+  emoji?: string; // Optional emoji to represent this actor
   imageUrl?: string;
   description?: string;
   createdAt: Date;

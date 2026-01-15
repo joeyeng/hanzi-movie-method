@@ -13,18 +13,25 @@ export function ActorForm({ onSubmit, onCancel, initialData }: ActorFormProps) {
     const [formData, setFormData] = useState({
         name: initialData?.name || '',
         initial: initialData?.initial || '',
+        emoji: initialData?.emoji || '',
         description: initialData?.description || '',
         imageUrl: initialData?.imageUrl || '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSubmit(formData);
+        onSubmit({
+            name: formData.name,
+            initial: formData.initial,
+            emoji: formData.emoji || undefined,
+            description: formData.description || undefined,
+            imageUrl: formData.imageUrl || undefined,
+        });
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4 bg-slate-800 p-6 rounded-lg">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-4">
                 <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">
                         Actor Name *
@@ -51,6 +58,19 @@ export function ActorForm({ onSubmit, onCancel, initialData }: ActorFormProps) {
                         placeholder="e.g., j-"
                     />
                     <p className="text-xs text-slate-500 mt-1">The pinyin initial this actor represents</p>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-300 mb-1">
+                        Emoji
+                    </label>
+                    <input
+                        type="text"
+                        value={formData.emoji}
+                        onChange={e => setFormData(prev => ({ ...prev, emoji: e.target.value }))}
+                        className="w-20 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-center text-xl"
+                        placeholder="🥋"
+                        maxLength={2}
+                    />
                 </div>
             </div>
 

@@ -98,12 +98,15 @@ export default function ActorsPage() {
                         : 'No actors match your search.'}
                 </div>
             ) : (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredActors.map(actor => (
                         <div key={actor.id} className="bg-slate-800 rounded-lg p-4">
                             <div className="flex justify-between items-start mb-3">
                                 <div>
-                                    <h3 className="text-xl font-semibold text-white">{actor.name}</h3>
+                                    <h3 className="text-xl font-semibold text-white">
+                                        {actor.emoji && <span className="mr-2">{actor.emoji}</span>}
+                                        {actor.name}
+                                    </h3>
                                     <span className="inline-block bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-sm mt-1">
                                         {actor.initial}
                                     </span>

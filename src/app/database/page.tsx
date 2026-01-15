@@ -244,6 +244,7 @@ export default function DatabasePage() {
                 addActor({
                     name: actor.name,
                     initial: actor.initial,
+                    emoji: actor.emoji,
                     description: actor.description,
                 });
                 actorCount++;
@@ -259,6 +260,7 @@ export default function DatabasePage() {
                 addRoom({
                     name: room.name,
                     tone: room.tone,
+                    emoji: room.emoji,
                     description: room.description,
                 });
                 roomCount++;
@@ -274,6 +276,7 @@ export default function DatabasePage() {
                 addSet({
                     name: set.name,
                     final: set.final,
+                    emoji: set.emoji,
                     description: set.description,
                 });
                 setCount++;
@@ -422,6 +425,7 @@ export default function DatabasePage() {
                 addActor({
                     name: actor.name,
                     initial: actor.initial,
+                    emoji: actor.emoji,
                     description: actor.description,
                 });
                 count++;
@@ -440,6 +444,7 @@ export default function DatabasePage() {
                 addRoom({
                     name: room.name,
                     tone: room.tone,
+                    emoji: room.emoji,
                     description: room.description,
                 });
                 count++;
@@ -458,6 +463,7 @@ export default function DatabasePage() {
                 addSet({
                     name: set.name,
                     final: set.final,
+                    emoji: set.emoji,
                     description: set.description,
                 });
                 count++;
