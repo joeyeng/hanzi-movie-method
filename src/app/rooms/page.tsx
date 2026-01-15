@@ -126,14 +126,16 @@ export default function RoomsPage() {
                                         key={room.id}
                                         className="bg-slate-700/50 rounded-lg p-4 flex justify-between items-start"
                                     >
-                                        <div>
-                                            <h3 className="text-white font-medium text-lg">
-                                                {room.emoji && <span className="mr-2">{room.emoji}</span>}
-                                                {room.name}
-                                            </h3>
-                                            {room.description && (
-                                                <p className="text-slate-400 text-sm mt-1">{room.description}</p>
-                                            )}
+                                        <div className="flex items-center gap-3">
+                                            {room.emoji && <span className="text-4xl">{room.emoji}</span>}
+                                            <div>
+                                                <h3 className="text-white font-medium text-lg">
+                                                    {room.name}
+                                                </h3>
+                                                {room.description && (
+                                                    <p className="text-slate-400 text-sm mt-1">{room.description}</p>
+                                                )}
+                                            </div>
                                         </div>
                                         <div className="flex gap-2">
                                             <button

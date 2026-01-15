@@ -112,14 +112,16 @@ export default function SetsPage() {
                     {filteredSets.map(set => (
                         <div key={set.id} className="bg-slate-800 rounded-lg p-4">
                             <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <h3 className="text-xl font-semibold text-white">
-                                        {set.emoji && <span className="mr-2">{set.emoji}</span>}
-                                        {set.name}
-                                    </h3>
-                                    <span className="inline-block bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded text-sm mt-1">
-                                        {set.final}
-                                    </span>
+                                <div className="flex items-center gap-3">
+                                    {set.emoji && <span className="text-4xl">{set.emoji}</span>}
+                                    <div>
+                                        <h3 className="text-xl font-semibold text-white">
+                                            {set.name}
+                                        </h3>
+                                        <span className="inline-block bg-purple-500/20 text-purple-400 px-2 py-0.5 rounded text-sm mt-1">
+                                            {set.final}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             {set.description && (
