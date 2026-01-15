@@ -78,10 +78,11 @@ export default function ReviewPage() {
     const [sessionStarted, setSessionStarted] = useState(false);
 
     // Quiz state
-    const [pinyinInput, setPinyinInput] = useState('');
+    const [selectedPinyin, setSelectedPinyin] = useState<string | null>(null);
     const [selectedTone, setSelectedTone] = useState<number | null>(null);
     const [selectedDefinition, setSelectedDefinition] = useState<string | null>(null);
     const [answerState, setAnswerState] = useState<AnswerState>('answering');
+    const [pinyinChoices, setPinyinChoices] = useState<string[]>([]);
     const [definitionChoices, setDefinitionChoices] = useState<string[]>([]);
 
     // Only include characters marked as "reviewed" (ready for review)
@@ -130,17 +131,43 @@ export default function ReviewPage() {
     // Generate definition choices when current character changes
     useEffect(() => {
         if (currentCharacter && sessionStarted) {
+            generatePinyinChoices();
             generateDefinitionChoices();
         }
     }, [currentIndex, sessionStarted]);
 
     // Reset quiz state for new question
     const resetQuizState = () => {
-        setPinyinInput('');
+        setSelectedPinyin(null);
         setSelectedTone(null);
         setSelectedDefinition(null);
         setAnswerState('answering');
+        setPinyinChoices([]);
         setDefinitionChoices([]);
+    };
+
+    // Generate multiple choice options for pinyin
+    const generatePinyinChoices = () => {
+        if (!currentCharacter) return;
+
+        // Get correct answer - first pinyin syllable without tone
+        const correctPinyin = normalizePinyin(currentCharacter.pinyin.split(',')[0].split(' ')[0]);
+
+        // Get random wrong pinyins from other characters
+        const otherPinyins = characters
+            .filter(c => c.id !== currentCharacter.id && c.pinyin)
+            .map(c => normalizePinyin(c.pinyin.split(',')[0].split(' ')[0]))
+            .filter(p => p && p !== correctPinyin);
+
+        // Get unique wrong answers
+        const uniqueWrongPinyins = [...new Set(otherPinyins)];
+
+        // Shuffle and pick 3 wrong answers
+        const wrongAnswers = shuffleArray(uniqueWrongPinyins).slice(0, 3);
+
+        // Combine and shuffle all options
+        const allChoices = shuffleArray([correctPinyin, ...wrongAnswers]);
+        setPinyinChoices(allChoices);
     };
 
     // Generate multiple choice options for definitions
@@ -174,11 +201,10 @@ export default function ReviewPage() {
         if (!currentCharacter) return;
 
         const correctPinyin = normalizePinyin(currentCharacter.pinyin.split(',')[0].split(' ')[0]);
-        const userPinyin = normalizePinyin(pinyinInput);
         const correctTone = extractTone(currentCharacter.pinyin);
         const correctDef = currentCharacter.allDefinitions?.[0]?.definition || currentCharacter.meaning;
 
-        const pinyinCorrect = userPinyin === correctPinyin;
+        const pinyinCorrect = selectedPinyin === correctPinyin;
         const toneCorrect = selectedTone === correctTone;
         const definitionCorrect = selectedDefinition === correctDef;
 
@@ -386,17 +412,29 @@ export default function ReviewPage() {
                 {/* Quiz Form */}
                 {answerState === 'answering' && (
                     <div className="space-y-6 mb-8">
-                        {/* Pinyin Input */}
+                        {/* Pinyin Multiple Choice */}
                         <div>
-                            <label className="block text-slate-400 text-sm mb-2">Enter Pinyin (without tone marks)</label>
-                            <input
-                                type="text"
-                                value={pinyinInput}
-                                onChange={(e) => setPinyinInput(e.target.value)}
-                                placeholder="e.g., wo, ni, hao"
-                                className="w-full bg-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
-                                autoComplete="off"
-                            />
+                            <label className="block text-slate-400 text-sm mb-2">Select Pinyin</label>
+                            <div className="grid grid-cols-2 gap-2">
+                                {pinyinChoices.map((pinyin, index) => (
+                                    <label
+                                        key={index}
+                                        className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors ${selectedPinyin === pinyin
+                                            ? 'bg-amber-500 text-slate-900'
+                                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                            }`}
+                                    >
+                                        <input
+                                            type="radio"
+                                            name="pinyin"
+                                            checked={selectedPinyin === pinyin}
+                                            onChange={() => setSelectedPinyin(pinyin)}
+                                            className="w-4 h-4 text-amber-500 accent-amber-500"
+                                        />
+                                        <span className="font-medium">{pinyin}</span>
+                                    </label>
+                                ))}
+                            </div>
                         </div>
 
                         {/* Tone Selection */}
@@ -407,15 +445,15 @@ export default function ReviewPage() {
                                     <button
                                         key={tone}
                                         onClick={() => setSelectedTone(tone)}
-                                        className={`flex-1 py-3 rounded-lg font-medium transition-colors ${selectedTone === tone
+                                        className={`flex-1 py-4 rounded-lg font-medium transition-colors ${selectedTone === tone
                                             ? 'bg-amber-500 text-slate-900'
                                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                                             }`}
                                     >
-                                        <div className="text-lg">{tone}</div>
-                                        <div className="text-xs opacity-75">
-                                            {tone === 1 ? '¯' : tone === 2 ? '/' : tone === 3 ? 'ˇ' : tone === 4 ? '\\' : '·'}
+                                        <div className="text-3xl">
+                                            {tone === 1 ? 'ā' : tone === 2 ? 'á' : tone === 3 ? 'ǎ' : tone === 4 ? 'à' : '·'}
                                         </div>
+                                        <div className="text-xs opacity-75 mt-1">Tone {tone}</div>
                                     </button>
                                 ))}
                             </div>
@@ -449,7 +487,7 @@ export default function ReviewPage() {
                         {/* Check Answer Button */}
                         <button
                             onClick={checkAnswer}
-                            disabled={!pinyinInput || selectedTone === null || !selectedDefinition}
+                            disabled={!selectedPinyin || selectedTone === null || !selectedDefinition}
                             className="w-full bg-amber-500 text-slate-900 py-3 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Check Answer
