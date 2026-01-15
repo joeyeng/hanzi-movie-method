@@ -431,13 +431,13 @@ export default function DatabasePage() {
         const currentSets = storage.getSets();
 
         const existingHanzi = new globalThis.Set(characters.map(c => c.hanzi));
-        
+
         // Calculate actual new items to import
         const newChars = previewData.filter(c => !existingHanzi.has(c.hanzi));
         const existingCompounds = new globalThis.Set(compounds.map(c => c.word));
         const newCompounds = previewCompounds.filter(c => !existingCompounds.has(c.word));
         const totalNewItems = newChars.length + newCompounds.length;
-        
+
         let charCount = 0;
         let skipped = 0;
         let notFoundCount = 0;
@@ -458,7 +458,7 @@ export default function DatabasePage() {
                 const movieScene = `Complete this movie scene for ${char.hanzi}...`;
 
                 // Convert components to componentIds (deduplicated)
-                const componentIds = char.components?.map(comp => 
+                const componentIds = char.components?.map(comp =>
                     findOrCreateComponent(comp.character, comp.pinyin, comp.definition, comp.all_definitions).id
                 ) || [];
 
@@ -496,7 +496,7 @@ export default function DatabasePage() {
             const movieScene = generateMovieScene(char.hanzi, char.definition || 'meaning');
 
             // Convert components to componentIds (deduplicated)
-            const componentIds = char.components?.map(comp => 
+            const componentIds = char.components?.map(comp =>
                 findOrCreateComponent(comp.character, comp.pinyin, comp.definition, comp.all_definitions).id
             ) || [];
 
@@ -841,87 +841,87 @@ export default function DatabasePage() {
                 const newChars = previewData.filter(c => !existingHanziSet.has(c.hanzi));
                 const existingChars = previewData.filter(c => existingHanziSet.has(c.hanzi));
                 return (
-                <div className="bg-slate-800 rounded-lg p-6 mb-8">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-semibold">
-                            Preview ({newChars.length} new{existingChars.length > 0 && <span className="text-slate-500">, {existingChars.length} existing</span>})
-                        </h2>
-                        <button
-                            onClick={importCharactersFromPreview}
-                            disabled={importing || newChars.length === 0}
-                            className="bg-amber-500 text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50"
-                        >
-                            {importing ? 'Importing...' : 'Import All Characters'}
-                        </button>
-                    </div>
-
-                    {/* Import Progress */}
-                    {importing && importProgress.total > 0 && (
-                        <div className="mb-4 bg-slate-700/50 rounded-lg p-4">
-                            <div className="flex justify-between text-sm text-slate-400 mb-2">
-                                <span>{importProgress.phase}</span>
-                                <span>{importProgress.current} / {importProgress.total}</span>
-                            </div>
-                            <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
-                                <div
-                                    className="h-full bg-amber-500 transition-all duration-150"
-                                    style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
-                                />
-                            </div>
-                            <div className="text-xs text-slate-500 mt-2 text-center">
-                                {Math.round((importProgress.current / importProgress.total) * 100)}% complete
-                            </div>
+                    <div className="bg-slate-800 rounded-lg p-6 mb-8">
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className="text-xl font-semibold">
+                                Preview ({newChars.length} new{existingChars.length > 0 && <span className="text-slate-500">, {existingChars.length} existing</span>})
+                            </h2>
+                            <button
+                                onClick={importCharactersFromPreview}
+                                disabled={importing || newChars.length === 0}
+                                className="bg-amber-500 text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50"
+                            >
+                                {importing ? 'Importing...' : 'Import All Characters'}
+                            </button>
                         </div>
-                    )}
 
-                    <div className="max-h-96 overflow-y-auto">
-                        <table className="w-full text-sm">
-                            <thead className="text-slate-400 border-b border-slate-700 sticky top-0 bg-slate-800">
-                                <tr>
-                                    <th className="text-left py-2 px-2">Character</th>
-                                    <th className="text-left py-2 px-2">Pinyin</th>
-                                    <th className="text-left py-2 px-2">Definition</th>
-                                    <th className="text-left py-2 px-2">Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {previewData.slice(0, 50).map((char, i) => {
-                                    const isExisting = existingHanziSet.has(char.hanzi);
-                                    return (
-                                        <tr key={i} className={`border-b border-slate-700/50 ${isExisting ? 'opacity-50' : ''}`}>
-                                            <td className="py-2 px-2">
-                                                <span className="text-2xl text-amber-400">{char.hanzi}</span>
-                                            </td>
-                                            <td className="py-2 px-2 text-slate-300">
-                                                {char.pinyin || <span className="text-slate-500">—</span>}
-                                            </td>
-                                            <td className="py-2 px-2 text-slate-400 max-w-xs">
-                                                {char.definition || <span className="text-slate-500">—</span>}
-                                            </td>
-                                            <td className="py-2 px-2">
-                                                {isExisting ? (
-                                                    <span className="text-slate-500 text-xs">Already imported</span>
-                                                ) : char.found ? (
-                                                    <span className="text-green-400 text-xs">✓ Found</span>
-                                                ) : (
-                                                    <span className="text-yellow-400 text-xs">⚠ Not in dict</span>
-                                                )}
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                        {previewData.length > 50 && (
-                            <p className="text-slate-500 text-sm mt-2 text-center">
-                                ...and {previewData.length - 50} more characters
-                            </p>
+                        {/* Import Progress */}
+                        {importing && importProgress.total > 0 && (
+                            <div className="mb-4 bg-slate-700/50 rounded-lg p-4">
+                                <div className="flex justify-between text-sm text-slate-400 mb-2">
+                                    <span>{importProgress.phase}</span>
+                                    <span>{importProgress.current} / {importProgress.total}</span>
+                                </div>
+                                <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                                    <div
+                                        className="h-full bg-amber-500 transition-all duration-150"
+                                        style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
+                                    />
+                                </div>
+                                <div className="text-xs text-slate-500 mt-2 text-center">
+                                    {Math.round((importProgress.current / importProgress.total) * 100)}% complete
+                                </div>
+                            </div>
                         )}
+
+                        <div className="max-h-96 overflow-y-auto">
+                            <table className="w-full text-sm">
+                                <thead className="text-slate-400 border-b border-slate-700 sticky top-0 bg-slate-800">
+                                    <tr>
+                                        <th className="text-left py-2 px-2">Character</th>
+                                        <th className="text-left py-2 px-2">Pinyin</th>
+                                        <th className="text-left py-2 px-2">Definition</th>
+                                        <th className="text-left py-2 px-2">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {previewData.slice(0, 50).map((char, i) => {
+                                        const isExisting = existingHanziSet.has(char.hanzi);
+                                        return (
+                                            <tr key={i} className={`border-b border-slate-700/50 ${isExisting ? 'opacity-50' : ''}`}>
+                                                <td className="py-2 px-2">
+                                                    <span className="text-2xl text-amber-400">{char.hanzi}</span>
+                                                </td>
+                                                <td className="py-2 px-2 text-slate-300">
+                                                    {char.pinyin || <span className="text-slate-500">—</span>}
+                                                </td>
+                                                <td className="py-2 px-2 text-slate-400 max-w-xs">
+                                                    {char.definition || <span className="text-slate-500">—</span>}
+                                                </td>
+                                                <td className="py-2 px-2">
+                                                    {isExisting ? (
+                                                        <span className="text-slate-500 text-xs">Already imported</span>
+                                                    ) : char.found ? (
+                                                        <span className="text-green-400 text-xs">✓ Found</span>
+                                                    ) : (
+                                                        <span className="text-yellow-400 text-xs">⚠ Not in dict</span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                            {previewData.length > 50 && (
+                                <p className="text-slate-500 text-sm mt-2 text-center">
+                                    ...and {previewData.length - 50} more characters
+                                </p>
+                            )}
+                        </div>
+                        <p className="text-slate-500 text-xs mt-4">
+                            💡 Characters will be automatically assigned actors (initial), rooms (tone), and sets (final) on import.
+                        </p>
                     </div>
-                    <p className="text-slate-500 text-xs mt-4">
-                        💡 Characters will be automatically assigned actors (initial), rooms (tone), and sets (final) on import.
-                    </p>
-                </div>
                 );
             })()}
 
