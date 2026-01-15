@@ -181,15 +181,20 @@ export function CharacterForm({ actors, rooms, sets, props, onSubmit, onCancel, 
 
             <div>
                 <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Movie Scene *
+                    Movie Scene
                 </label>
-                <textarea
-                    required
-                    value={formData.movieScene}
-                    onChange={e => setFormData(prev => ({ ...prev, movieScene: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white h-32"
-                    placeholder="Describe the vivid movie scene that helps you remember this character..."
-                />
+                <div className="bg-slate-700 border border-slate-600 rounded-lg p-3">
+                    <p className="text-slate-400 text-sm mb-2 italic">
+                        <span className="text-blue-400">{"{{ACTOR}}"}</span> is at <span className="text-green-400">{"{{SET}}"}</span> in the <span className="text-amber-400">{"{{ROOM}}"}</span>.
+                    </p>
+                    <textarea
+                        value={formData.movieScene.replace(/^\{\{ACTOR\}\} is at \{\{SET\}\} in the \{\{ROOM\}\}\.\s*/, '')}
+                        onChange={e => setFormData(prev => ({ ...prev, movieScene: `{{ACTOR}} is at {{SET}} in the {{ROOM}}. ${e.target.value}` }))}
+                        className="w-full px-3 py-2 bg-slate-600 border border-slate-500 rounded-lg text-white h-24"
+                        placeholder="They see a [meaning] and interact with it memorably..."
+                    />
+                </div>
+                <p className="text-xs text-slate-500 mt-1">The template above is fixed. Describe the memorable scene below.</p>
             </div>
 
             <div>

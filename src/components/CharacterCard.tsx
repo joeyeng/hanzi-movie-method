@@ -92,7 +92,7 @@ export function CharacterCard({ character, compounds = [], onEdit, onDelete, onT
                 </div>
             </div>
 
-            {/* Emojis for Actor, Room, Set */}
+            {/* Emojis for Actor, Set, Room (mnemonic order) */}
             {(character.actor?.emoji || character.room?.emoji || character.set?.emoji) && (
                 <div className="bg-slate-700/30 rounded-lg p-3 mb-3">
                     <div className="flex justify-center items-center gap-6 text-4xl">
@@ -117,18 +117,18 @@ export function CharacterCard({ character, compounds = [], onEdit, onDelete, onT
                         <span className="text-slate-500 ml-1">({character.actor.initial})</span>
                     </div>
                 )}
-                {character.room && (
-                    <div className="bg-slate-700/50 rounded px-2 py-1">
-                        <span className="text-slate-400">Room:</span>{' '}
-                        <span className="text-white">{character.room.name}</span>
-                        <span className="text-slate-500 ml-1">(T{character.room.tone})</span>
-                    </div>
-                )}
                 {character.set && (
                     <div className="bg-slate-700/50 rounded px-2 py-1">
                         <span className="text-slate-400">Set:</span>{' '}
                         <span className="text-white">{character.set.name}</span>
                         <span className="text-slate-500 ml-1">({character.set.final})</span>
+                    </div>
+                )}
+                {character.room && (
+                    <div className="bg-slate-700/50 rounded px-2 py-1">
+                        <span className="text-slate-400">Room:</span>{' '}
+                        <span className="text-white">{character.room.name}</span>
+                        <span className="text-slate-500 ml-1">(T{character.room.tone})</span>
                     </div>
                 )}
             </div>
