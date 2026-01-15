@@ -52,7 +52,7 @@ function ComponentContent() {
     }
 
     // Find all characters that have this component
-    const charactersWithComponent = characters.filter(char => 
+    const charactersWithComponent = characters.filter(char =>
         char.components?.some(c => c.character === component)
     );
 
@@ -101,7 +101,7 @@ function ComponentContent() {
                     <h2 className="text-xl font-semibold text-amber-400 mb-4">
                         Characters with this component ({charactersWithComponent.length})
                     </h2>
-                    
+
                     {charactersWithComponent.length === 0 ? (
                         <p className="text-slate-500 italic">No characters in your database contain this component.</p>
                     ) : (
