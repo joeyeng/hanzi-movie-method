@@ -1,0 +1,313 @@
+'use client';
+
+import { use, useState } from 'react';
+import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
+import Link from 'next/link';
+
+// Build movie scene with auto-prepended template and resolved names
+function resolveMovieScene(
+    scene: string,
+    actor?: { name: string },
+    room?: { name: string },
+    set?: { name: string }
+): string {
+    const actorName = actor?.name || '[Actor]';
+    const roomName = room?.name || '[Room]';
+    const setName = set?.name || '[Set]';
+
+    // Strip any existing template prefix from the scene (for backwards compatibility)
+    const cleanScene = scene.replace(/^\{\{ACTOR\}\} is at \{\{SET\}\} in the \{\{ROOM\}\}\.\s*/i, '');
+
+    // Build the full scene with template prepended
+    const template = `${actorName} is at ${setName} in the ${roomName}.`;
+
+    return cleanScene ? `${template} ${cleanScene}` : template;
+}
+
+export default function CharacterDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
+    const { characters, loading, update, remove, toggleLearned, toggleReviewed } = useCharactersWithRelations();
+    const { compounds } = useCompounds();
+    const [isEditingScene, setIsEditingScene] = useState(false);
+    const [editedScene, setEditedScene] = useState('');
+
+    const character = characters.find(c => c.id === id);
+
+    if (loading) {
+        return (
+            <div className="flex items-center justify-center h-64">
+                <div className="text-slate-400">Loading...</div>
+            </div>
+        );
+    }
+
+    if (!character) {
+        return (
+            <div className="max-w-4xl mx-auto text-center py-12">
+                <h1 className="text-2xl font-bold text-red-400 mb-4">Character Not Found</h1>
+                <p className="text-slate-400 mb-6">The character you&apos;re looking for doesn&apos;t exist.</p>
+                <Link href="/characters" className="text-amber-400 hover:text-amber-300">
+                    ← Back to Characters
+                </Link>
+            </div>
+        );
+    }
+
+    const resolvedMovieScene = resolveMovieScene(character.movieScene, character.actor, character.room, character.set);
+    const relatedCompounds = compounds.filter(c => c.characters.includes(character.hanzi));
+    const hasMultipleDefinitions = character.allDefinitions && character.allDefinitions.length > 1;
+
+    const handleSaveScene = () => {
+        update(character.id, { movieScene: editedScene });
+        setIsEditingScene(false);
+    };
+
+    const handleStartEditScene = () => {
+        setEditedScene(character.movieScene);
+        setIsEditingScene(true);
+    };
+
+    const handleDelete = () => {
+        if (confirm('Are you sure you want to delete this character?')) {
+            remove(character.id);
+            window.location.href = '/characters';
+        }
+    };
+
+    // Get the template with resolved names for display
+    const templatePrefix = `${character.actor?.name || '[Actor]'} is at ${character.set?.name || '[Set]'} in the ${character.room?.name || '[Room]'}.`;
+
+    return (
+        <div className="max-w-4xl mx-auto">
+            {/* Back link */}
+            <Link href="/characters" className="text-slate-400 hover:text-amber-400 mb-4 inline-block">
+                ← Back to Characters
+            </Link>
+
+            <div className="bg-slate-800 rounded-lg p-6">
+                {/* Header with character and basic info */}
+                <div className="flex justify-between items-start mb-6">
+                    <div className="flex items-start gap-4">
+                        <span className="text-7xl font-bold text-amber-400">{character.hanzi}</span>
+                        <div>
+                            <p className="text-2xl text-white mb-1">{character.pinyin}</p>
+                            <p className="text-lg text-slate-400">{character.meaning}</p>
+                            {character.keyword && (
+                                <p className="text-amber-300 mt-2">Keyword: {character.keyword}</p>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <a
+                            href={`https://translate.google.com/?sl=zh-CN&tl=en&text=${encodeURIComponent(character.hanzi)}&op=translate`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-slate-400 hover:text-blue-400 transition-colors"
+                            title="Google Translate"
+                        >
+                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04M18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12m-2.62 7l1.62-4.33L19.12 17h-3.24z" />
+                            </svg>
+                        </a>
+                        {character.reviewed && (
+                            <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded text-sm">
+                                📚 In Review
+                            </span>
+                        )}
+                        {character.learned && (
+                            <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded text-sm">
+                                ✓ Learned
+                            </span>
+                        )}
+                    </div>
+                </div>
+
+                {/* Additional definitions */}
+                {hasMultipleDefinitions && (
+                    <div className="mb-6 p-4 bg-slate-700/30 rounded-lg">
+                        <h3 className="text-sm font-medium text-slate-300 mb-2">All Definitions</h3>
+                        <div className="space-y-2">
+                            {character.allDefinitions!.map((def, index) => (
+                                <div key={index} className="text-sm">
+                                    <span className="text-slate-300">{def.pinyin}</span>
+                                    <span className="text-slate-500 mx-2">—</span>
+                                    <span className="text-slate-400">{def.definition}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Emojis for Actor, Set, Room */}
+                {(character.actor?.emoji || character.room?.emoji || character.set?.emoji) && (
+                    <div className="bg-slate-700/30 rounded-lg p-4 mb-6">
+                        <div className="flex justify-center items-center gap-8 text-5xl">
+                            {character.actor?.emoji && (
+                                <span title={`Actor: ${character.actor.name}`} className="hover:scale-110 transition-transform cursor-default">{character.actor.emoji}</span>
+                            )}
+                            {character.set?.emoji && (
+                                <span title={`Set: ${character.set.name}`} className="hover:scale-110 transition-transform cursor-default">{character.set.emoji}</span>
+                            )}
+                            {character.room?.emoji && (
+                                <span title={`Room: ${character.room.name}`} className="hover:scale-110 transition-transform cursor-default">{character.room.emoji}</span>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Actor, Set, Room details */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    {character.actor && (
+                        <div className="bg-slate-700/50 rounded-lg p-4">
+                            <h3 className="text-slate-400 text-sm mb-1">Actor (Initial)</h3>
+                            <p className="text-white text-lg">{character.actor.name}</p>
+                            <p className="text-slate-500">{character.actor.initial}</p>
+                            {character.actor.description && (
+                                <p className="text-slate-500 text-sm mt-2">{character.actor.description}</p>
+                            )}
+                        </div>
+                    )}
+                    {character.set && (
+                        <div className="bg-slate-700/50 rounded-lg p-4">
+                            <h3 className="text-slate-400 text-sm mb-1">Set (Final)</h3>
+                            <p className="text-white text-lg">{character.set.name}</p>
+                            <p className="text-slate-500">{character.set.final}</p>
+                            {character.set.description && (
+                                <p className="text-slate-500 text-sm mt-2">{character.set.description}</p>
+                            )}
+                        </div>
+                    )}
+                    {character.room && (
+                        <div className="bg-slate-700/50 rounded-lg p-4">
+                            <h3 className="text-slate-400 text-sm mb-1">Room (Tone)</h3>
+                            <p className="text-white text-lg">{character.room.name}</p>
+                            <p className="text-slate-500">Tone {character.room.tone}</p>
+                            {character.room.description && (
+                                <p className="text-slate-500 text-sm mt-2">{character.room.description}</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+
+                {/* Props */}
+                {character.props.length > 0 && (
+                    <div className="mb-6">
+                        <h3 className="text-slate-400 text-sm mb-2">Props (Components)</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {character.props.map(prop => (
+                                <span key={prop.id} className="bg-slate-700 rounded px-3 py-1 text-slate-300">
+                                    {prop.name} <span className="text-amber-400">({prop.component})</span>
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Movie Scene - Editable */}
+                <div className="bg-slate-700/30 rounded-lg p-4 mb-6">
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-slate-400 text-sm">Movie Scene</h3>
+                        {!isEditingScene && (
+                            <button
+                                onClick={handleStartEditScene}
+                                className="text-xs text-amber-400 hover:text-amber-300"
+                            >
+                                Edit Scene
+                            </button>
+                        )}
+                    </div>
+                    {isEditingScene ? (
+                        <div>
+                            <p className="text-slate-400 text-sm mb-2 italic">{templatePrefix}</p>
+                            <textarea
+                                value={editedScene}
+                                onChange={(e) => setEditedScene(e.target.value)}
+                                className="w-full bg-slate-700 rounded p-3 text-slate-200 min-h-[100px]"
+                                placeholder="Describe the scene action..."
+                            />
+                            <div className="flex gap-2 mt-3">
+                                <button
+                                    onClick={handleSaveScene}
+                                    className="px-4 py-2 bg-amber-500 text-slate-900 rounded font-medium hover:bg-amber-400 transition-colors"
+                                >
+                                    Save
+                                </button>
+                                <button
+                                    onClick={() => setIsEditingScene(false)}
+                                    className="px-4 py-2 bg-slate-700 text-slate-300 rounded hover:bg-slate-600 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-slate-200 italic text-lg">&quot;{resolvedMovieScene}&quot;</p>
+                    )}
+                </div>
+
+                {/* Notes */}
+                {character.notes && (
+                    <div className="mb-6">
+                        <h3 className="text-slate-400 text-sm mb-2">Notes</h3>
+                        <p className="text-slate-400">{character.notes}</p>
+                    </div>
+                )}
+
+                {/* Compound Words */}
+                {relatedCompounds.length > 0 && (
+                    <div className="mb-6">
+                        <h3 className="text-slate-400 text-sm mb-2">Compound Words</h3>
+                        <div className="flex flex-wrap gap-2">
+                            {relatedCompounds.map(compound => (
+                                <Link
+                                    key={compound.id}
+                                    href={`/compounds?search=${encodeURIComponent(compound.word)}`}
+                                    className="bg-amber-500/20 hover:bg-amber-500/30 rounded px-3 py-1 text-amber-300 transition-colors"
+                                >
+                                    {compound.word} <span className="text-slate-400">({compound.pinyin})</span>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Review stats */}
+                <div className="flex justify-between items-center text-sm text-slate-500 mb-6 py-3 border-t border-slate-700">
+                    <span>Review Count: {character.reviewCount}</span>
+                    {character.lastReviewed && (
+                        <span>Last Reviewed: {new Date(character.lastReviewed).toLocaleDateString()}</span>
+                    )}
+                    <span>Created: {new Date(character.createdAt).toLocaleDateString()}</span>
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-700">
+                    <button
+                        onClick={() => toggleReviewed(character.id)}
+                        className={`flex-1 py-2 rounded font-medium transition-colors ${character.reviewed
+                            ? 'bg-blue-600/30 text-blue-300 hover:bg-blue-600/40'
+                            : 'bg-blue-600 text-white hover:bg-blue-500'
+                            }`}
+                    >
+                        {character.reviewed ? '📚 Remove from Review' : '📚 Add to Review'}
+                    </button>
+                    <button
+                        onClick={() => toggleLearned(character.id)}
+                        className={`flex-1 py-2 rounded font-medium transition-colors ${character.learned
+                            ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            : 'bg-green-600 text-white hover:bg-green-500'
+                            }`}
+                    >
+                        {character.learned ? 'Unmark Learned' : 'Mark Learned'}
+                    </button>
+                    <button
+                        onClick={handleDelete}
+                        className="px-6 py-2 bg-red-600/20 text-red-400 rounded font-medium hover:bg-red-600/30 transition-colors"
+                    >
+                        Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}

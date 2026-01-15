@@ -4,8 +4,6 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
 import { CharacterCard } from '@/components/CharacterCard';
-import { CharacterForm } from '@/components/CharacterForm';
-import { Character, CharacterWithRelations } from '@/types';
 
 const CHARS_PER_PAGE = 50;
 
@@ -23,11 +21,9 @@ function normalizePinyin(pinyin: string): string {
 }
 
 function CharactersContent() {
-    const { characters, actors, rooms, sets, props, loading, add, update, remove, toggleLearned, toggleReviewed } = useCharactersWithRelations();
+    const { characters, loading, remove, toggleLearned, toggleReviewed } = useCharactersWithRelations();
     const { compounds } = useCompounds();
     const searchParams = useSearchParams();
-    const [showForm, setShowForm] = useState(false);
-    const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLearned, setFilterLearned] = useState<'all' | 'learned' | 'unlearned'>('all');
     const [currentPage, setCurrentPage] = useState(1);
@@ -74,29 +70,6 @@ function CharactersContent() {
         setCurrentPage(1);
     };
 
-    const handleSubmit = (data: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned' | 'reviewed'>) => {
-        if (editingCharacter) {
-            update(editingCharacter.id, data);
-        } else {
-            add(data);
-        }
-        setShowForm(false);
-        setEditingCharacter(null);
-    };
-
-    const handleEdit = (character: CharacterWithRelations) => {
-        // Convert CharacterWithRelations back to Character format for editing
-        const charForEdit: Character = {
-            ...character,
-            actorId: character.actor?.id,
-            roomId: character.room?.id,
-            setId: character.set?.id,
-            props: character.props.map(p => p.id),
-        };
-        setEditingCharacter(charForEdit);
-        setShowForm(true);
-    };
-
     const handleDelete = (id: string) => {
         if (confirm('Are you sure you want to delete this character?')) {
             remove(id);
@@ -116,38 +89,9 @@ function CharactersContent() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-amber-400 mb-1 sm:mb-2">Characters</h1>
-                    <p className="text-slate-400 text-sm sm:text-base">Manage your Chinese characters</p>
+                    <p className="text-slate-400 text-sm sm:text-base">Browse your Chinese characters</p>
                 </div>
-                <button
-                    onClick={() => {
-                        setEditingCharacter(null);
-                        setShowForm(true);
-                    }}
-                    className="w-full sm:w-auto bg-amber-500 text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
-                >
-                    + Add Character
-                </button>
             </div>
-
-            {showForm && (
-                <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-4">
-                        {editingCharacter ? 'Edit Character' : 'Add New Character'}
-                    </h2>
-                    <CharacterForm
-                        actors={actors}
-                        rooms={rooms}
-                        sets={sets}
-                        props={props}
-                        initialData={editingCharacter || undefined}
-                        onSubmit={handleSubmit}
-                        onCancel={() => {
-                            setShowForm(false);
-                            setEditingCharacter(null);
-                        }}
-                    />
-                </div>
-            )}
 
             {/* Search and Filter */}
             <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
@@ -187,7 +131,6 @@ function CharactersContent() {
                                 key={character.id}
                                 character={character}
                                 compounds={compounds}
-                                onEdit={() => handleEdit(character)}
                                 onDelete={() => handleDelete(character.id)}
                                 onToggleLearned={() => toggleLearned(character.id)}
                                 onToggleReviewed={() => toggleReviewed(character.id)}
