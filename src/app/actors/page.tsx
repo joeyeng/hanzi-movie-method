@@ -90,7 +90,7 @@ export default function ActorsPage() {
                 />
             </div>
 
-            {/* Actor Grid */}
+            {/* Actor Grid - Categorized */}
             {filteredActors.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
                     {actors.length === 0
@@ -98,49 +98,116 @@ export default function ActorsPage() {
                         : 'No actors match your search.'}
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {filteredActors.map(actor => (
-                        <div key={actor.id} className="bg-slate-800 rounded-lg p-4">
-                            <div className="flex justify-between items-start mb-3">
-                                <div className="flex items-center gap-3">
-                                    {actor.emoji && <span className="text-4xl">{actor.emoji}</span>}
-                                    <div>
-                                        <h3 className="text-xl font-semibold text-white">
-                                            {actor.name}
-                                        </h3>
-                                        <span className="inline-block bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-sm mt-1">
-                                            {actor.initial}
-                                        </span>
-                                    </div>
-                                </div>
-                                {actor.imageUrl && (
-                                    <div className="w-12 h-12 bg-slate-700 rounded-full overflow-hidden">
-                                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                                        <img src={actor.imageUrl} alt={actor.name} className="w-full h-full object-cover" />
-                                    </div>
-                                )}
-                            </div>
-                            {actor.description && (
-                                <p className="text-slate-400 text-sm mb-3">{actor.description}</p>
-                            )}
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={() => handleEdit(actor)}
-                                    className="flex-1 py-1.5 bg-slate-700 text-slate-300 rounded text-sm hover:bg-slate-600 transition-colors"
-                                >
-                                    Edit
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(actor.id)}
-                                    className="px-4 py-1.5 bg-red-600/20 text-red-400 rounded text-sm hover:bg-red-600/30 transition-colors"
-                                >
-                                    Delete
-                                </button>
+                <div className="space-y-8">
+                    {/* Male Actors */}
+                    {filteredActors.filter(a => a.category === 'male' || !a.category).length > 0 && (
+                        <div>
+                            <h2 className="text-xl font-semibold text-blue-300 mb-3 flex items-center gap-2">
+                                <span className="w-3 h-3 bg-blue-500 rounded-full"></span>
+                                Male Actors
+                                <span className="text-sm font-normal text-slate-500">(b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, zh-, ch-, sh-, r-, z-, c-, s-, Ø)</span>
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {filteredActors.filter(a => a.category === 'male' || !a.category).map(actor => (
+                                    <ActorCard key={actor.id} actor={actor} onEdit={handleEdit} onDelete={handleDelete} />
+                                ))}
                             </div>
                         </div>
-                    ))}
+                    )}
+
+                    {/* Female Actors */}
+                    {filteredActors.filter(a => a.category === 'female').length > 0 && (
+                        <div>
+                            <h2 className="text-xl font-semibold text-pink-300 mb-3 flex items-center gap-2">
+                                <span className="w-3 h-3 bg-pink-500 rounded-full"></span>
+                                Female Actors
+                                <span className="text-sm font-normal text-slate-500">(y-, bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-)</span>
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {filteredActors.filter(a => a.category === 'female').map(actor => (
+                                    <ActorCard key={actor.id} actor={actor} onEdit={handleEdit} onDelete={handleDelete} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Fictional Actors */}
+                    {filteredActors.filter(a => a.category === 'fictional').length > 0 && (
+                        <div>
+                            <h2 className="text-xl font-semibold text-purple-300 mb-3 flex items-center gap-2">
+                                <span className="w-3 h-3 bg-purple-500 rounded-full"></span>
+                                Fictional Characters
+                                <span className="text-sm font-normal text-slate-500">(w-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, zhu-, chu-, shu-, ru-, ku-, hu-, gu-)</span>
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {filteredActors.filter(a => a.category === 'fictional').map(actor => (
+                                    <ActorCard key={actor.id} actor={actor} onEdit={handleEdit} onDelete={handleDelete} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* World Leaders */}
+                    {filteredActors.filter(a => a.category === 'world_leader').length > 0 && (
+                        <div>
+                            <h2 className="text-xl font-semibold text-yellow-300 mb-3 flex items-center gap-2">
+                                <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
+                                World Leaders
+                                <span className="text-sm font-normal text-slate-500">(yu-, nü-, lü-, ju-, qu-, xu-)</span>
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {filteredActors.filter(a => a.category === 'world_leader').map(actor => (
+                                    <ActorCard key={actor.id} actor={actor} onEdit={handleEdit} onDelete={handleDelete} />
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
+        </div>
+    );
+}
+
+// Actor Card Component
+function ActorCard({ actor, onEdit, onDelete }: { actor: Actor; onEdit: (actor: Actor) => void; onDelete: (id: string) => void }) {
+    return (
+        <div className="bg-slate-800 rounded-lg p-4">
+            <div className="flex justify-between items-start mb-3">
+                <div className="flex items-center gap-3">
+                    {actor.emoji && <span className="text-4xl">{actor.emoji}</span>}
+                    <div>
+                        <h3 className="text-xl font-semibold text-white">
+                            {actor.name}
+                        </h3>
+                        <span className="inline-block bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded text-sm mt-1">
+                            {actor.initial}
+                        </span>
+                    </div>
+                </div>
+                {actor.imageUrl && (
+                    <div className="w-12 h-12 bg-slate-700 rounded-full overflow-hidden">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={actor.imageUrl} alt={actor.name} className="w-full h-full object-cover" />
+                    </div>
+                )}
+            </div>
+            {actor.description && (
+                <p className="text-slate-400 text-sm mb-3">{actor.description}</p>
+            )}
+            <div className="flex gap-2">
+                <button
+                    onClick={() => onEdit(actor)}
+                    className="flex-1 py-1.5 bg-slate-700 text-slate-300 rounded text-sm hover:bg-slate-600 transition-colors"
+                >
+                    Edit
+                </button>
+                <button
+                    onClick={() => onDelete(actor.id)}
+                    className="px-4 py-1.5 bg-red-600/20 text-red-400 rounded text-sm hover:bg-red-600/30 transition-colors"
+                >
+                    Delete
+                </button>
+            </div>
         </div>
     );
 }

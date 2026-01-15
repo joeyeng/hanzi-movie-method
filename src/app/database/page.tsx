@@ -17,7 +17,13 @@ interface PreviewCharacter {
     all_definitions?: { pinyin: string; definition: string }[];
 }
 
-// Parse pinyin to extract initial, final, and tone
+// Parse pinyin to extract initial, final, and tone using Hanzi Movie Method system
+// HMM Finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
+// HMM Initials: 
+//   Male: b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, zh-, ch-, sh-, r-, z-, c-, s-, Ø (null)
+//   Female: y-, bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-
+//   Fictional: w-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, zhu-, chu-, shu-, ru-, ku-, hu-, gu-
+//   World Leaders: yu-, nü-, lü-, ju-, qu-, xu-
 function parsePinyin(pinyin: string): { initial: string; final: string; tone: number } {
     if (!pinyin) return { initial: '', final: '', tone: 5 };
 
@@ -55,22 +61,34 @@ function parsePinyin(pinyin: string): { initial: string; final: string; tone: nu
         }
     }
 
-    // Common initials in Mandarin (longest first for proper matching)
-    const initials = [
+    // HMM uses specific initials based on sound categories
+    // Order matters - check longer initials first, then shorter ones
+    // World Leaders (ü sounds): yu-, nü-, lü-, ju-, qu-, xu-
+    // Fictional (u sounds): zhu-, chu-, shu-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, ru-, ku-, hu-, gu-, w-
+    // Female (i sounds): bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-, y-
+    // Male (basic): zh-, ch-, sh-, b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, r-, z-, c-, s-, Ø
+
+    const hmmInitials = [
+        // World Leaders (ü initials) - must check first
+        'yu', 'nü', 'lü', 'ju', 'qu', 'xu',
+        // Fictional (u initials) 
+        'zhu', 'chu', 'shu', 'bu', 'pu', 'mu', 'fu', 'du', 'tu', 'nu', 'lu', 'zu', 'cu', 'su', 'ru', 'ku', 'hu', 'gu',
+        // Female (i initials)
+        'bi', 'pi', 'mi', 'di', 'ti', 'ji', 'qi', 'xi', 'ni', 'li',
+        // Male (basic initials) - checked last
         'zh', 'ch', 'sh',
+        'w', 'y',
         'b', 'p', 'm', 'f',
         'd', 't', 'n', 'l',
         'g', 'k', 'h',
-        'j', 'q', 'x',
-        'z', 'c', 's',
-        'r', 'y', 'w'
+        'r', 'z', 'c', 's'
     ];
 
     let initial = '';
     let final = normalized;
 
-    // Find the initial
-    for (const init of initials) {
+    // Find the HMM initial
+    for (const init of hmmInitials) {
         if (normalized.startsWith(init)) {
             initial = init;
             final = normalized.slice(init.length);
@@ -78,16 +96,120 @@ function parsePinyin(pinyin: string): { initial: string; final: string; tone: nu
         }
     }
 
-    return { initial, final, tone };
+    // If no initial found and starts with vowel, it's a null initial (Ø)
+    if (!initial && /^[aeiouü]/.test(normalized)) {
+        initial = 'Ø';
+        final = normalized;
+    }
+
+    // Map the final to HMM finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
+    // The final extracted needs to be mapped to the HMM system
+    const hmmFinal = mapToHmmFinal(final);
+
+    return { initial: initial + '-', final: hmmFinal, tone };
 }
 
-// Find actor by initial
+// Map pinyin final to HMM final system
+function mapToHmmFinal(final: string): string {
+    // Direct mappings for HMM finals
+    // -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
+
+    // Handle compound finals that map to HMM finals
+    const mappings: Record<string, string> = {
+        // -a family
+        'a': '-a',
+        'ia': '-a',    // jia -> j- + -a
+        'ua': '-a',    // hua -> hu- + -a
+
+        // -ai family  
+        'ai': '-ai',
+        'uai': '-ai',  // kuai -> ku- + -ai
+
+        // -ao family
+        'ao': '-ao',
+        'iao': '-ao',  // jiao -> ji- + -ao
+
+        // -an family
+        'an': '-an',
+        'ian': '-an',  // tian -> ti- + -an (but HMM treats -ian differently)
+        'uan': '-an',  // duan -> du- + -an
+        'üan': '-an',  // yuan -> yu- + -an
+
+        // -ang family
+        'ang': '-ang',
+        'iang': '-ang', // xiang -> xi- + -ang
+        'uang': '-ang', // huang -> hu- + -ang
+
+        // -o family
+        'o': '-o',
+        'uo': '-o',    // duo -> du- + -o
+
+        // -ong family
+        'ong': '-ong',
+        'iong': '-ong', // xiong -> xi- + -ong
+
+        // -ou family
+        'ou': '-ou',
+        'iu': '-ou',   // liu -> li- + -ou (iu is actually iou)
+
+        // -e family
+        'e': '-e',
+        'ie': '-e',    // xie -> xi- + -e
+        'üe': '-e',    // yue -> yu- + -e
+
+        // -ei family
+        'ei': '-ei',
+        'ui': '-ei',   // hui -> hu- + -ei (ui is actually uei)
+
+        // -(e)n family - 'en' after most consonants, 'n' after i/ü
+        'en': '-(e)n',
+        'in': '-(e)n',  // xin -> xi- + -(e)n
+        'un': '-(e)n',  // dun -> du- + -(e)n
+        'ün': '-(e)n',  // yun -> yu- + -(e)n
+
+        // -(e)ng family - 'eng' after most consonants, 'ng' after i
+        'eng': '-(e)ng',
+        'ing': '-(e)ng', // ting -> t- + -(e)ng
+
+        // Special cases
+        'i': '-(e)n',   // zi, ci, si, zhi, chi, shi, ri have special 'i' that's more like schwa
+        'u': '-o',      // bu, pu, mu, fu -> -o sound
+        'ü': '-o',      // nü, lü -> -o sound
+        'er': '-e',     // er special
+    };
+
+    // Check for exact match first
+    if (mappings[final]) {
+        return mappings[final];
+    }
+
+    // If no mapping found, try to find best match by checking endings
+    for (const [ending, hmmFinal] of Object.entries(mappings)) {
+        if (final.endsWith(ending) && ending.length > 1) {
+            return hmmFinal;
+        }
+    }
+
+    // Default fallback - try to match the ending vowel
+    if (final.endsWith('ng')) return '-(e)ng';
+    if (final.endsWith('n')) return '-(e)n';
+    if (final.endsWith('a')) return '-a';
+    if (final.endsWith('o')) return '-o';
+    if (final.endsWith('e')) return '-e';
+    if (final.endsWith('i')) return '-(e)n';
+    if (final.endsWith('u')) return '-ou';
+
+    return '-' + final; // Fallback with dash prefix
+}
+
+// Find actor by initial (HMM format with dash suffix like "b-", "ji-", "Ø-")
 function findActorForInitial(initial: string, actors: Actor[]): Actor | undefined {
     if (!initial) return undefined;
-    // Try matching with and without dash suffix (e.g., "j" matches "j-" or "j")
+    // Normalize both to compare: remove dashes
+    const normalizedInitial = initial.toLowerCase().replace(/-$/, '');
     return actors.find(a => {
         const actorInitial = a.initial.toLowerCase().replace(/-$/, '');
-        return actorInitial === initial.toLowerCase();
+        return actorInitial === normalizedInitial;
     });
 }
 
@@ -96,13 +218,14 @@ function findRoomForTone(tone: number, rooms: Room[]): Room | undefined {
     return rooms.find(r => r.tone === tone);
 }
 
-// Find set by final
+// Find set by final (HMM format like "-a", "-ai", "-(e)n")
 function findSetForFinal(final: string, sets: Set[]): Set | undefined {
     if (!final) return undefined;
-    // Try matching with and without dash prefix (e.g., "i" matches "-i" or "i")
+    // Normalize both to compare: ensure dash prefix
+    const normalizedFinal = final.toLowerCase().startsWith('-') ? final.toLowerCase() : '-' + final.toLowerCase();
     return sets.find(s => {
-        const setFinal = s.final.toLowerCase().replace(/^-/, '');
-        return setFinal === final.toLowerCase();
+        const setFinal = s.final.toLowerCase().startsWith('-') ? s.final.toLowerCase() : '-' + s.final.toLowerCase();
+        return setFinal === normalizedFinal;
     });
 }
 
@@ -244,6 +367,7 @@ export default function DatabasePage() {
                 addActor({
                     name: actor.name,
                     initial: actor.initial,
+                    category: actor.category as 'male' | 'female' | 'fictional' | 'world_leader',
                     emoji: actor.emoji,
                     description: actor.description,
                 });
@@ -425,6 +549,7 @@ export default function DatabasePage() {
                 addActor({
                     name: actor.name,
                     initial: actor.initial,
+                    category: actor.category as 'male' | 'female' | 'fictional' | 'world_leader',
                     emoji: actor.emoji,
                     description: actor.description,
                 });

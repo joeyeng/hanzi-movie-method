@@ -3,7 +3,8 @@
 export interface Actor {
   id: string;
   name: string;
-  initial: string; // The initial sound this actor represents
+  initial: string; // The initial sound this actor represents (HMM format: "b-", "ji-", "Ø-", etc.)
+  category?: 'male' | 'female' | 'fictional' | 'world_leader'; // HMM actor category
   emoji?: string; // Optional emoji to represent this actor
   imageUrl?: string;
   description?: string;

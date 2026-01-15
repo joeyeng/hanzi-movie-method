@@ -126,30 +126,72 @@ export const seedCharacters: SeedCharacter[] = [
   { traditional: "二", simplified: "二", pinyin: "èr", definition: "two" },
 ];
 
-// Example actors for common pinyin initials
+// Example actors for Hanzi Movie Method initials
+// Categories: Male (basic initials), Female (y-/i- initials), Fictional (w-/u- initials), World Leaders (ü initials)
+
 export const exampleActors = [
-  { name: "Jackie Chan", initial: "j-", emoji: "🥋", description: "Famous martial artist - for j- sounds like jiù, jiā, jiàn" },
-  { name: "Bruce Lee", initial: "l-", emoji: "🐉", description: "Legendary fighter - for l- sounds like lái, liǎng, liù" },
-  { name: "Yao Ming", initial: "y-", emoji: "🏀", description: "Basketball star - for y- sounds like yī, yǒu, yào" },
-  { name: "Donnie Yen", initial: "d-", emoji: "🎬", description: "Action star - for d- sounds like dà, dào, dāng" },
-  { name: "Confucius", initial: "k-", emoji: "📜", description: "Ancient philosopher - for k- sounds like kě, kàn" },
-  { name: "Mulan", initial: "m-", emoji: "⚔️", description: "Legendary warrior - for m- sounds like méi, měi, míng" },
-  { name: "Nezha", initial: "n-", emoji: "🔥", description: "Mythical hero - for n- sounds like nà, néng, nián" },
-  { name: "Sun Wukong", initial: "s-", emoji: "🐒", description: "Monkey King - for s- sounds like sān, suǒ, sì" },
-  { name: "Zhuge Liang", initial: "zh-", emoji: "🧙", description: "Brilliant strategist - for zh- sounds like zhè, zhōng, zhī" },
-  { name: "Shaq", initial: "sh-", emoji: "🔍", description: "Detective - for sh- sounds like shàng, shuō, shí" },
-  { name: "Chow Yun-fat", initial: "ch-", emoji: "🎲", description: "Actor - for ch- sounds like chī, cháng, chéng" },
-  { name: "Mike Tyson", initial: "t-", emoji: "🥊", description: "Singer - for t- sounds like tā, tiān, tīng" },
-  { name: "Walter White", initial: "w-", emoji: "🧪", description: "Superhero - for w- sounds like wǒ, wéi, wèn" },
-  { name: "Xi Jinping", initial: "x-", emoji: "🇨🇳", description: "Leader - for x- sounds like xiǎo, xīn, xiě" },
-  { name: "Goku", initial: "g-", emoji: "💪", description: "War god - for g- sounds like gè, gěi, gāo" },
-  { name: "Harry Potter", initial: "h-", emoji: "🪄", description: "Wizard - for h- sounds like hǎo, hái, huì" },
-  { name: "Batman", initial: "b-", emoji: "🦇", description: "Dark knight - for b- sounds like bù, bèi, bǎ" },
-  { name: "Pikachu", initial: "p-", emoji: "⚡", description: "Pokemon - for p- sounds like péngyou" },
-  { name: "Zorro", initial: "z-", emoji: "🫰", description: "Masked hero - for z- sounds like zài, zuò, zǒu" },
-  { name: "Einstein", initial: "e/er-", emoji: "🧠", description: "Scientist - for e- sounds like ér, èr" },
-  { name: "Captain America", initial: "c-", emoji: "🛡️", description: "Superhero - for c- sounds like cóng, cái, cì" },
-  { name: "Rapunzel", initial: "r-", emoji: "👸", description: "Princess - for r- sounds like rén, rú" },
+  // MALE actors - initials: b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, zh-, ch-, sh-, r-, z-, c-, s-, Ø (null initial)
+  { name: "Brad Pitt", initial: "b-", emoji: "🎬", category: "male", description: "Male actor - for b- sounds like bù, bèi, bǎ" },
+  { name: "Patrick Stewart", initial: "p-", emoji: "🖖", category: "male", description: "Male actor - for p- sounds like péngyou" },
+  { name: "Michael Jordan", initial: "m-", emoji: "🏀", category: "male", description: "Male actor - for m- sounds like méi, měi, míng" },
+  { name: "Fred Flintstone", initial: "f-", emoji: "🦴", category: "male", description: "Male actor - for f- sounds like fēi" },
+  { name: "Dwayne Johnson", initial: "d-", emoji: "💪", category: "male", description: "Male actor - for d- sounds like dà, dào, dāng" },
+  { name: "Tom Hanks", initial: "t-", emoji: "🎭", category: "male", description: "Male actor - for t- sounds like tā, tiān, tīng" },
+  { name: "Nicolas Cage", initial: "n-", emoji: "🐝", category: "male", description: "Male actor - for n- sounds like nà, néng, nián" },
+  { name: "Leonardo DiCaprio", initial: "l-", emoji: "🚢", category: "male", description: "Male actor - for l- sounds like lái, liǎng, liù" },
+  { name: "George Clooney", initial: "g-", emoji: "☕", category: "male", description: "Male actor - for g- sounds like gè, gěi, gāo" },
+  { name: "Keanu Reeves", initial: "k-", emoji: "🔫", category: "male", description: "Male actor - for k- sounds like kě, kàn" },
+  { name: "Harrison Ford", initial: "h-", emoji: "🤠", category: "male", description: "Male actor - for h- sounds like hǎo, hái, huì" },
+  { name: "Zhuge Liang", initial: "zh-", emoji: "🧙", category: "male", description: "Male actor - for zh- sounds like zhè, zhōng, zhī" },
+  { name: "Charlie Chaplin", initial: "ch-", emoji: "🎩", category: "male", description: "Male actor - for ch- sounds like chī, cháng" },
+  { name: "Shaquille O'Neal", initial: "sh-", emoji: "🏆", category: "male", description: "Male actor - for sh- sounds like shàng, shuō, shí" },
+  { name: "Robert Downey Jr", initial: "r-", emoji: "🦾", category: "male", description: "Male actor - for r- sounds like rén, rú" },
+  { name: "Zack Efron", initial: "z-", emoji: "🎤", category: "male", description: "Male actor - for z- sounds like zài, zuò, zǒu" },
+  { name: "Chris Evans", initial: "c-", emoji: "🛡️", category: "male", description: "Male actor - for c- sounds like cóng, cái, cì" },
+  { name: "Samuel L Jackson", initial: "s-", emoji: "🐍", category: "male", description: "Male actor - for s- sounds like sān, suǒ, sì" },
+  { name: "Arnold Schwarzenegger", initial: "Ø", emoji: "🤖", category: "male", description: "Male actor - for null initial (vowel-only) sounds like ài, àn, āo" },
+
+  // FEMALE actors - initials: y-, bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-
+  { name: "Yao Chen", initial: "y-", emoji: "🌸", category: "female", description: "Female actor - for y- sounds like yī, yǒu, yào" },
+  { name: "Beyoncé", initial: "bi-", emoji: "👑", category: "female", description: "Female actor - for bi- sounds like bǐ" },
+  { name: "Pink", initial: "pi-", emoji: "🎸", category: "female", description: "Female actor - for pi- sounds like piào" },
+  { name: "Miley Cyrus", initial: "mi-", emoji: "🎵", category: "female", description: "Female actor - for mi- sounds like míng" },
+  { name: "Diana Ross", initial: "di-", emoji: "💿", category: "female", description: "Female actor - for di- sounds like dì" },
+  { name: "Tina Turner", initial: "ti-", emoji: "⚡", category: "female", description: "Female actor - for ti- sounds like tiān" },
+  { name: "Jackie Chan's Mom", initial: "ji-", emoji: "🥋", category: "female", description: "Female actor - for ji- sounds like jiù, jiā, jiàn" },
+  { name: "Queen Elizabeth", initial: "qi-", emoji: "👸", category: "female", description: "Female actor - for qi- sounds like qǐng, qī" },
+  { name: "Xena", initial: "xi-", emoji: "⚔️", category: "female", description: "Female actor - for xi- sounds like xiǎo, xīn, xiě" },
+  { name: "Nicole Kidman", initial: "ni-", emoji: "🎬", category: "female", description: "Female actor - for ni- sounds like nǐ, nián" },
+  { name: "Lisa Simpson", initial: "li-", emoji: "🎷", category: "female", description: "Female actor - for li- sounds like lǐ, liǎng" },
+
+  // FICTIONAL characters - initials: w-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, zhu-, chu-, shu-, ru-, ku-, hu-, gu-
+  { name: "Walter White", initial: "w-", emoji: "🧪", category: "fictional", description: "Fictional - for w- sounds like wǒ, wéi, wèn" },
+  { name: "Bugs Bunny", initial: "bu-", emoji: "🐰", category: "fictional", description: "Fictional - for bu- sounds like bù" },
+  { name: "Pooh Bear", initial: "pu-", emoji: "🐻", category: "fictional", description: "Fictional - for pu- sounds like pú" },
+  { name: "Mulan", initial: "mu-", emoji: "⚔️", category: "fictional", description: "Fictional - for mu- sounds like mù, mǔ" },
+  { name: "Fuu (Samurai Champloo)", initial: "fu-", emoji: "🌸", category: "fictional", description: "Fictional - for fu- sounds like fù, fú" },
+  { name: "Dumbo", initial: "du-", emoji: "🐘", category: "fictional", description: "Fictional - for du- sounds like dù, dú" },
+  { name: "Tux the Penguin", initial: "tu-", emoji: "🐧", category: "fictional", description: "Fictional - for tu- sounds like tú, tǔ" },
+  { name: "Nuka (Lion King)", initial: "nu-", emoji: "🦁", category: "fictional", description: "Fictional - for nu- sounds like nǔ, nù" },
+  { name: "Luke Skywalker", initial: "lu-", emoji: "⚔️", category: "fictional", description: "Fictional - for lu- sounds like lù, lǔ" },
+  { name: "Zuko", initial: "zu-", emoji: "🔥", category: "fictional", description: "Fictional - for zu- sounds like zǔ, zú" },
+  { name: "Cuphead", initial: "cu-", emoji: "☕", category: "fictional", description: "Fictional - for cu- sounds like cù, cú" },
+  { name: "Super Mario", initial: "su-", emoji: "🍄", category: "fictional", description: "Fictional - for su- sounds like sù, sú" },
+  { name: "Zhu Bajie", initial: "zhu-", emoji: "🐷", category: "fictional", description: "Fictional - for zhu- sounds like zhù, zhū" },
+  { name: "Chucky", initial: "chu-", emoji: "🔪", category: "fictional", description: "Fictional - for chu- sounds like chū, chú" },
+  { name: "Shulk", initial: "shu-", emoji: "⚔️", category: "fictional", description: "Fictional - for shu- sounds like shū, shù" },
+  { name: "Ryu", initial: "ru-", emoji: "👊", category: "fictional", description: "Fictional - for ru- sounds like rù, rú" },
+  { name: "Kurama", initial: "ku-", emoji: "🦊", category: "fictional", description: "Fictional - for ku- sounds like kù, kǔ" },
+  { name: "Hulk", initial: "hu-", emoji: "💚", category: "fictional", description: "Fictional - for hu- sounds like hù, hú" },
+  { name: "Goku", initial: "gu-", emoji: "🐉", category: "fictional", description: "Fictional - for gu- sounds like gù, gú" },
+
+  // WORLD LEADERS - initials: yu-, nü-, lü-, ju-, qu-, xu-
+  { name: "Yuan Shikai", initial: "yu-", emoji: "🏛️", category: "world_leader", description: "World leader - for yu- sounds like yuán, yuè" },
+  { name: "Nüwa", initial: "nü-", emoji: "🌍", category: "world_leader", description: "World leader - for nü- sounds like nǚ" },
+  { name: "Lü Bu", initial: "lü-", emoji: "🗡️", category: "world_leader", description: "World leader - for lü- sounds like lǜ, lǚ" },
+  { name: "Julius Caesar", initial: "ju-", emoji: "🏛️", category: "world_leader", description: "World leader - for ju- sounds like jù, jǔ" },
+  { name: "Qin Shi Huang", initial: "qu-", emoji: "👑", category: "world_leader", description: "World leader - for qu- sounds like qù, qǔ" },
+  { name: "Xi Jinping", initial: "xu-", emoji: "🇨🇳", category: "world_leader", description: "World leader - for xu- sounds like xǔ, xù" },
 ];
 
 // Example rooms for each tone
@@ -161,27 +203,20 @@ export const exampleRooms = [
   { name: "Hallway", tone: 5, emoji: "🚪", description: "Tone 5 (neutral a) - Transitional space, neutral feeling" },
 ];
 
-// Example sets for common finals (locations based on the final sound)
+// Example sets for HMM finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
 export const exampleSets = [
-  { name: "Mom's House", final: "-i", emoji: "🏠", description: "Your mother's house - for -i finals (yī, nǐ, lǐ)" },
-  { name: "Dad's House", final: "-a", emoji: "🏡", description: "Your father's house - for -a finals (tā, nà, dà)" },
-  { name: "Grandma's House", final: "-an", emoji: "🧓", description: "Grandma's house - for -an finals (sān, nán, kàn)" },
-  { name: "School", final: "-ai", emoji: "🏫", description: "Your school - for -ai finals (lái, mǎi, dài)" },
-  { name: "Childhood Home", final: "-ou", emoji: "🌳", description: "Your childhood home - for -ou finals (dōu, zǒu, gǒu)" },
-  { name: "Best Friend's House", final: "-en", emoji: "🤝", description: "Best friend's place - for -en finals (rén, hěn, shén)" },
-  { name: "Workplace", final: "-ong", emoji: "🏢", description: "Your workplace - for -ong finals (zhōng, dōng, tóng)" },
-  { name: "Grandpa's House", final: "-ang", emoji: "🧔", description: "Grandpa's house - for -ang finals (shàng, cháng, dāng)" },
-  { name: "Park", final: "-e", emoji: "🌲", description: "Local park - for -e finals (hé, gē, lè)" },
-  { name: "Beach", final: "-ao", emoji: "🏖️", description: "The beach - for -ao finals (hǎo, dào, gāo)" },
-  { name: "Mountain Cabin", final: "-u", emoji: "🏔️", description: "Mountain cabin - for -u finals (bù, wǔ, zhù)" },
-  { name: "Restaurant", final: "-uo", emoji: "🍽️", description: "Favorite restaurant - for -uo finals (duō, zuò, guò)" },
-  { name: "Temple", final: "-in", emoji: "🛕", description: "Local temple - for -in finals (xīn, yīn, mín)" },
-  { name: "Library", final: "-ing", emoji: "📚", description: "The library - for -ing finals (tīng, míng, jīng)" },
-  { name: "Hospital", final: "-ui", emoji: "🏥", description: "Local hospital - for -ui finals (huì, duì, shuǐ)" },
-  { name: "Mall", final: "-ian", emoji: "🛍️", description: "Shopping mall - for -ian finals (tiān, nián, qián)" },
-  { name: "Gym", final: "-iang", emoji: "🏋️", description: "The gym - for -iang finals (xiǎng, jiàng, liàng)" },
-  { name: "Cinema", final: "-ie", emoji: "🎦", description: "Movie theater - for -ie finals (xiě, jiě, biè)" },
-  { name: "Airport", final: "-ei", emoji: "✈️", description: "The airport - for -ei finals (měi, bèi, fēi)" },
+  { name: "Dad's House", final: "-a", emoji: "🏡", description: "For -a finals (tā, nà, dà, mā)" },
+  { name: "School", final: "-ai", emoji: "🏫", description: "For -ai finals (lái, mǎi, dài, ài)" },
+  { name: "Beach", final: "-ao", emoji: "🏖️", description: "For -ao finals (hǎo, dào, gāo, zǎo)" },
+  { name: "Grandma's House", final: "-an", emoji: "🧓", description: "For -an finals (sān, nán, kàn, fàn)" },
+  { name: "Grandpa's House", final: "-ang", emoji: "🧔", description: "For -ang finals (shàng, cháng, dāng, fáng)" },
+  { name: "Park", final: "-o", emoji: "🌲", description: "For -o finals (wǒ, bō, pō, mō)" },
+  { name: "Workplace", final: "-ong", emoji: "🏢", description: "For -ong finals (zhōng, dōng, tóng, gōng)" },
+  { name: "Childhood Home", final: "-ou", emoji: "🌳", description: "For -ou finals (dōu, zǒu, gǒu, hòu)" },
+  { name: "Cafe", final: "-e", emoji: "☕", description: "For -e finals (hé, gē, lè, dé)" },
+  { name: "Airport", final: "-ei", emoji: "✈️", description: "For -ei finals (měi, bèi, fēi, gěi)" },
+  { name: "Best Friend's House", final: "-(e)n", emoji: "🤝", description: "For -(e)n finals (rén, hěn, shén, mén) - 'en' after most, 'n' after i/ü" },
+  { name: "Library", final: "-(e)ng", emoji: "📚", description: "For -(e)ng finals (néng, shēng, míng, tīng) - 'eng' after most, 'ng' after i" },
 ];
 
 // Example props for common radicals/components
