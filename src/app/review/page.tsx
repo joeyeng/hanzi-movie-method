@@ -210,6 +210,10 @@ export default function ReviewPage() {
 
         if (pinyinCorrect && toneCorrect && definitionCorrect) {
             setAnswerState('correct');
+            // Mark as learned when answered correctly
+            if (!currentCharacter.learned) {
+                toggleLearned(currentCharacter.id);
+            }
             // Auto advance after short delay
             setTimeout(() => {
                 handleNext();
