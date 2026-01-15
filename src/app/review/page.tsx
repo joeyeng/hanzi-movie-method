@@ -31,20 +31,23 @@ export default function ReviewPage() {
     const [showAnswer, setShowAnswer] = useState(false);
     const [sessionStarted, setSessionStarted] = useState(false);
 
+    // Only include characters marked as "reviewed" (ready for review)
+    const reviewableCharacters = characters.filter(c => c.reviewed);
+
     // Build review queue only when mode changes or session starts, not on every character update
     const buildReviewQueue = () => {
         let filtered: CharacterWithRelations[];
         switch (reviewMode) {
             case 'unlearned':
-                filtered = characters.filter(c => !c.learned);
+                filtered = reviewableCharacters.filter(c => !c.learned);
                 break;
             case 'due':
                 // Characters not reviewed in the last 24 hours
                 const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-                filtered = characters.filter(c => !c.lastReviewed || new Date(c.lastReviewed) < oneDayAgo);
+                filtered = reviewableCharacters.filter(c => !c.lastReviewed || new Date(c.lastReviewed) < oneDayAgo);
                 break;
             default:
-                filtered = [...characters];
+                filtered = [...reviewableCharacters];
         }
         // Shuffle the array
         return filtered.sort(() => Math.random() - 0.5);
@@ -103,14 +106,18 @@ export default function ReviewPage() {
                 <h1 className="text-3xl font-bold text-amber-400 mb-2">Review Characters</h1>
                 <p className="text-slate-400 mb-8">Test your memory of the characters you&apos;ve learned</p>
 
-                {characters.length === 0 ? (
+                {reviewableCharacters.length === 0 ? (
                     <div className="bg-slate-800 rounded-lg p-8 text-center">
-                        <p className="text-slate-400 mb-4">No characters to review yet.</p>
+                        <p className="text-slate-400 mb-4">
+                            {characters.length === 0
+                                ? "No characters to review yet."
+                                : "No characters marked for review. Add characters to your review list from the Characters page."}
+                        </p>
                         <Link
                             href="/characters"
                             className="inline-block bg-amber-500 text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
                         >
-                            Add Your First Character
+                            {characters.length === 0 ? "Add Your First Character" : "Go to Characters"}
                         </Link>
                     </div>
                 ) : (
@@ -128,7 +135,7 @@ export default function ReviewPage() {
                                 />
                                 <div>
                                     <div className="font-medium">All Characters</div>
-                                    <div className="text-sm text-slate-400">{characters.length} characters</div>
+                                    <div className="text-sm text-slate-400">{reviewableCharacters.length} characters in review list</div>
                                 </div>
                             </label>
 
@@ -143,7 +150,7 @@ export default function ReviewPage() {
                                 <div>
                                     <div className="font-medium">Unlearned Only</div>
                                     <div className="text-sm text-slate-400">
-                                        {characters.filter(c => !c.learned).length} characters
+                                        {reviewableCharacters.filter(c => !c.learned).length} characters
                                     </div>
                                 </div>
                             </label>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
 import { CharacterCard } from '@/components/CharacterCard';
@@ -22,8 +22,8 @@ function normalizePinyin(pinyin: string): string {
     return pinyin.toLowerCase().split('').map(c => toneMap[c] || c).join('');
 }
 
-export default function CharactersPage() {
-    const { characters, actors, rooms, sets, props, loading, add, update, remove, toggleLearned } = useCharactersWithRelations();
+function CharactersContent() {
+    const { characters, actors, rooms, sets, props, loading, add, update, remove, toggleLearned, toggleReviewed } = useCharactersWithRelations();
     const { compounds } = useCompounds();
     const searchParams = useSearchParams();
     const [showForm, setShowForm] = useState(false);
@@ -74,7 +74,7 @@ export default function CharactersPage() {
         setCurrentPage(1);
     };
 
-    const handleSubmit = (data: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned'>) => {
+    const handleSubmit = (data: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned' | 'reviewed'>) => {
         if (editingCharacter) {
             update(editingCharacter.id, data);
         } else {
@@ -190,6 +190,7 @@ export default function CharactersPage() {
                                 onEdit={() => handleEdit(character)}
                                 onDelete={() => handleDelete(character.id)}
                                 onToggleLearned={() => toggleLearned(character.id)}
+                                onToggleReviewed={() => toggleReviewed(character.id)}
                             />
                         ))}
                     </div>
@@ -233,5 +234,17 @@ export default function CharactersPage() {
                 </>
             )}
         </div>
+    );
+}
+
+export default function CharactersPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+                <div className="text-slate-400">Loading...</div>
+            </div>
+        }>
+            <CharactersContent />
+        </Suspense>
     );
 }

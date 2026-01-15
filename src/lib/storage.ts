@@ -187,12 +187,13 @@ export function saveCharacters(characters: Character[]): void {
   setItem(STORAGE_KEYS.characters, characters);
 }
 
-export function addCharacter(character: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned'>): Character {
+export function addCharacter(character: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned' | 'reviewed'>): Character {
   const characters = getCharacters();
   const newCharacter: Character = {
     ...character,
     id: crypto.randomUUID(),
     learned: false,
+    reviewed: false,
     reviewCount: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -240,6 +241,19 @@ export function toggleCharacterLearned(id: string): Character | null {
   characters[index] = {
     ...characters[index],
     learned: !characters[index].learned,
+    updatedAt: new Date(),
+  };
+  saveCharacters(characters);
+  return characters[index];
+}
+
+export function toggleCharacterReviewed(id: string): Character | null {
+  const characters = getCharacters();
+  const index = characters.findIndex(c => c.id === id);
+  if (index === -1) return null;
+  characters[index] = {
+    ...characters[index],
+    reviewed: !characters[index].reviewed,
     updatedAt: new Date(),
   };
   saveCharacters(characters);

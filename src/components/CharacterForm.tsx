@@ -8,7 +8,7 @@ interface CharacterFormProps {
     rooms: Room[];
     sets: Set[];
     props: Prop[];
-    onSubmit: (character: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned'>) => void;
+    onSubmit: (character: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned' | 'reviewed'>) => void;
     onCancel: () => void;
     initialData?: Partial<Character>;
 }
@@ -168,8 +168,8 @@ export function CharacterForm({ actors, rooms, sets, props, onSubmit, onCancel, 
                                 type="button"
                                 onClick={() => toggleProp(prop.id)}
                                 className={`px-3 py-1 rounded-full text-sm transition-colors ${formData.props.includes(prop.id)
-                                        ? 'bg-amber-500 text-slate-900'
-                                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                    ? 'bg-amber-500 text-slate-900'
+                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                                     }`}
                             >
                                 {prop.name} ({prop.component})

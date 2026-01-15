@@ -149,7 +149,7 @@ export function useCharacters() {
     setLoading(false);
   }, []);
 
-  const add = useCallback((character: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned'>) => {
+  const add = useCallback((character: Omit<Character, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned' | 'reviewed'>) => {
     const newCharacter = storage.addCharacter(character);
     setCharacters(prev => [...prev, newCharacter]);
     return newCharacter;
@@ -187,7 +187,15 @@ export function useCharacters() {
     return updated;
   }, []);
 
-  return { characters, loading, add, update, remove, markReviewed, toggleLearned };
+  const toggleReviewed = useCallback((id: string) => {
+    const updated = storage.toggleCharacterReviewed(id);
+    if (updated) {
+      setCharacters(prev => prev.map(c => c.id === id ? updated : c));
+    }
+    return updated;
+  }, []);
+
+  return { characters, loading, add, update, remove, markReviewed, toggleLearned, toggleReviewed };
 }
 
 export function useCharactersWithRelations() {

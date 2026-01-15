@@ -62,6 +62,7 @@ export interface Character {
   keyword?: string; // Primary keyword for the character
   notes?: string;
   learned: boolean;
+  reviewed: boolean; // Whether the character is ready for review sessions
   reviewCount: number;
   lastReviewed?: Date;
   createdAt: Date;

@@ -9,6 +9,7 @@ interface CharacterCardProps {
     onEdit?: () => void;
     onDelete?: () => void;
     onToggleLearned?: () => void;
+    onToggleReviewed?: () => void;
     showActions?: boolean;
 }
 
@@ -28,7 +29,7 @@ function resolveMovieScene(
         .replace(/\{\{SET\}\}/g, setName);
 }
 
-export function CharacterCard({ character, compounds = [], onEdit, onDelete, onToggleLearned, showActions = true }: CharacterCardProps) {
+export function CharacterCard({ character, compounds = [], onEdit, onDelete, onToggleLearned, onToggleReviewed, showActions = true }: CharacterCardProps) {
     const resolvedMovieScene = resolveMovieScene(character.movieScene, character.actor, character.room, character.set);
 
     // Filter compounds that contain this character
@@ -78,6 +79,11 @@ export function CharacterCard({ character, compounds = [], onEdit, onDelete, onT
                             <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04M18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12m-2.62 7l1.62-4.33L19.12 17h-3.24z" />
                         </svg>
                     </a>
+                    {character.reviewed && (
+                        <span className="bg-blue-500/20 text-blue-400 px-2 py-1 rounded text-xs whitespace-nowrap">
+                            📚 Review
+                        </span>
+                    )}
                     {character.learned && (
                         <span className="bg-green-500/20 text-green-400 px-2 py-1 rounded text-xs whitespace-nowrap">
                             ✓ Learned
@@ -174,13 +180,22 @@ export function CharacterCard({ character, compounds = [], onEdit, onDelete, onT
             {showActions && (
                 <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-700">
                     <button
+                        onClick={onToggleReviewed}
+                        className={`flex-1 min-w-[100px] py-1.5 rounded text-sm transition-colors ${character.reviewed
+                            ? 'bg-blue-600/30 text-blue-300 hover:bg-blue-600/40'
+                            : 'bg-blue-600 text-white hover:bg-blue-500'
+                            }`}
+                    >
+                        {character.reviewed ? '📚 In Review' : '📚 Add to Review'}
+                    </button>
+                    <button
                         onClick={onToggleLearned}
-                        className={`flex-1 min-w-[120px] py-1.5 rounded text-sm transition-colors ${character.learned
+                        className={`flex-1 min-w-[100px] py-1.5 rounded text-sm transition-colors ${character.learned
                             ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             : 'bg-green-600 text-white hover:bg-green-500'
                             }`}
                     >
-                        {character.learned ? 'Mark Unlearned' : 'Mark Learned'}
+                        {character.learned ? 'Unmark Learned' : 'Mark Learned'}
                     </button>
                     <button
                         onClick={onEdit}

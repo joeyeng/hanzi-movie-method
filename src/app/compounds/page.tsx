@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useCompounds, useCharacters } from '@/hooks/useLocalStorage';
 import { CompoundWord } from '@/types';
 import Link from 'next/link';
@@ -21,7 +21,7 @@ function normalizePinyin(pinyin: string): string {
     return pinyin.toLowerCase().split('').map(c => toneMap[c] || c).join('');
 }
 
-export default function CompoundsPage() {
+function CompoundsContent() {
     const { compounds, loading, add, update, remove } = useCompounds();
     const { characters } = useCharacters();
     const searchParams = useSearchParams();
@@ -369,5 +369,17 @@ export default function CompoundsPage() {
                 </>
             )}
         </div>
+    );
+}
+
+export default function CompoundsPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+                <div className="text-slate-400">Loading...</div>
+            </div>
+        }>
+            <CompoundsContent />
+        </Suspense>
     );
 }

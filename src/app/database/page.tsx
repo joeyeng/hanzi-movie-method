@@ -6,7 +6,7 @@ import { useActors, useRooms, useSets, useProps, useCharacters, useCompounds } f
 import { exampleActors, exampleRooms, exampleSets, exampleProps } from '@/lib/seedData';
 import { parseCharacterFileAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult } from '@/lib/hanzipy';
 import * as storage from '@/lib/storage';
-import type { Actor, Room, Set } from '@/types';
+import type { Actor, Room, Set, Character } from '@/types';
 
 // Preview data type
 interface PreviewCharacter {
