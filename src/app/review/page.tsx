@@ -426,16 +426,22 @@ export default function ReviewPage() {
                             <label className="block text-slate-400 text-sm mb-2">Select Definition</label>
                             <div className="space-y-2">
                                 {definitionChoices.map((def, index) => (
-                                    <button
+                                    <label
                                         key={index}
-                                        onClick={() => setSelectedDefinition(def)}
-                                        className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${selectedDefinition === def
+                                        className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg cursor-pointer transition-colors ${selectedDefinition === def
                                             ? 'bg-amber-500 text-slate-900'
                                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                                             }`}
                                     >
-                                        {def}
-                                    </button>
+                                        <input
+                                            type="radio"
+                                            name="definition"
+                                            checked={selectedDefinition === def}
+                                            onChange={() => setSelectedDefinition(def)}
+                                            className="w-4 h-4 text-amber-500 accent-amber-500"
+                                        />
+                                        <span>{def}</span>
+                                    </label>
                                 ))}
                             </div>
                         </div>
