@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCharactersWithRelations, useComponents } from '@/hooks/useLocalStorage';
@@ -8,6 +9,7 @@ import { lookupCharactersAPI, HanziDefinition } from '@/lib/hanzipy';
 
 function ComponentContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
     const componentChar = searchParams.get('char') || '';
     const { characters, loading } = useCharactersWithRelations();
     const { components: allComponents, loading: componentsLoading } = useComponents();
@@ -48,9 +50,9 @@ function ComponentContent() {
             <div className="max-w-4xl mx-auto text-center py-12">
                 <h1 className="text-2xl font-bold text-red-400 mb-4">No Component Specified</h1>
                 <p className="text-slate-400 mb-6">Please specify a component to view.</p>
-                <Link href="/characters" className="text-amber-400 hover:text-amber-300">
+                <button onClick={() => router.back()} className="text-amber-400 hover:text-amber-300">
                     ← Back to Characters
-                </Link>
+                </button>
             </div>
         );
     }
@@ -67,9 +69,9 @@ function ComponentContent() {
 
     return (
         <div className="max-w-4xl mx-auto">
-            <Link href="/characters" className="text-slate-400 hover:text-amber-400 mb-4 inline-block">
+            <button onClick={() => router.back()} className="text-slate-400 hover:text-amber-400 mb-4 inline-block">
                 ← Back to Characters
-            </Link>
+            </button>
 
             <div className="bg-slate-800 rounded-lg p-6">
                 {/* Component Header */}

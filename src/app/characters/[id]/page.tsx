@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
 import Link from 'next/link';
 
@@ -26,6 +27,7 @@ function resolveMovieScene(
 
 export default function CharacterDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
+    const router = useRouter();
     const { characters, loading, update, remove, toggleLearned, toggleReviewed } = useCharactersWithRelations();
     const { compounds } = useCompounds();
     const [isEditingScene, setIsEditingScene] = useState(false);
@@ -46,9 +48,9 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
             <div className="max-w-4xl mx-auto text-center py-12">
                 <h1 className="text-2xl font-bold text-red-400 mb-4">Character Not Found</h1>
                 <p className="text-slate-400 mb-6">The character you&apos;re looking for doesn&apos;t exist.</p>
-                <Link href="/characters" className="text-amber-400 hover:text-amber-300">
+                <button onClick={() => router.back()} className="text-amber-400 hover:text-amber-300">
                     ← Back to Characters
-                </Link>
+                </button>
             </div>
         );
     }
@@ -80,9 +82,9 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
     return (
         <div className="max-w-4xl mx-auto">
             {/* Back link */}
-            <Link href="/characters" className="text-slate-400 hover:text-amber-400 mb-4 inline-block">
+            <button onClick={() => router.back()} className="text-slate-400 hover:text-amber-400 mb-4 inline-block">
                 ← Back to Characters
-            </Link>
+            </button>
 
             <div className="bg-slate-800 rounded-lg p-6">
                 {/* Header with character and basic info */}

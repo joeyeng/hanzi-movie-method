@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
 import { CharacterCard } from '@/components/CharacterCard';
 
 const CHARS_PER_PAGE = 50;
+const SCROLL_STORAGE_KEY = 'characters-scroll-position';
+const PAGE_STORAGE_KEY = 'characters-page';
+const FILTER_STORAGE_KEY = 'characters-filter';
 
 // Normalize pinyin by removing tone marks for search comparison
 function normalizePinyin(pinyin: string): string {
@@ -27,6 +30,58 @@ function CharactersContent() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLearned, setFilterLearned] = useState<'all' | 'learned' | 'unlearned'>('all');
     const [currentPage, setCurrentPage] = useState(1);
+    const [isRestored, setIsRestored] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    // Restore page and filter from sessionStorage on mount
+    useEffect(() => {
+        const savedPage = sessionStorage.getItem(PAGE_STORAGE_KEY);
+        const savedFilter = sessionStorage.getItem(FILTER_STORAGE_KEY);
+        
+        if (savedPage) {
+            setCurrentPage(parseInt(savedPage, 10));
+        }
+        if (savedFilter) {
+            setFilterLearned(savedFilter as 'all' | 'learned' | 'unlearned');
+        }
+        setIsRestored(true);
+    }, []);
+
+    // Restore scroll position after content is loaded and page is restored
+    useEffect(() => {
+        if (!loading && isRestored) {
+            const savedScroll = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+            if (savedScroll) {
+                // Small delay to ensure DOM is rendered
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, parseInt(savedScroll, 10));
+                });
+            }
+        }
+    }, [loading, isRestored]);
+
+    // Save scroll position on scroll
+    useEffect(() => {
+        const handleScroll = () => {
+            sessionStorage.setItem(SCROLL_STORAGE_KEY, window.scrollY.toString());
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Save page to sessionStorage when it changes
+    useEffect(() => {
+        if (isRestored) {
+            sessionStorage.setItem(PAGE_STORAGE_KEY, currentPage.toString());
+        }
+    }, [currentPage, isRestored]);
+
+    // Save filter to sessionStorage when it changes
+    useEffect(() => {
+        if (isRestored) {
+            sessionStorage.setItem(FILTER_STORAGE_KEY, filterLearned);
+        }
+    }, [filterLearned, isRestored]);
 
     // Initialize search from URL parameter
     useEffect(() => {
@@ -59,15 +114,17 @@ function CharactersContent() {
     const startIndex = (currentPage - 1) * CHARS_PER_PAGE;
     const paginatedCharacters = filteredCharacters.slice(startIndex, startIndex + CHARS_PER_PAGE);
 
-    // Reset to page 1 when filters change
+    // Reset to page 1 and clear scroll when search changes
     const handleSearchChange = (value: string) => {
         setSearchQuery(value);
         setCurrentPage(1);
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
     };
 
     const handleFilterChange = (value: 'all' | 'learned' | 'unlearned') => {
         setFilterLearned(value);
         setCurrentPage(1);
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
     };
 
     const handleDelete = (id: string) => {
