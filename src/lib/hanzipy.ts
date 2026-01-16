@@ -390,18 +390,34 @@ export async function batchFetchExampleSentences(
 ): Promise<Map<string, TatoebaExample[]>> {
   const results = new Map<string, TatoebaExample[]>();
   
-  // Process in parallel with concurrency limit
-  const batchSize = 10;
-  for (let i = 0; i < words.length; i += batchSize) {
-    const batch = words.slice(i, i + batchSize);
-    const promises = batch.map(async word => {
-      const examples = await fetchExampleSentences(word, limitPerWord);
-      return { word, examples };
-    });
+  if (words.length === 0) return results;
+  
+  // Use batch endpoint for efficiency - process in chunks to avoid too large requests
+  const chunkSize = 50;
+  for (let i = 0; i < words.length; i += chunkSize) {
+    const chunk = words.slice(i, i + chunkSize);
     
-    const batchResults = await Promise.all(promises);
-    for (const { word, examples } of batchResults) {
-      results.set(word, examples);
+    try {
+      const response = await fetch('/api/examples', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ queries: chunk, limit: limitPerWord }),
+      });
+      
+      if (!response.ok) {
+        console.error('Batch fetch failed:', response.statusText);
+        continue;
+      }
+      
+      const data = await response.json();
+      // data.results is { "word1": [...], "word2": [...] }
+      if (data.results) {
+        for (const [word, examples] of Object.entries(data.results)) {
+          results.set(word, examples as TatoebaExample[]);
+        }
+      }
+    } catch (error) {
+      console.error('Error in batch fetch:', error);
     }
   }
   
