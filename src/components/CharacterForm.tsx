@@ -23,7 +23,6 @@ export function CharacterForm({ actors, rooms, sets, props, onSubmit, onCancel, 
         setId: initialData?.setId || '',
         props: initialData?.props || [] as string[],
         movieScene: initialData?.movieScene || '',
-        keyword: initialData?.keyword || '',
         notes: initialData?.notes || '',
     });
 
@@ -72,32 +71,18 @@ export function CharacterForm({ actors, rooms, sets, props, onSubmit, onCancel, 
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                        Meaning *
-                    </label>
-                    <input
-                        type="text"
-                        required
-                        value={formData.meaning}
-                        onChange={e => setFormData(prev => ({ ...prev, meaning: e.target.value }))}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                        placeholder="character, word"
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium text-slate-300 mb-1">
-                        Keyword
-                    </label>
-                    <input
-                        type="text"
-                        value={formData.keyword}
-                        onChange={e => setFormData(prev => ({ ...prev, keyword: e.target.value }))}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                        placeholder="Primary keyword"
-                    />
-                </div>
+            <div>
+                <label className="block text-sm font-medium text-slate-300 mb-1">
+                    Meaning *
+                </label>
+                <input
+                    type="text"
+                    required
+                    value={formData.meaning}
+                    onChange={e => setFormData(prev => ({ ...prev, meaning: e.target.value }))}
+                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                    placeholder="character, word"
+                />
             </div>
 
             <div className="grid grid-cols-3 gap-4">

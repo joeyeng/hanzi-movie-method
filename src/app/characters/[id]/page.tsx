@@ -107,9 +107,6 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                         <div>
                             <p className="text-2xl text-white mb-1">{character.pinyin}</p>
                             <p className="text-lg text-slate-400">{character.meaning}</p>
-                            {character.keyword && (
-                                <p className="text-amber-300 mt-2">Keyword: {character.keyword}</p>
-                            )}
                         </div>
                     </div>
                     <div className="flex items-center gap-2">

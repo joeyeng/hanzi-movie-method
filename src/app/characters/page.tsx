@@ -98,8 +98,7 @@ function CharactersContent() {
             char.hanzi.includes(searchQuery) ||
             char.pinyin.toLowerCase().includes(searchLower) ||
             normalizePinyin(char.pinyin).includes(searchNormalized) ||
-            char.meaning.toLowerCase().includes(searchLower) ||
-            (char.keyword && char.keyword.toLowerCase().includes(searchLower));
+            char.meaning.toLowerCase().includes(searchLower);
 
         const matchesFilter =
             filterLearned === 'all' ||

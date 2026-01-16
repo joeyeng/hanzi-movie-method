@@ -89,7 +89,6 @@ export interface Character {
   roomId?: string;
   props: string[]; // Array of prop IDs
   movieScene: string; // Description of the movie scene
-  keyword?: string; // Primary keyword for the character
   notes?: string;
   learned: boolean;
   reviewed: boolean; // Whether the character is ready for review sessions
