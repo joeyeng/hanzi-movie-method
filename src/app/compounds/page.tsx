@@ -314,9 +314,16 @@ function CompoundsContent() {
                                 {/* Example Sentences */}
                                 {compound.exampleSentences && compound.exampleSentences.length > 0 && (
                                     <div className="mb-3 pt-2 border-t border-slate-700">
-                                        <div className="text-xs text-slate-500 mb-2">Example:</div>
-                                        <div className="text-sm text-amber-400/80">{compound.exampleSentences[0].simplified}</div>
-                                        <div className="text-xs text-slate-500 mt-1">{compound.exampleSentences[0].english}</div>
+                                        <div className="text-xs text-slate-500 mb-2">Examples:</div>
+                                        <div className="space-y-2">
+                                            {compound.exampleSentences.slice(0, 3).map((sentence, idx) => (
+                                                <div key={sentence.id || idx}>
+                                                    <div className="text-sm text-amber-400/80">{sentence.simplified}</div>
+                                                    <div className="text-xs text-slate-400">{sentence.pinyin}</div>
+                                                    <div className="text-xs text-slate-500">{sentence.english}</div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     </div>
                                 )}
 

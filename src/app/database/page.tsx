@@ -447,6 +447,15 @@ export default function DatabasePage() {
         let exampleSentencesMap = new Map<string, TatoebaExample[]>();
         try {
             exampleSentencesMap = await batchFetchExampleSentences(allWordsToLookup, 3);
+            console.log('Example sentences fetched:', exampleSentencesMap.size, 'words');
+            // Debug: log first few entries
+            let count = 0;
+            for (const [word, examples] of exampleSentencesMap.entries()) {
+                if (count < 3) {
+                    console.log(`Word "${word}" has ${examples.length} examples:`, examples);
+                    count++;
+                }
+            }
         } catch (error) {
             console.warn('Could not fetch example sentences:', error);
         }
@@ -553,6 +562,7 @@ export default function DatabasePage() {
 
             // Get example sentences for this compound word
             const compoundExamples = exampleSentencesMap.get(compound.word) || [];
+            console.log(`Compound "${compound.word}" examples from map:`, compoundExamples.length, compoundExamples);
 
             addCompound({
                 word: compound.word,
