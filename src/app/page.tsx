@@ -87,7 +87,7 @@ export default function Home() {
             {recentCharacters.map(char => (
               <Link
                 key={char.id}
-                href={`/characters?id=${char.id}`}
+                href={`/characters/${char.id}`}
                 className="bg-slate-700 rounded-lg p-4 text-center hover:bg-slate-600 transition-colors"
               >
                 <div className="text-4xl text-amber-400 mb-2">{char.hanzi}</div>
