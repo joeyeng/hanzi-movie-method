@@ -1,6 +1,6 @@
 'use client';
 
-import { useCharactersWithRelations, useActors, useRooms, useSets, useProps } from '@/hooks/useLocalStorage';
+import { useCharactersWithRelations, useActors, useRooms, useSets, useComponents } from '@/hooks/useLocalStorage';
 import Link from 'next/link';
 
 export default function Home() {
@@ -8,9 +8,9 @@ export default function Home() {
   const { actors, loading: actorsLoading } = useActors();
   const { rooms, loading: roomsLoading } = useRooms();
   const { sets, loading: setsLoading } = useSets();
-  const { props, loading: propsLoading } = useProps();
+  const { components, loading: componentsLoading } = useComponents();
 
-  const loading = charsLoading || actorsLoading || roomsLoading || setsLoading || propsLoading;
+  const loading = charsLoading || actorsLoading || roomsLoading || setsLoading || componentsLoading;
 
   const learnedCount = characters.filter(c => c.learned).length;
   const recentCharacters = [...characters]
@@ -44,18 +44,18 @@ export default function Home() {
           <div className="text-slate-400">Actors</div>
           <div className="text-slate-500 text-sm mt-1">Initial sounds</div>
         </Link>
-        <Link href="/rooms" className="bg-slate-800 rounded-lg p-6 hover:bg-slate-750 transition-colors">
-          <div className="text-4xl font-bold text-orange-400">{rooms.length}</div>
-          <div className="text-slate-400">Rooms</div>
-          <div className="text-slate-500 text-sm mt-1">Tone areas</div>
-        </Link>
         <Link href="/sets" className="bg-slate-800 rounded-lg p-6 hover:bg-slate-750 transition-colors">
           <div className="text-4xl font-bold text-purple-400">{sets.length}</div>
           <div className="text-slate-400">Sets</div>
           <div className="text-slate-500 text-sm mt-1">Locations</div>
         </Link>
+        <Link href="/rooms" className="bg-slate-800 rounded-lg p-6 hover:bg-slate-750 transition-colors">
+          <div className="text-4xl font-bold text-orange-400">{rooms.length}</div>
+          <div className="text-slate-400">Rooms</div>
+          <div className="text-slate-500 text-sm mt-1">Tone areas</div>
+        </Link>
         <Link href="/props" className="bg-slate-800 rounded-lg p-6 hover:bg-slate-750 transition-colors">
-          <div className="text-4xl font-bold text-pink-400">{props.length}</div>
+          <div className="text-4xl font-bold text-pink-400">{components.length}</div>
           <div className="text-slate-400">Props</div>
           <div className="text-slate-500 text-sm mt-1">Components</div>
         </Link>
