@@ -71,6 +71,77 @@ function shuffleArray<T>(array: T[]): T[] {
     return shuffled;
 }
 
+// Apply a specific tone to a vowel
+function applyToneToVowel(vowel: string, tone: number): string {
+    const toneMarks: Record<string, string[]> = {
+        'a': ['ā', 'á', 'ǎ', 'à', 'a'],
+        'e': ['ē', 'é', 'ě', 'è', 'e'],
+        'i': ['ī', 'í', 'ǐ', 'ì', 'i'],
+        'o': ['ō', 'ó', 'ǒ', 'ò', 'o'],
+        'u': ['ū', 'ú', 'ǔ', 'ù', 'u'],
+        'ü': ['ǖ', 'ǘ', 'ǚ', 'ǜ', 'ü'],
+    };
+    const lower = vowel.toLowerCase();
+    if (toneMarks[lower] && tone >= 1 && tone <= 5) {
+        return toneMarks[lower][tone - 1];
+    }
+    return vowel;
+}
+
+// Generate random tone variations of a pinyin string (same letters, different tones)
+function generateToneVariations(correctPinyin: string, count: number): string[] {
+    // Split pinyin into syllables (space-separated)
+    const syllables = correctPinyin.split(' ');
+    const variations: Set<string> = new Set();
+    variations.add(correctPinyin); // Always include the correct one
+
+    // Find vowels that can have tones in each syllable
+    const vowelPattern = /[aeiouü]/gi;
+
+    // Generate random variations
+    let attempts = 0;
+    while (variations.size < count && attempts < 100) {
+        attempts++;
+        const newSyllables = syllables.map(syllable => {
+            // First normalize to base letters
+            let normalized = normalizePinyin(syllable);
+            // Find the main vowel to apply tone to (follows standard pinyin rules: a/e first, then ou, then last vowel)
+            let result = normalized;
+            const vowels = normalized.match(vowelPattern);
+            if (vowels && vowels.length > 0) {
+                // Determine which vowel gets the tone mark
+                let toneVowelIndex = -1;
+                if (normalized.includes('a')) {
+                    toneVowelIndex = normalized.indexOf('a');
+                } else if (normalized.includes('e')) {
+                    toneVowelIndex = normalized.indexOf('e');
+                } else if (normalized.includes('ou')) {
+                    toneVowelIndex = normalized.indexOf('o');
+                } else {
+                    // Find the last vowel
+                    for (let i = normalized.length - 1; i >= 0; i--) {
+                        if ('aeiouü'.includes(normalized[i])) {
+                            toneVowelIndex = i;
+                            break;
+                        }
+                    }
+                }
+
+                if (toneVowelIndex >= 0) {
+                    const randomTone = Math.floor(Math.random() * 4) + 1; // Tones 1-4
+                    const chars = result.split('');
+                    chars[toneVowelIndex] = applyToneToVowel(chars[toneVowelIndex], randomTone);
+                    result = chars.join('');
+                }
+            }
+            return result;
+        });
+        variations.add(newSyllables.join(' '));
+    }
+
+    return Array.from(variations);
+}
+
 export default function ReviewPage() {
     const { characters, loading, markReviewed, toggleLearned } = useCharactersWithRelations();
     const { compounds, loading: loadingCompounds, markReviewed: markCompoundReviewed, toggleLearned: toggleCompoundLearned } = useCompounds();
@@ -91,8 +162,10 @@ export default function ReviewPage() {
 
     // Compound quiz state
     const [compoundPinyinChoices, setCompoundPinyinChoices] = useState<string[]>([]);
+    const [compoundToneChoices, setCompoundToneChoices] = useState<string[]>([]);
     const [compoundDefinitionChoices, setCompoundDefinitionChoices] = useState<string[]>([]);
     const [selectedCompoundPinyin, setSelectedCompoundPinyin] = useState<string | null>(null);
+    const [selectedCompoundTone, setSelectedCompoundTone] = useState<string | null>(null);
     const [selectedCompoundDefinition, setSelectedCompoundDefinition] = useState<string | null>(null);
     const [compoundAnswerState, setCompoundAnswerState] = useState<AnswerState>('answering');
 
@@ -187,9 +260,11 @@ export default function ReviewPage() {
         setDefinitionChoices([]);
         // Reset compound state too
         setSelectedCompoundPinyin(null);
+        setSelectedCompoundTone(null);
         setSelectedCompoundDefinition(null);
         setCompoundAnswerState('answering');
         setCompoundPinyinChoices([]);
+        setCompoundToneChoices([]);
         setCompoundDefinitionChoices([]);
     };
 
@@ -243,17 +318,17 @@ export default function ReviewPage() {
         setDefinitionChoices(allChoices);
     };
 
-    // Generate multiple choice options for compound pinyin
+    // Generate multiple choice options for compound pinyin (without tones)
     const generateCompoundPinyinChoices = () => {
         if (!currentCompound) return;
 
-        const correctPinyin = currentCompound.pinyin;
+        const correctPinyin = normalizePinyin(currentCompound.pinyin);
         const charCount = currentCompound.characters.length;
 
-        // Get wrong pinyins from compounds with the same number of characters
+        // Get wrong pinyins from compounds with the same number of characters (normalized/toneless)
         const otherPinyins = compounds
             .filter(c => c.id !== currentCompound.id && c.characters.length === charCount)
-            .map(c => c.pinyin)
+            .map(c => normalizePinyin(c.pinyin))
             .filter(p => p && p !== correctPinyin);
 
         // Get unique wrong answers
@@ -265,6 +340,37 @@ export default function ReviewPage() {
         // Combine and shuffle all options
         const allChoices = shuffleArray([correctPinyin, ...wrongAnswers]);
         setCompoundPinyinChoices(allChoices);
+    };
+
+    // Generate tone choices after pinyin is selected
+    const generateCompoundToneChoices = (selectedPinyinBase: string) => {
+        if (!currentCompound) return;
+
+        const correctPinyinWithTones = currentCompound.pinyin;
+        const correctPinyinNormalized = normalizePinyin(correctPinyinWithTones);
+
+        // Check if the user selected the correct base pinyin
+        if (selectedPinyinBase === correctPinyinNormalized) {
+            // Generate 4 variations of the correct pinyin with different tones
+            const variations = generateToneVariations(correctPinyinWithTones, 4);
+            const allChoices = shuffleArray(variations);
+            setCompoundToneChoices(allChoices);
+        } else {
+            // User selected wrong pinyin - generate variations based on their selection
+            // Find a compound that matches the selected pinyin to get a base with tones
+            const matchingCompound = compounds.find(c => 
+                normalizePinyin(c.pinyin) === selectedPinyinBase && c.id !== currentCompound.id
+            );
+            
+            if (matchingCompound) {
+                const variations = generateToneVariations(matchingCompound.pinyin, 4);
+                const allChoices = shuffleArray(variations);
+                setCompoundToneChoices(allChoices);
+            } else {
+                // Fallback: just show the selected pinyin without tone options
+                setCompoundToneChoices([selectedPinyinBase]);
+            }
+        }
     };
 
     // Generate multiple choice options for compound definitions
@@ -294,13 +400,13 @@ export default function ReviewPage() {
     const checkCompoundAnswer = () => {
         if (!currentCompound) return;
 
-        const correctPinyin = currentCompound.pinyin;
+        const correctPinyinWithTones = currentCompound.pinyin;
         const correctDef = currentCompound.definition;
 
-        const pinyinCorrect = selectedCompoundPinyin === correctPinyin;
+        const toneCorrect = selectedCompoundTone === correctPinyinWithTones;
         const definitionCorrect = selectedCompoundDefinition === correctDef;
 
-        if (pinyinCorrect && definitionCorrect) {
+        if (toneCorrect && definitionCorrect) {
             setCompoundAnswerState('correct');
             // Mark as learned when answered correctly
             if (!currentCompound.learned) {
@@ -573,9 +679,11 @@ export default function ReviewPage() {
                     {/* Quiz Form */}
                     {compoundAnswerState === 'answering' && (
                         <div className="space-y-6 mb-8">
-                            {/* Pinyin Multiple Choice */}
+                            {/* Step 1: Pinyin Multiple Choice (without tones) */}
                             <div>
-                                <label className="block text-slate-400 text-sm mb-2">Select Pinyin</label>
+                                <label className="block text-slate-400 text-sm mb-2">
+                                    Step 1: Select Pinyin (without tones)
+                                </label>
                                 <div className="grid grid-cols-1 gap-2">
                                     {compoundPinyinChoices.map((pinyin, index) => (
                                         <label
@@ -589,7 +697,11 @@ export default function ReviewPage() {
                                                 type="radio"
                                                 name="compoundPinyin"
                                                 checked={selectedCompoundPinyin === pinyin}
-                                                onChange={() => setSelectedCompoundPinyin(pinyin)}
+                                                onChange={() => {
+                                                    setSelectedCompoundPinyin(pinyin);
+                                                    setSelectedCompoundTone(null);
+                                                    generateCompoundToneChoices(pinyin);
+                                                }}
                                                 className="w-4 h-4 text-amber-500 accent-amber-500"
                                             />
                                             <span className="font-medium">{pinyin}</span>
@@ -598,9 +710,38 @@ export default function ReviewPage() {
                                 </div>
                             </div>
 
+                            {/* Step 2: Tone Selection (shown after pinyin is selected) */}
+                            {selectedCompoundPinyin && compoundToneChoices.length > 0 && (
+                                <div>
+                                    <label className="block text-slate-400 text-sm mb-2">
+                                        Step 2: Select Pinyin with Correct Tones
+                                    </label>
+                                    <div className="grid grid-cols-1 gap-2">
+                                        {compoundToneChoices.map((pinyinWithTone, index) => (
+                                            <label
+                                                key={index}
+                                                className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors ${selectedCompoundTone === pinyinWithTone
+                                                    ? 'bg-purple-500 text-white'
+                                                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                                    }`}
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="compoundTone"
+                                                    checked={selectedCompoundTone === pinyinWithTone}
+                                                    onChange={() => setSelectedCompoundTone(pinyinWithTone)}
+                                                    className="w-4 h-4 text-purple-500 accent-purple-500"
+                                                />
+                                                <span className="font-medium">{pinyinWithTone}</span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Definition Multiple Choice */}
                             <div>
-                                <label className="block text-slate-400 text-sm mb-2">Select Definition</label>
+                                <label className="block text-slate-400 text-sm mb-2">Step 3: Select Definition</label>
                                 <div className="space-y-2">
                                     {compoundDefinitionChoices.map((def, index) => (
                                         <label
@@ -626,7 +767,7 @@ export default function ReviewPage() {
                             {/* Check Answer Button */}
                             <button
                                 onClick={checkCompoundAnswer}
-                                disabled={!selectedCompoundPinyin || !selectedCompoundDefinition}
+                                disabled={!selectedCompoundPinyin || !selectedCompoundTone || !selectedCompoundDefinition}
                                 className="w-full bg-amber-500 text-slate-900 py-3 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Check Answer
