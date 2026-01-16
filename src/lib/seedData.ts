@@ -205,18 +205,18 @@ export const exampleRooms = [
 
 // Example sets for HMM finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
 export const exampleSets = [
-  { name: "Dad's House", final: "-a", emoji: "🏡", description: "For -a finals (tā, nà, dà, mā)" },
-  { name: "School", final: "-ai", emoji: "🏫", description: "For -ai finals (lái, mǎi, dài, ài)" },
-  { name: "Beach", final: "-ao", emoji: "🏖️", description: "For -ao finals (hǎo, dào, gāo, zǎo)" },
-  { name: "Grandma's House", final: "-an", emoji: "🧓", description: "For -an finals (sān, nán, kàn, fàn)" },
-  { name: "Grandpa's House", final: "-ang", emoji: "🧔", description: "For -ang finals (shàng, cháng, dāng, fáng)" },
-  { name: "Park", final: "-o", emoji: "🌲", description: "For -o finals (wǒ, bō, pō, mō)" },
-  { name: "Workplace", final: "-ong", emoji: "🏢", description: "For -ong finals (zhōng, dōng, tóng, gōng)" },
-  { name: "Childhood Home", final: "-ou", emoji: "🌳", description: "For -ou finals (dōu, zǒu, gǒu, hòu)" },
-  { name: "Cafe", final: "-e", emoji: "☕", description: "For -e finals (hé, gē, lè, dé)" },
-  { name: "Airport", final: "-ei", emoji: "✈️", description: "For -ei finals (měi, bèi, fēi, gěi)" },
-  { name: "Best Friend's House", final: "-(e)n", emoji: "🤝", description: "For -(e)n finals (rén, hěn, shén, mén) - 'en' after most, 'n' after i/ü" },
-  { name: "Library", final: "-(e)ng", emoji: "📚", description: "For -(e)ng finals (néng, shēng, míng, tīng) - 'eng' after most, 'ng' after i" },
+  { name: "Australia", final: "-a", emoji: "🦘", description: "For -a finals (tā, nà, dà, mā)" },
+  { name: "Chiang Mai", final: "-ai", emoji: "🐘", description: "For -ai finals (lái, mǎi, dài, ài)" },
+  { name: "Macau", final: "-ao", emoji: "🎰", description: "For -ao finals (hǎo, dào, gāo, zǎo)" },
+  { name: "Xi'an", final: "-an", emoji: "🏛️", description: "For -an finals (sān, nán, kàn, fàn)" },
+  { name: "Shanghai", final: "-ang", emoji: "🌃", description: "For -ang finals (shàng, cháng, dāng, fáng)" },
+  { name: "Kuala Lumpur", final: "-o", emoji: "🗼", description: "For -o finals (wǒ, bō, pō, mō)" },
+  { name: "Hong Kong", final: "-ong", emoji: "🌆", description: "For -ong finals (zhōng, dōng, tóng, gōng)" },
+  { name: "Seoul", final: "-ou", emoji: "🇰🇷", description: "For -ou finals (dōu, zǒu, gǒu, hòu)" },
+  { name: "Osaka", final: "-e", emoji: "🏯", description: "For -e finals (hé, gē, lè, dé)" },
+  { name: "Beijing", final: "-ei", emoji: "🏮", description: "For -ei finals (měi, bèi, fēi, gěi)" },
+  { name: "Shenzhen", final: "-(e)n", emoji: "🌐", description: "For -(e)n finals (rén, hěn, shén, mén) - 'en' after most, 'n' after i/ü" },
+  { name: "Chengdu", final: "-(e)ng", emoji: "🐼", description: "For -(e)ng finals (néng, shēng, míng, tīng) - 'eng' after most, 'ng' after i" },
 ];
 
 // Example props for common radicals/components
