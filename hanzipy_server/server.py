@@ -178,16 +178,20 @@ def lookup_characters_batch():
                 # Convert tone numbers to tone marks
                 pinyin = convert_pinyin_tone_number_to_mark(pinyin)
                 
-                # Sort definitions: surnames last, variants second-to-last
+                # Sort definitions: surnames last, variants second-to-last, abbr third-to-last
                 def definition_sort_key(d):
                     definition_lower = d.get('definition', '').lower().strip()
                     
                     # Surnames always last
                     if 'surname' in definition_lower:
-                        return 2
+                        return 3
                     
                     # Variants second-to-last
                     if 'variant of' in definition_lower or 'variant' in definition_lower.split('/')[0]:
+                        return 2
+                    
+                    # Abbreviations third-to-last
+                    if 'abbr.' in definition_lower or 'abbr ' in definition_lower or definition_lower.startswith('abbr'):
                         return 1
                     
                     return 0  # Regular definitions first
@@ -317,12 +321,14 @@ def decompose_characters_batch():
                         try:
                             comp_defs = dictionary.definition_lookup(comp)
                             if comp_defs and len(comp_defs) > 0:
-                                # Sort definitions: surnames last, variants second-to-last
+                                # Sort definitions: surnames last, variants second-to-last, abbr third-to-last
                                 def definition_sort_key(d):
                                     definition_lower = d.get('definition', '').lower().strip()
                                     if 'surname' in definition_lower:
-                                        return 2
+                                        return 3
                                     if 'variant of' in definition_lower or 'variant' in definition_lower.split('/')[0]:
+                                        return 2
+                                    if 'abbr.' in definition_lower or 'abbr ' in definition_lower or definition_lower.startswith('abbr'):
                                         return 1
                                     return 0
                                 
