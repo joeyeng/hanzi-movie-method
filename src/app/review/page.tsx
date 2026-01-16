@@ -358,10 +358,10 @@ export default function ReviewPage() {
         } else {
             // User selected wrong pinyin - generate variations based on their selection
             // Find a compound that matches the selected pinyin to get a base with tones
-            const matchingCompound = compounds.find(c => 
+            const matchingCompound = compounds.find(c =>
                 normalizePinyin(c.pinyin) === selectedPinyinBase && c.id !== currentCompound.id
             );
-            
+
             if (matchingCompound) {
                 const variations = generateToneVariations(matchingCompound.pinyin, 4);
                 const allChoices = shuffleArray(variations);
