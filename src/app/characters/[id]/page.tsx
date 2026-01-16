@@ -18,7 +18,7 @@ function resolveMovieScene(
     const setName = set?.name || '[Set]';
 
     // Strip any existing template prefix from the scene (for backwards compatibility)
-    const cleanScene = scene.replace(/^\{\{ACTOR\}\} is at \{\{SET\}\} in the \{\{ROOM\}\}\.\s*/i, '');
+    const cleanScene = scene.replace(/^\{\{ACTOR\}\} is in \{\{SET\}\} in a \{\{ROOM\}\}\.\s*/i, '');
 
     // Build the full scene with template prepended
     const template = `${actorName} is at ${setName} in the ${roomName}.`;

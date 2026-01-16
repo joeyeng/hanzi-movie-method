@@ -196,11 +196,11 @@ export const exampleActors = [
 
 // Example rooms for each tone
 export const exampleRooms = [
-  { name: "Living Room", tone: 1, emoji: "🛋️", description: "Tone 1 (high level ā) - The main living area, bright and open" },
-  { name: "Kitchen", tone: 2, emoji: "🍳", description: "Tone 2 (rising á) - Where food is prepared, energy rises" },
-  { name: "Bathroom", tone: 3, emoji: "🚿", description: "Tone 3 (dipping ǎ) - Private space, the tone dips down" },
-  { name: "Bedroom", tone: 4, emoji: "🛌", description: "Tone 4 (falling à) - Where you rest, energy falls" },
-  { name: "Hallway", tone: 5, emoji: "🚪", description: "Tone 5 (neutral a) - Transitional space, neutral feeling" },
+  { name: "Bathroom", tone: 1, emoji: "🚿", description: "Tone 1 (high level ā) - You go to the bathroom in the morning, waking up" },
+  { name: "Kitchen", tone: 2, emoji: "🍽️", description: "Tone 2 (rising á) - After you get up you go to the kitchen to eat breakfast, energy rises" },
+  { name: "Office", tone: 3, emoji: "👨🏻‍💻", description: "Tone 3 (dipping ǎ) - You use up your energy at work and look forward to going home, energy goes down before going back up" },
+  { name: "Bedroom", tone: 4, emoji: "🛌", description: "Tone 4 (falling à) - You're tired after a long day, energy falls" },
+  { name: "Dream land", tone: 5, emoji: "💤", description: "Tone 5 (neutral a) - You're asleep, neutral feeling" },
 ];
 
 // Example sets for HMM finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
@@ -208,14 +208,14 @@ export const exampleSets = [
   { name: "Australia", final: "-a", emoji: "🦘", description: "For -a finals (tā, nà, dà, mā)" },
   { name: "Chiang Mai", final: "-ai", emoji: "🐘", description: "For -ai finals (lái, mǎi, dài, ài)" },
   { name: "Macau", final: "-ao", emoji: "🎰", description: "For -ao finals (hǎo, dào, gāo, zǎo)" },
-  { name: "Xi'an", final: "-an", emoji: "🏛️", description: "For -an finals (sān, nán, kàn, fàn)" },
-  { name: "Shanghai", final: "-ang", emoji: "🌃", description: "For -ang finals (shàng, cháng, dāng, fáng)" },
+  { name: "Xi'an", final: "-an", emoji: "🏯", description: "For -an finals (sān, nán, kàn, fàn)" },
+  { name: "Shanghai", final: "-ang", emoji: "🥟", description: "For -ang finals (shàng, cháng, dāng, fáng)" },
   { name: "Kuala Lumpur", final: "-o", emoji: "🗼", description: "For -o finals (wǒ, bō, pō, mō)" },
-  { name: "Hong Kong", final: "-ong", emoji: "🌆", description: "For -ong finals (zhōng, dōng, tóng, gōng)" },
-  { name: "Seoul", final: "-ou", emoji: "🇰🇷", description: "For -ou finals (dōu, zǒu, gǒu, hòu)" },
-  { name: "Osaka", final: "-e", emoji: "🏯", description: "For -e finals (hé, gē, lè, dé)" },
-  { name: "Beijing", final: "-ei", emoji: "🏮", description: "For -ei finals (měi, bèi, fēi, gěi)" },
-  { name: "Shenzhen", final: "-(e)n", emoji: "🌐", description: "For -(e)n finals (rén, hěn, shén, mén) - 'en' after most, 'n' after i/ü" },
+  { name: "Hong Kong", final: "-ong", emoji: "🌸", description: "For -ong finals (zhōng, dōng, tóng, gōng)" },
+  { name: "Seoul", final: "-ou", emoji: "🫰", description: "For -ou finals (dōu, zǒu, gǒu, hòu)" },
+  { name: "Osaka", final: "-e", emoji: "⛩", description: "For -e finals (hé, gē, lè, dé)" },
+  { name: "Beijing", final: "-ei", emoji: "🏛️", description: "For -ei finals (měi, bèi, fēi, gěi)" },
+  { name: "Shenzhen", final: "-(e)n", emoji: "🤖", description: "For -(e)n finals (rén, hěn, shén, mén) - 'en' after most, 'n' after i/ü" },
   { name: "Chengdu", final: "-(e)ng", emoji: "🐼", description: "For -(e)ng finals (néng, shēng, míng, tīng) - 'eng' after most, 'ng' after i" },
 ];
 
