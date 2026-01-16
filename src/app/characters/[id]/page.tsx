@@ -42,7 +42,7 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
     useEffect(() => {
         if (character?.hanzi) {
             setLoadingExamples(true);
-            fetchExampleSentences(character.hanzi, 3)
+            fetchExampleSentences(character.hanzi, 5)
                 .then(setExampleSentences)
                 .finally(() => setLoadingExamples(false));
         }
