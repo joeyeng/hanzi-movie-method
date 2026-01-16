@@ -146,16 +146,26 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
 
                 {/* Example Sentences */}
                 <div className="mb-6">
-                    <h3 className="text-slate-400 text-sm mb-2">Example Sentences</h3>
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-slate-400 text-sm">Example Sentences</h3>
+                        <a
+                            href={`https://tatoeba.org/en/sentences/search?from=cmn&to=eng&query=${encodeURIComponent(compound.word)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300"
+                        >
+                            View more on Tatoeba →
+                        </a>
+                    </div>
                     {loadingExamples ? (
                         <div className="text-slate-500 text-sm">Loading examples...</div>
                     ) : exampleSentences.length > 0 ? (
-                        <div className="space-y-3">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {exampleSentences.map((sentence, index) => (
-                                <div key={sentence.id || index} className="bg-slate-700/30 rounded-lg p-3">
-                                    <p className="text-lg text-amber-400">{sentence.simplified}</p>
-                                    <p className="text-sm text-slate-400 mt-1">{sentence.pinyin}</p>
-                                    <p className="text-slate-300 mt-1">{sentence.english}</p>
+                                <div key={sentence.id || index} className="bg-slate-800 border border-slate-700 rounded-xl p-4 hover:border-amber-500/50 transition-colors">
+                                    <p className="text-xl text-amber-400 mb-2">{sentence.simplified}</p>
+                                    <p className="text-sm text-slate-400 mb-2 italic">{sentence.pinyin}</p>
+                                    <p className="text-slate-300 text-sm">{sentence.english}</p>
                                 </div>
                             ))}
                         </div>
