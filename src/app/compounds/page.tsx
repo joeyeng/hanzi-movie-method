@@ -54,7 +54,7 @@ function CompoundsContent() {
             compound.pinyin.toLowerCase().includes(searchLower) ||
             normalizePinyin(compound.pinyin).includes(searchNormalized) ||
             compound.definition.toLowerCase().includes(searchLower);
-        
+
         const matchesLearned =
             filterLearned === 'all' ||
             (filterLearned === 'learned' && compound.learned) ||
