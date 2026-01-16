@@ -52,6 +52,25 @@ The Hanzi Movie Method is a mnemonic system for learning Chinese characters that
 4. **Add Characters** - Combine actors, sets, and props into vivid movie scenes
 5. **Review Regularly** - Use the Review feature to strengthen your memory
 
+## Docker
+
+Run the app using Docker Compose:
+
+```bash
+# Build and start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+```
+
+The app will be available at:
+- **Frontend**: http://localhost:3000
+- **HanziPy API**: http://localhost:5000
+
 ## Tech Stack
 
 - [Next.js 15](https://nextjs.org/) - React framework
