@@ -208,7 +208,7 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                 {/* Character Components (Radicals) */}
                 {character.components && character.components.length > 0 && (
                     <div className="mb-6">
-                        <h3 className="text-slate-400 text-sm mb-2">Components</h3>
+                        <h3 className="text-slate-400 text-sm mb-2">Props (Components)</h3>
                         <div className="flex flex-wrap gap-2">
                             {character.components.map((comp, index) => (
                                 <Link

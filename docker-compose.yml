@@ -1,15 +1,19 @@
 services:
-  # Next.js Frontend
+  # Next.js Frontend (Development with hot reload)
   web:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     ports:
       - "3000:3000"
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - HANZIPY_SERVER_URL=http://hanzipy:5000
       - TATOEBA_SERVER_URL=http://tatoeba:5001
+      - WATCHPACK_POLLING=true
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
     depends_on:
       - hanzipy
       - tatoeba
