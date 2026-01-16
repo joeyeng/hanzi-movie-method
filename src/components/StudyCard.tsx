@@ -48,7 +48,7 @@ export function StudyCard({
         <div className={`bg-slate-800 rounded-lg p-3 sm:p-4 transition-colors relative ${learned
             ? 'border border-green-500/50 hover:border-green-400'
             : 'border border-slate-700 hover:border-amber-500/50'
-        }`}>
+            }`}>
             {/* Status badges */}
             <div className="absolute top-3 left-3 flex gap-1">
                 {learned && (
@@ -114,7 +114,7 @@ export function StudyCard({
                         className={`px-3 py-1 rounded text-xs font-medium transition-colors ${learned
                             ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                             : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                        }`}
+                            }`}
                         title={learned ? 'Mark as not learned' : 'Mark as learned'}
                     >
                         {learned ? '✓ Learned' : 'Mark Learned'}
@@ -124,7 +124,7 @@ export function StudyCard({
                         className={`px-3 py-1 rounded text-xs font-medium transition-colors ${reviewed
                             ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
                             : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                        }`}
+                            }`}
                         title={reviewed ? 'Remove from review' : 'Add to review'}
                     >
                         {reviewed ? '📚 In Review' : 'Add to Review'}
