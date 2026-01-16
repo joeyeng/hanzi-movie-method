@@ -542,7 +542,7 @@ export default function ReviewPage() {
                                     name="reviewMode"
                                     checked={reviewMode === 'unlearned'}
                                     onChange={() => setReviewMode('unlearned')}
-                                    className="w-4 h-4 text-amber-500"
+                                    className="w-4 h-4 accent-amber-500"
                                 />
                                 <div>
                                     <div className="font-medium">Unlearned Only</div>
@@ -558,7 +558,7 @@ export default function ReviewPage() {
                                     name="reviewMode"
                                     checked={reviewMode === 'all'}
                                     onChange={() => setReviewMode('all')}
-                                    className="w-4 h-4 text-amber-500"
+                                    className="w-4 h-4 accent-amber-500"
                                 />
                                 <div>
                                     <div className="font-medium">All {reviewType === 'characters' ? 'Characters' : 'Compounds'}</div>
@@ -572,7 +572,7 @@ export default function ReviewPage() {
                                     name="reviewMode"
                                     checked={reviewMode === 'due'}
                                     onChange={() => setReviewMode('due')}
-                                    className="w-4 h-4 text-amber-500"
+                                    className="w-4 h-4 accent-amber-500"
                                 />
                                 <div>
                                     <div className="font-medium">Due for Review</div>
@@ -702,7 +702,7 @@ export default function ReviewPage() {
                                                     setSelectedCompoundTone(null);
                                                     generateCompoundToneChoices(pinyin);
                                                 }}
-                                                className="w-4 h-4 text-amber-500 accent-amber-500"
+                                                className={`w-4 h-4 ${selectedCompoundPinyin === pinyin ? 'accent-amber-700' : 'accent-amber-500'}`}
                                             />
                                             <span className="font-medium">{pinyin}</span>
                                         </label>
@@ -730,7 +730,7 @@ export default function ReviewPage() {
                                                     name="compoundTone"
                                                     checked={selectedCompoundTone === pinyinWithTone}
                                                     onChange={() => setSelectedCompoundTone(pinyinWithTone)}
-                                                    className="w-4 h-4 text-purple-500 accent-purple-500"
+                                                    className={`w-4 h-4 ${selectedCompoundTone === pinyinWithTone ? 'accent-purple-700' : 'accent-purple-500'}`}
                                                 />
                                                 <span className="font-medium">{pinyinWithTone}</span>
                                             </label>
@@ -756,7 +756,7 @@ export default function ReviewPage() {
                                                 name="compoundDefinition"
                                                 checked={selectedCompoundDefinition === def}
                                                 onChange={() => setSelectedCompoundDefinition(def)}
-                                                className="w-4 h-4 text-amber-500 accent-amber-500"
+                                                className={`w-4 h-4 ${selectedCompoundDefinition === def ? 'accent-amber-700' : 'accent-amber-500'}`}
                                             />
                                             <span>{def}</span>
                                         </label>
@@ -880,7 +880,7 @@ export default function ReviewPage() {
                                             name="pinyin"
                                             checked={selectedPinyin === pinyin}
                                             onChange={() => setSelectedPinyin(pinyin)}
-                                            className="w-4 h-4 text-amber-500 accent-amber-500"
+                                            className={`w-4 h-4 ${selectedPinyin === pinyin ? 'accent-amber-700' : 'accent-amber-500'}`}
                                         />
                                         <span className="font-medium">{pinyin}</span>
                                     </label>
@@ -927,7 +927,7 @@ export default function ReviewPage() {
                                             name="definition"
                                             checked={selectedDefinition === def}
                                             onChange={() => setSelectedDefinition(def)}
-                                            className="w-4 h-4 text-amber-500 accent-amber-500"
+                                            className={`w-4 h-4 ${selectedDefinition === def ? 'accent-amber-700' : 'accent-amber-500'}`}
                                         />
                                         <span>{def}</span>
                                     </label>
