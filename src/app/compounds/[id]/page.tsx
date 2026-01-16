@@ -25,7 +25,7 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
     useEffect(() => {
         if (compound?.word) {
             setLoadingExamples(true);
-            fetchExampleSentences(compound.word, 5)
+            fetchExampleSentences(compound.word, 10)
                 .then(setExampleSentences)
                 .finally(() => setLoadingExamples(false));
         }

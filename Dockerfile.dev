@@ -20,5 +20,5 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Run in development mode with hot reload
-CMD ["npm", "run", "dev"]
+# Run in development mode (Turbopack with polling for Docker)
+CMD ["npm", "run", "dev:docker"]
