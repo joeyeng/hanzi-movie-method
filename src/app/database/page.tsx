@@ -980,11 +980,11 @@ export default function DatabasePage() {
 
             {/* Default Data Import */}
             <div className="bg-slate-800 rounded-lg p-6 mb-8">
-                <h2 className="text-xl font-semibold mb-4">Setup Default Actors, Rooms, Sets & Props</h2>
+                <h2 className="text-xl font-semibold mb-4">Setup Default Actors, Rooms & Sets</h2>
                 <p className="text-slate-400 text-sm mb-4">
-                    Before importing characters, set up your actors, rooms, and sets. These will be automatically matched to characters based on pinyin.
+                    Before importing characters, set up your actors, rooms, and sets. These will be automatically matched to characters based on pinyin. Components are created automatically during character import.
                 </p>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                     <div>
                         <button
                             onClick={importDefaultActors}
@@ -1011,15 +1011,6 @@ export default function DatabasePage() {
                             Import Sets
                         </button>
                         <p className="text-slate-500 text-xs text-center">{sets.length} in database</p>
-                    </div>
-                    <div>
-                        <button
-                            onClick={importDefaultProps}
-                            className="w-full bg-pink-500 text-white py-2 rounded-lg font-medium hover:bg-pink-400 transition-colors mb-2"
-                        >
-                            Import Props
-                        </button>
-                        <p className="text-slate-500 text-xs text-center">{props.length} in database</p>
                     </div>
                 </div>
             </div>
@@ -1055,6 +1046,10 @@ export default function DatabasePage() {
                         <div className="text-slate-400 text-sm">Compounds</div>
                     </div>
                     <div>
+                        <div className="text-3xl font-bold text-pink-400">{components.length}</div>
+                        <div className="text-slate-400 text-sm">Components</div>
+                    </div>
+                    <div>
                         <div className="text-3xl font-bold text-blue-400">{actors.length}</div>
                         <div className="text-slate-400 text-sm">Actors</div>
                     </div>
@@ -1065,10 +1060,6 @@ export default function DatabasePage() {
                     <div>
                         <div className="text-3xl font-bold text-purple-400">{sets.length}</div>
                         <div className="text-slate-400 text-sm">Sets</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-pink-400">{props.length}</div>
-                        <div className="text-slate-400 text-sm">Props</div>
                     </div>
                 </div>
             </div>
