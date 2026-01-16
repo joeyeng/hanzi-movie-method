@@ -462,6 +462,16 @@ export default function ReviewPage() {
         }
     };
 
+    const handleSkip = () => {
+        // Skip without marking as reviewed
+        resetQuizState();
+        if (currentIndex < currentQueue.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+        } else {
+            setSessionStarted(false);
+        }
+    };
+
     const handleMarkLearned = () => {
         if (reviewType === 'characters' && currentCharacter) {
             toggleLearned(currentCharacter.id);
@@ -787,6 +797,12 @@ export default function ReviewPage() {
                             {currentCompound.learned ? '✓ Learned' : 'Mark Learned'}
                         </button>
                         <button
+                            onClick={handleSkip}
+                            className="px-4 py-2 bg-slate-600 text-slate-300 rounded-lg text-sm hover:bg-slate-500 transition-colors"
+                        >
+                            Skip →
+                        </button>
+                        <button
                             onClick={() => setSessionStarted(false)}
                             className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg text-sm hover:bg-slate-600 transition-colors"
                         >
@@ -987,6 +1003,12 @@ export default function ReviewPage() {
                             }`}
                     >
                         {currentCharacter.learned ? '✓ Learned' : 'Mark Learned'}
+                    </button>
+                    <button
+                        onClick={handleSkip}
+                        className="px-4 py-2 bg-slate-600 text-slate-300 rounded-lg text-sm hover:bg-slate-500 transition-colors"
+                    >
+                        Skip →
                     </button>
                     <button
                         onClick={() => setSessionStarted(false)}
