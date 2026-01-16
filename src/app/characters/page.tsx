@@ -29,6 +29,7 @@ function CharactersContent() {
     const searchParams = useSearchParams();
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLearned, setFilterLearned] = useState<'all' | 'learned' | 'unlearned'>('all');
+    const [filterReviewed, setFilterReviewed] = useState<'all' | 'reviewed' | 'not-reviewed'>('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [isRestored, setIsRestored] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -105,7 +106,12 @@ function CharactersContent() {
             (filterLearned === 'learned' && char.learned) ||
             (filterLearned === 'unlearned' && !char.learned);
 
-        return matchesSearch && matchesFilter;
+        const matchesReviewed =
+            filterReviewed === 'all' ||
+            (filterReviewed === 'reviewed' && char.reviewed) ||
+            (filterReviewed === 'not-reviewed' && !char.reviewed);
+
+        return matchesSearch && matchesFilter && matchesReviewed;
     });
 
     // Pagination
@@ -122,6 +128,12 @@ function CharactersContent() {
 
     const handleFilterChange = (value: 'all' | 'learned' | 'unlearned') => {
         setFilterLearned(value);
+        setCurrentPage(1);
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+    };
+
+    const handleReviewedFilterChange = (value: 'all' | 'reviewed' | 'not-reviewed') => {
+        setFilterReviewed(value);
         setCurrentPage(1);
         sessionStorage.removeItem(SCROLL_STORAGE_KEY);
     };
@@ -150,23 +162,79 @@ function CharactersContent() {
             </div>
 
             {/* Search and Filter */}
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-6">
+            <div className="flex flex-col gap-3 mb-6">
                 <input
                     type="text"
                     placeholder="Search characters..."
                     value={searchQuery}
                     onChange={e => handleSearchChange(e.target.value)}
-                    className="flex-1 px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500"
+                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder-slate-500"
                 />
-                <select
-                    value={filterLearned}
-                    onChange={e => handleFilterChange(e.target.value as 'all' | 'learned' | 'unlearned')}
-                    className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-white"
-                >
-                    <option value="all">All Characters</option>
-                    <option value="learned">Learned</option>
-                    <option value="unlearned">Not Learned</option>
-                </select>
+                <div className="flex flex-wrap gap-2">
+                    <span className="text-slate-400 text-sm self-center mr-2">Learned:</span>
+                    <button
+                        onClick={() => handleFilterChange('all')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            filterLearned === 'all'
+                                ? 'bg-amber-500 text-slate-900'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                    >
+                        All
+                    </button>
+                    <button
+                        onClick={() => handleFilterChange('learned')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            filterLearned === 'learned'
+                                ? 'bg-green-500 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                    >
+                        ✓ Learned
+                    </button>
+                    <button
+                        onClick={() => handleFilterChange('unlearned')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            filterLearned === 'unlearned'
+                                ? 'bg-slate-500 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                    >
+                        Not Learned
+                    </button>
+                    <span className="text-slate-600 mx-2">|</span>
+                    <span className="text-slate-400 text-sm self-center mr-2">Review:</span>
+                    <button
+                        onClick={() => handleReviewedFilterChange('all')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            filterReviewed === 'all'
+                                ? 'bg-amber-500 text-slate-900'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                    >
+                        All
+                    </button>
+                    <button
+                        onClick={() => handleReviewedFilterChange('reviewed')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            filterReviewed === 'reviewed'
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                    >
+                        📚 In Review
+                    </button>
+                    <button
+                        onClick={() => handleReviewedFilterChange('not-reviewed')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            filterReviewed === 'not-reviewed'
+                                ? 'bg-slate-500 text-white'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        }`}
+                    >
+                        Not in Review
+                    </button>
+                </div>
             </div>
 
             {/* Character Grid */}
