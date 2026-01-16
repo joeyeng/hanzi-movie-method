@@ -174,31 +174,28 @@ function CharactersContent() {
                     <span className="text-slate-400 text-sm self-center mr-2">Learned:</span>
                     <button
                         onClick={() => handleFilterChange('all')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                            filterLearned === 'all'
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterLearned === 'all'
                                 ? 'bg-amber-500 text-slate-900'
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                        }`}
+                            }`}
                     >
                         All
                     </button>
                     <button
                         onClick={() => handleFilterChange('learned')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                            filterLearned === 'learned'
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterLearned === 'learned'
                                 ? 'bg-green-500 text-white'
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                        }`}
+                            }`}
                     >
                         ✓ Learned
                     </button>
                     <button
                         onClick={() => handleFilterChange('unlearned')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                            filterLearned === 'unlearned'
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterLearned === 'unlearned'
                                 ? 'bg-slate-500 text-white'
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                        }`}
+                            }`}
                     >
                         Not Learned
                     </button>
@@ -206,31 +203,28 @@ function CharactersContent() {
                     <span className="text-slate-400 text-sm self-center mr-2">Review:</span>
                     <button
                         onClick={() => handleReviewedFilterChange('all')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                            filterReviewed === 'all'
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterReviewed === 'all'
                                 ? 'bg-amber-500 text-slate-900'
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                        }`}
+                            }`}
                     >
                         All
                     </button>
                     <button
                         onClick={() => handleReviewedFilterChange('reviewed')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                            filterReviewed === 'reviewed'
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterReviewed === 'reviewed'
                                 ? 'bg-blue-500 text-white'
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                        }`}
+                            }`}
                     >
                         📚 In Review
                     </button>
                     <button
                         onClick={() => handleReviewedFilterChange('not-reviewed')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
-                            filterReviewed === 'not-reviewed'
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterReviewed === 'not-reviewed'
                                 ? 'bg-slate-500 text-white'
                                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                        }`}
+                            }`}
                     >
                         Not in Review
                     </button>
