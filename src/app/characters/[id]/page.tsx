@@ -29,7 +29,7 @@ function resolveMovieScene(
 export default function CharacterDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const { characters, loading, update, remove, toggleLearned, toggleReviewed } = useCharactersWithRelations();
+    const { characters, loading, update, toggleLearned, toggleReviewed } = useCharactersWithRelations();
     const { compounds } = useCompounds();
     const [isEditingScene, setIsEditingScene] = useState(false);
     const [editedScene, setEditedScene] = useState('');
@@ -82,13 +82,6 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
         setIsEditingScene(true);
     };
 
-    const handleDelete = () => {
-        if (confirm('Are you sure you want to delete this character?')) {
-            remove(character.id);
-            window.location.href = '/characters';
-        }
-    };
-
     // Get the template with resolved names for display
     const templatePrefix = `${character.actor?.name || '[Actor]'} is at ${character.set?.name || '[Set]'} in the ${character.room?.name || '[Room]'}.`;
 
@@ -96,10 +89,41 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
         <div className="max-w-4xl mx-auto">
             {/* Back link */}
             <button onClick={() => router.back()} className="text-slate-400 hover:text-amber-400 mb-4 inline-block">
-                ← Back to Characters
+                ← Back
             </button>
 
             <div className="bg-slate-800 rounded-lg p-6">
+                {/* Status badges and Google Translate */}
+                <div className="flex items-center gap-2 mb-4">
+                    {character.learned && (
+                        <span className="text-sm bg-green-500/20 text-green-400 px-3 py-1 rounded-full">
+                            ✓ Learned
+                        </span>
+                    )}
+                    {character.reviewed && (
+                        <span className="text-sm bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full">
+                            📚 In Review
+                        </span>
+                    )}
+                    {character.reviewCount > 0 && (
+                        <span className="text-sm bg-slate-700 text-slate-400 px-3 py-1 rounded-full">
+                            Reviewed {character.reviewCount}x
+                        </span>
+                    )}
+                    <div className="flex-1"></div>
+                    <a
+                        href={`https://translate.google.com/?sl=zh-CN&tl=en&text=${encodeURIComponent(character.hanzi)}&op=translate`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-slate-400 hover:text-blue-400 transition-colors"
+                        title="Google Translate"
+                    >
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04M18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12m-2.62 7l1.62-4.33L19.12 17h-3.24z" />
+                        </svg>
+                    </a>
+                </div>
+
                 {/* Header with character and basic info */}
                 <div className="flex justify-between items-start mb-6">
                     <div className="flex items-start gap-4">
@@ -108,29 +132,6 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                             <p className="text-2xl text-white mb-1">{character.pinyin}</p>
                             <p className="text-lg text-slate-400">{character.meaning}</p>
                         </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <a
-                            href={`https://translate.google.com/?sl=zh-CN&tl=en&text=${encodeURIComponent(character.hanzi)}&op=translate`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-slate-400 hover:text-blue-400 transition-colors"
-                            title="Google Translate"
-                        >
-                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04M18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12m-2.62 7l1.62-4.33L19.12 17h-3.24z" />
-                            </svg>
-                        </a>
-                        {character.reviewed && (
-                            <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded text-sm">
-                                📚 In Review
-                            </span>
-                        )}
-                        {character.learned && (
-                            <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded text-sm">
-                                ✓ Learned
-                            </span>
-                        )}
                     </div>
                 </div>
 
@@ -329,40 +330,33 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                     )}
                 </div>
 
-                {/* Review stats */}
+                {/* Metadata */}
                 <div className="flex justify-between items-center text-sm text-slate-500 mb-6 py-3 border-t border-slate-700">
-                    <span>Review Count: {character.reviewCount}</span>
+                    <span>Created: {new Date(character.createdAt).toLocaleDateString()}</span>
                     {character.lastReviewed && (
                         <span>Last Reviewed: {new Date(character.lastReviewed).toLocaleDateString()}</span>
                     )}
-                    <span>Created: {new Date(character.createdAt).toLocaleDateString()}</span>
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-700">
-                    <button
-                        onClick={() => toggleReviewed(character.id)}
-                        className={`flex-1 py-2 rounded font-medium transition-colors ${character.reviewed
-                            ? 'bg-blue-600/30 text-blue-300 hover:bg-blue-600/40'
-                            : 'bg-blue-600 text-white hover:bg-blue-500'
-                            }`}
-                    >
-                        {character.reviewed ? '📚 Remove from Review' : '📚 Add to Review'}
-                    </button>
+                <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-slate-700">
                     <button
                         onClick={() => toggleLearned(character.id)}
-                        className={`flex-1 py-2 rounded font-medium transition-colors ${character.learned
-                            ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                            : 'bg-green-600 text-white hover:bg-green-500'
+                        className={`px-4 py-2 rounded font-medium transition-colors ${character.learned
+                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             }`}
                     >
-                        {character.learned ? 'Unmark Learned' : 'Mark Learned'}
+                        {character.learned ? '✓ Learned' : 'Mark as Learned'}
                     </button>
                     <button
-                        onClick={handleDelete}
-                        className="px-6 py-2 bg-red-600/20 text-red-400 rounded font-medium hover:bg-red-600/30 transition-colors"
+                        onClick={() => toggleReviewed(character.id)}
+                        className={`px-4 py-2 rounded font-medium transition-colors ${character.reviewed
+                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
                     >
-                        Delete
+                        {character.reviewed ? '📚 In Review' : 'Add to Review'}
                     </button>
                 </div>
             </div>

@@ -5,6 +5,7 @@ import { useCompounds, useCharacters } from '@/hooks/useLocalStorage';
 import { CompoundWord } from '@/types';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { CompoundCard } from '@/components/CompoundCard';
 
 const COMPOUNDS_PER_PAGE = 100;
 
@@ -334,96 +335,12 @@ function CompoundsContent() {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {paginatedCompounds.map((compound) => (
-                            <div
+                            <CompoundCard
                                 key={compound.id}
-                                className={`bg-slate-800 rounded-lg p-4 border transition-colors relative ${compound.learned
-                                    ? 'border-green-500/50 hover:border-green-400'
-                                    : 'border-slate-700 hover:border-amber-500/50'
-                                    }`}
-                            >
-                                {/* Status badges */}
-                                <div className="absolute top-3 left-3 flex gap-1">
-                                    {compound.learned && (
-                                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
-                                            ✓ Learned
-                                        </span>
-                                    )}
-                                    {compound.reviewed && (
-                                        <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
-                                            📚 Review
-                                        </span>
-                                    )}
-                                </div>
-
-                                {/* Google Translate Icon */}
-                                <a
-                                    href={`https://translate.google.com/?sl=zh-CN&tl=en&text=${encodeURIComponent(compound.word)}&op=translate`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="absolute top-3 right-3 text-slate-400 hover:text-blue-400 transition-colors"
-                                    title="Google Translate"
-                                >
-                                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                        <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04M18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12m-2.62 7l1.62-4.33L19.12 17h-3.24z" />
-                                    </svg>
-                                </a>
-
-                                {/* Clickable Compound Word - links to detail page */}
-                                <Link
-                                    href={`/compounds/${compound.id}`}
-                                    className="flex justify-center gap-2 mb-3 mt-6 hover:opacity-80 transition-opacity"
-                                >
-                                    {compound.characters.map((char, index) => (
-                                        <span
-                                            key={index}
-                                            className="text-4xl text-amber-400"
-                                        >
-                                            {char}
-                                        </span>
-                                    ))}
-                                </Link>
-
-                                {/* Pinyin */}
-                                <div className="text-center text-lg text-amber-300 mb-2">
-                                    {compound.pinyin}
-                                </div>
-
-                                {/* Definition */}
-                                <div className="text-center text-slate-300">
-                                    {compound.definition}
-                                </div>
-
-                                {/* Notes */}
-                                {compound.notes && (
-                                    <div className="text-center text-sm text-slate-500 mt-2 italic">
-                                        {compound.notes}
-                                    </div>
-                                )}
-
-                                {/* Toggle buttons */}
-                                <div className="flex justify-center gap-2 mt-4 pt-3 border-t border-slate-700">
-                                    <button
-                                        onClick={() => toggleLearned(compound.id)}
-                                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${compound.learned
-                                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
-                                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                                            }`}
-                                        title={compound.learned ? 'Mark as not learned' : 'Mark as learned'}
-                                    >
-                                        {compound.learned ? '✓ Learned' : 'Mark Learned'}
-                                    </button>
-                                    <button
-                                        onClick={() => toggleReviewed(compound.id)}
-                                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${compound.reviewed
-                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
-                                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                                            }`}
-                                        title={compound.reviewed ? 'Remove from review' : 'Add to review'}
-                                    >
-                                        {compound.reviewed ? '📚 In Review' : 'Add to Review'}
-                                    </button>
-                                </div>
-                            </div>
+                                compound={compound}
+                                onToggleLearned={() => toggleLearned(compound.id)}
+                                onToggleReviewed={() => toggleReviewed(compound.id)}
+                            />
                         ))}
                     </div>
 
