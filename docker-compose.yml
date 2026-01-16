@@ -11,9 +11,10 @@ services:
       - HANZIPY_SERVER_URL=http://hanzipy:5000
       - TATOEBA_SERVER_URL=http://tatoeba:5001
       - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
     volumes:
-      - ./src:/app/src
-      - ./public:/app/public
+      - ./src:/app/src:delegated
+      - ./public:/app/public:delegated
     depends_on:
       - hanzipy
       - tatoeba

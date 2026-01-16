@@ -269,30 +269,20 @@ function CompoundsContent() {
                                     </svg>
                                 </a>
 
-                                {/* Clickable Characters */}
-                                <div className="flex justify-center gap-2 mb-3">
-                                    {compound.characters.map((char, index) => {
-                                        const charId = findCharacterId(char);
-                                        return charId ? (
-                                            <Link
-                                                key={index}
-                                                href={`/characters?search=${encodeURIComponent(char)}`}
-                                                className="text-4xl text-amber-400 hover:text-amber-300 hover:scale-110 transition-all cursor-pointer"
-                                                title={`View character: ${char}`}
-                                            >
-                                                {char}
-                                            </Link>
-                                        ) : (
-                                            <span
-                                                key={index}
-                                                className="text-4xl text-slate-400"
-                                                title={`Character not in database: ${char}`}
-                                            >
-                                                {char}
-                                            </span>
-                                        );
-                                    })}
-                                </div>
+                                {/* Clickable Compound Word - links to detail page */}
+                                <Link
+                                    href={`/compounds/${compound.id}`}
+                                    className="flex justify-center gap-2 mb-3 hover:opacity-80 transition-opacity"
+                                >
+                                    {compound.characters.map((char, index) => (
+                                        <span
+                                            key={index}
+                                            className="text-4xl text-amber-400"
+                                        >
+                                            {char}
+                                        </span>
+                                    ))}
+                                </Link>
 
                                 {/* Pinyin */}
                                 <div className="text-center text-lg text-amber-300 mb-2">
@@ -300,48 +290,16 @@ function CompoundsContent() {
                                 </div>
 
                                 {/* Definition */}
-                                <div className="text-center text-slate-300 mb-3">
+                                <div className="text-center text-slate-300">
                                     {compound.definition}
                                 </div>
 
                                 {/* Notes */}
                                 {compound.notes && (
-                                    <div className="text-center text-sm text-slate-500 mb-3 italic">
+                                    <div className="text-center text-sm text-slate-500 mt-2 italic">
                                         {compound.notes}
                                     </div>
                                 )}
-
-                                {/* Example Sentences */}
-                                {compound.exampleSentences && compound.exampleSentences.length > 0 && (
-                                    <div className="mb-3 pt-2 border-t border-slate-700">
-                                        <div className="text-xs text-slate-500 mb-2">Examples:</div>
-                                        <div className="space-y-2">
-                                            {compound.exampleSentences.slice(0, 3).map((sentence, idx) => (
-                                                <div key={sentence.id || idx}>
-                                                    <div className="text-sm text-amber-400/80">{sentence.simplified}</div>
-                                                    <div className="text-xs text-slate-400">{sentence.pinyin}</div>
-                                                    <div className="text-xs text-slate-500">{sentence.english}</div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Actions */}
-                                <div className="flex justify-center gap-2 pt-2 border-t border-slate-700">
-                                    <button
-                                        onClick={() => handleEdit(compound)}
-                                        className="px-3 py-1 text-sm bg-slate-700 text-slate-300 rounded hover:bg-slate-600 transition-colors"
-                                    >
-                                        Edit
-                                    </button>
-                                    <button
-                                        onClick={() => handleDelete(compound.id)}
-                                        className="px-3 py-1 text-sm bg-red-900/50 text-red-400 rounded hover:bg-red-900 transition-colors"
-                                    >
-                                        Delete
-                                    </button>
-                                </div>
                             </div>
                         ))}
                     </div>
