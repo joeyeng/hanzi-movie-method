@@ -9,7 +9,7 @@ import Link from 'next/link';
 export default function CompoundDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const { compounds, loading, remove, toggleLearned, toggleReviewed } = useCompounds();
+    const { compounds, loading, toggleLearned, toggleReviewed } = useCompounds();
     const { characters } = useCharacters();
     const [exampleSentences, setExampleSentences] = useState<TatoebaExample[]>([]);
     const [loadingExamples, setLoadingExamples] = useState(false);
@@ -51,13 +51,6 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
         );
     }
 
-    const handleDelete = () => {
-        if (confirm('Are you sure you want to delete this compound word?')) {
-            remove(compound.id);
-            router.push('/compounds');
-        }
-    };
-
     return (
         <div className="max-w-4xl mx-auto">
             {/* Back link */}
@@ -66,8 +59,8 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
             </button>
 
             <div className="bg-slate-800 rounded-lg p-6">
-                {/* Status badges */}
-                <div className="flex gap-2 mb-4">
+                {/* Status badges and Google Translate */}
+                <div className="flex items-center gap-2 mb-4">
                     {compound.learned && (
                         <span className="text-sm bg-green-500/20 text-green-400 px-3 py-1 rounded-full">
                             ✓ Learned
@@ -83,6 +76,18 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                             Reviewed {compound.reviewCount}x
                         </span>
                     )}
+                    <div className="flex-1"></div>
+                    <a
+                        href={`https://translate.google.com/?sl=zh-CN&tl=en&text=${encodeURIComponent(compound.word)}&op=translate`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-slate-400 hover:text-blue-400 transition-colors"
+                        title="Google Translate"
+                    >
+                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04M18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12m-2.62 7l1.62-4.33L19.12 17h-3.24z" />
+                        </svg>
+                    </a>
                 </div>
 
                 {/* Header with compound and basic info */}
@@ -116,17 +121,6 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                             <p className="text-lg text-slate-400">{compound.definition}</p>
                         </div>
                     </div>
-                    <a
-                        href={`https://translate.google.com/?sl=zh-CN&tl=en&text=${encodeURIComponent(compound.word)}&op=translate`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-slate-400 hover:text-blue-400 transition-colors"
-                        title="Google Translate"
-                    >
-                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M12.87 15.07l-2.54-2.51.03-.03A17.52 17.52 0 0014.07 6H17V4h-7V2H8v2H1v2h11.17C11.5 7.92 10.44 9.75 9 11.35 8.07 10.32 7.3 9.19 6.69 8h-2c.73 1.63 1.73 3.17 2.98 4.56l-5.09 5.02L4 19l5-5 3.11 3.11.76-2.04M18.5 10h-2L12 22h2l1.12-3h4.75L21 22h2l-4.5-12m-2.62 7l1.62-4.33L19.12 17h-3.24z" />
-                        </svg>
-                    </a>
                 </div>
 
                 {/* Individual Characters */}
@@ -200,7 +194,7 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                 </div>
 
                 {/* Action buttons */}
-                <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-700">
+                <div className="flex flex-wrap justify-end gap-3 pt-4 border-t border-slate-700">
                     <button
                         onClick={() => toggleLearned(compound.id)}
                         className={`px-4 py-2 rounded font-medium transition-colors ${compound.learned
@@ -218,13 +212,6 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                             }`}
                     >
                         {compound.reviewed ? '📚 In Review' : 'Add to Review'}
-                    </button>
-                    <div className="flex-1"></div>
-                    <button
-                        onClick={handleDelete}
-                        className="px-6 py-2 bg-red-600/20 text-red-400 rounded font-medium hover:bg-red-600/30 transition-colors"
-                    >
-                        Delete
                     </button>
                 </div>
             </div>
