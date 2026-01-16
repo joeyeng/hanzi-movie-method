@@ -782,6 +782,37 @@ export default function DatabasePage() {
                 </div>
             )}
 
+            {/* Current Stats */}
+            <div className="bg-slate-800 rounded-lg p-6 mb-8">
+                <h2 className="text-xl font-semibold mb-4">Current Database</h2>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 text-center">
+                    <div>
+                        <div className="text-3xl font-bold text-amber-400">{characters.length}</div>
+                        <div className="text-slate-400 text-sm">Characters</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-cyan-400">{compounds.length}</div>
+                        <div className="text-slate-400 text-sm">Compounds</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-pink-400">{components.length}</div>
+                        <div className="text-slate-400 text-sm">Components</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-blue-400">{actors.length}</div>
+                        <div className="text-slate-400 text-sm">Actors</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-purple-400">{sets.length}</div>
+                        <div className="text-slate-400 text-sm">Sets</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-orange-400">{rooms.length}</div>
+                        <div className="text-slate-400 text-sm">Rooms</div>
+                    </div>
+                </div>
+            </div>
+
             {/* File Upload Area */}
             <div
                 onDrop={handleDrop}
@@ -1032,37 +1063,6 @@ export default function DatabasePage() {
                     </button>
                 </div>
             )}
-
-            {/* Current Stats */}
-            <div className="bg-slate-800 rounded-lg p-6 mb-8">
-                <h2 className="text-xl font-semibold mb-4">Current Database</h2>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 text-center">
-                    <div>
-                        <div className="text-3xl font-bold text-amber-400">{characters.length}</div>
-                        <div className="text-slate-400 text-sm">Characters</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-cyan-400">{compounds.length}</div>
-                        <div className="text-slate-400 text-sm">Compounds</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-pink-400">{components.length}</div>
-                        <div className="text-slate-400 text-sm">Components</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-blue-400">{actors.length}</div>
-                        <div className="text-slate-400 text-sm">Actors</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-orange-400">{rooms.length}</div>
-                        <div className="text-slate-400 text-sm">Rooms</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-purple-400">{sets.length}</div>
-                        <div className="text-slate-400 text-sm">Sets</div>
-                    </div>
-                </div>
-            </div>
 
             {/* Backup & Restore */}
             <div className="bg-slate-800 rounded-lg p-6 mb-8">

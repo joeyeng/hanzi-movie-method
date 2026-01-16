@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useRef } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
 import { CharacterCard } from '@/components/CharacterCard';
@@ -9,6 +9,7 @@ const CHARS_PER_PAGE = 50;
 const SCROLL_STORAGE_KEY = 'characters-scroll-position';
 const PAGE_STORAGE_KEY = 'characters-page';
 const FILTER_STORAGE_KEY = 'characters-filter';
+const SORT_STORAGE_KEY = 'characters-sort';
 
 // Normalize pinyin by removing tone marks for search comparison
 function normalizePinyin(pinyin: string): string {
@@ -30,6 +31,7 @@ function CharactersContent() {
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLearned, setFilterLearned] = useState<'all' | 'learned' | 'unlearned'>('all');
     const [filterReviewed, setFilterReviewed] = useState<'all' | 'reviewed' | 'not-reviewed'>('all');
+    const [sortBy, setSortBy] = useState<'default' | 'compound-frequency'>('default');
     const [currentPage, setCurrentPage] = useState(1);
     const [isRestored, setIsRestored] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -38,12 +40,16 @@ function CharactersContent() {
     useEffect(() => {
         const savedPage = sessionStorage.getItem(PAGE_STORAGE_KEY);
         const savedFilter = sessionStorage.getItem(FILTER_STORAGE_KEY);
+        const savedSort = sessionStorage.getItem(SORT_STORAGE_KEY);
 
         if (savedPage) {
             setCurrentPage(parseInt(savedPage, 10));
         }
         if (savedFilter) {
             setFilterLearned(savedFilter as 'all' | 'learned' | 'unlearned');
+        }
+        if (savedSort) {
+            setSortBy(savedSort as 'default' | 'compound-frequency');
         }
         setIsRestored(true);
     }, []);
@@ -84,6 +90,24 @@ function CharactersContent() {
         }
     }, [filterLearned, isRestored]);
 
+    // Save sort to sessionStorage when it changes
+    useEffect(() => {
+        if (isRestored) {
+            sessionStorage.setItem(SORT_STORAGE_KEY, sortBy);
+        }
+    }, [sortBy, isRestored]);
+
+    // Calculate compound frequency for each character
+    const compoundFrequency = React.useMemo(() => {
+        const freq = new Map<string, number>();
+        for (const compound of compounds) {
+            for (const char of compound.characters) {
+                freq.set(char, (freq.get(char) || 0) + 1);
+            }
+        }
+        return freq;
+    }, [compounds]);
+
     // Initialize search from URL parameter
     useEffect(() => {
         const searchFromUrl = searchParams.get('search');
@@ -114,10 +138,22 @@ function CharactersContent() {
         return matchesSearch && matchesFilter && matchesReviewed;
     });
 
+    // Sort characters based on selected sort option
+    const sortedCharacters = React.useMemo(() => {
+        if (sortBy === 'compound-frequency') {
+            return [...filteredCharacters].sort((a, b) => {
+                const freqA = compoundFrequency.get(a.hanzi) || 0;
+                const freqB = compoundFrequency.get(b.hanzi) || 0;
+                return freqB - freqA; // Higher frequency first
+            });
+        }
+        return filteredCharacters;
+    }, [filteredCharacters, sortBy, compoundFrequency]);
+
     // Pagination
-    const totalPages = Math.ceil(filteredCharacters.length / CHARS_PER_PAGE);
+    const totalPages = Math.ceil(sortedCharacters.length / CHARS_PER_PAGE);
     const startIndex = (currentPage - 1) * CHARS_PER_PAGE;
-    const paginatedCharacters = filteredCharacters.slice(startIndex, startIndex + CHARS_PER_PAGE);
+    const paginatedCharacters = sortedCharacters.slice(startIndex, startIndex + CHARS_PER_PAGE);
 
     // Reset to page 1 and clear scroll when search changes
     const handleSearchChange = (value: string) => {
@@ -134,6 +170,12 @@ function CharactersContent() {
 
     const handleReviewedFilterChange = (value: 'all' | 'reviewed' | 'not-reviewed') => {
         setFilterReviewed(value);
+        setCurrentPage(1);
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
+    };
+
+    const handleSortChange = (value: 'default' | 'compound-frequency') => {
+        setSortBy(value);
         setCurrentPage(1);
         sessionStorage.removeItem(SCROLL_STORAGE_KEY);
     };
@@ -229,10 +271,31 @@ function CharactersContent() {
                         Not in Review
                     </button>
                 </div>
+                <div className="flex flex-wrap gap-2">
+                    <span className="text-slate-400 text-sm self-center mr-2">Sort:</span>
+                    <button
+                        onClick={() => handleSortChange('default')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${sortBy === 'default'
+                            ? 'bg-amber-500 text-slate-900'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        Default
+                    </button>
+                    <button
+                        onClick={() => handleSortChange('compound-frequency')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${sortBy === 'compound-frequency'
+                            ? 'bg-purple-500 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        📊 Compound Frequency
+                    </button>
+                </div>
             </div>
 
             {/* Character Grid */}
-            {filteredCharacters.length === 0 ? (
+            {sortedCharacters.length === 0 ? (
                 <div className="text-center py-12 text-slate-500">
                     {characters.length === 0
                         ? 'No characters yet. Add your first character!'
@@ -241,7 +304,7 @@ function CharactersContent() {
             ) : (
                 <>
                     <div className="text-sm text-slate-400 mb-4">
-                        Showing {startIndex + 1}-{Math.min(startIndex + CHARS_PER_PAGE, filteredCharacters.length)} of {filteredCharacters.length} characters
+                        Showing {startIndex + 1}-{Math.min(startIndex + CHARS_PER_PAGE, sortedCharacters.length)} of {sortedCharacters.length} characters
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {paginatedCharacters.map(character => (
