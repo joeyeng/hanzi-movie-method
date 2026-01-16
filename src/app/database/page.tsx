@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useActors, useRooms, useSets, useProps, useCharacters, useCompounds, useComponents } from '@/hooks/useLocalStorage';
 import { exampleActors, exampleRooms, exampleSets, exampleProps } from '@/lib/seedData';
-import { parseCharacterFileWithComponentsAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult, HanziComponent } from '@/lib/hanzipy';
+import { parseCharacterFileWithComponentsAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult, HanziComponent, batchFetchExampleSentences, TatoebaExample } from '@/lib/hanzipy';
 import * as storage from '@/lib/storage';
 import type { Actor, Room, Set, Character } from '@/types';
 
@@ -438,6 +438,19 @@ export default function DatabasePage() {
         const newCompounds = previewCompounds.filter(c => !existingCompounds.has(c.word));
         const totalNewItems = newChars.length + newCompounds.length;
 
+        // Fetch example sentences for all new characters and compounds
+        setImportProgress({ current: 0, total: totalNewItems, phase: 'Fetching example sentences from Tatoeba...' });
+        const allWordsToLookup = [
+            ...newChars.map(c => c.hanzi),
+            ...newCompounds.map(c => c.word)
+        ];
+        let exampleSentencesMap = new Map<string, TatoebaExample[]>();
+        try {
+            exampleSentencesMap = await batchFetchExampleSentences(allWordsToLookup, 3);
+        } catch (error) {
+            console.warn('Could not fetch example sentences:', error);
+        }
+
         let charCount = 0;
         let skipped = 0;
         let notFoundCount = 0;
@@ -450,6 +463,9 @@ export default function DatabasePage() {
                 skipped++;
                 continue;
             }
+
+            // Get example sentences for this character
+            const charExamples = exampleSentencesMap.get(char.hanzi) || [];
 
             // Skip characters without pinyin if user wants
             if (!char.pinyin) {
@@ -468,6 +484,7 @@ export default function DatabasePage() {
                     meaning: char.definition || 'Unknown meaning',
                     allDefinitions: char.all_definitions,
                     componentIds,
+                    exampleSentences: charExamples,
                     keyword: 'Unknown',
                     actorId: undefined,
                     roomId: undefined,
@@ -506,6 +523,7 @@ export default function DatabasePage() {
                 meaning: char.definition || '',
                 allDefinitions: char.all_definitions,
                 componentIds,
+                exampleSentences: charExamples,
                 keyword: (char.definition || '').split(',')[0].trim() || char.hanzi,
                 actorId: actor?.id,
                 roomId: room?.id,
@@ -533,11 +551,15 @@ export default function DatabasePage() {
                 continue;
             }
 
+            // Get example sentences for this compound word
+            const compoundExamples = exampleSentencesMap.get(compound.word) || [];
+
             addCompound({
                 word: compound.word,
                 characters: compound.characters,
                 pinyin: compound.pinyin || '',
                 definition: compound.definition || '',
+                exampleSentences: compoundExamples,
             });
 
             compoundCount++;

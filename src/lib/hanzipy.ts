@@ -345,3 +345,66 @@ export async function parseCharacterFileWithComponentsAsync(content: string): Pr
     };
   });
 }
+
+// Tatoeba Example Sentences API
+
+export interface TatoebaExample {
+  id: number;
+  simplified: string;
+  traditional: string;
+  pinyin: string;
+  english: string;
+}
+
+/**
+ * Fetch example sentences for a Chinese word from the Tatoeba API
+ */
+export async function fetchExampleSentences(
+  query: string,
+  limit: number = 5
+): Promise<TatoebaExample[]> {
+  try {
+    const response = await fetch(
+      `/api/examples?q=${encodeURIComponent(query)}&limit=${limit}`
+    );
+    
+    if (!response.ok) {
+      console.error('Failed to fetch example sentences:', response.statusText);
+      return [];
+    }
+    
+    const data = await response.json();
+    return data.results || [];
+  } catch (error) {
+    console.error('Error fetching example sentences:', error);
+    return [];
+  }
+}
+
+/**
+ * Batch fetch example sentences for multiple words
+ * Returns a Map of word -> example sentences
+ */
+export async function batchFetchExampleSentences(
+  words: string[],
+  limitPerWord: number = 3
+): Promise<Map<string, TatoebaExample[]>> {
+  const results = new Map<string, TatoebaExample[]>();
+  
+  // Process in parallel with concurrency limit
+  const batchSize = 10;
+  for (let i = 0; i < words.length; i += batchSize) {
+    const batch = words.slice(i, i + batchSize);
+    const promises = batch.map(async word => {
+      const examples = await fetchExampleSentences(word, limitPerWord);
+      return { word, examples };
+    });
+    
+    const batchResults = await Promise.all(promises);
+    for (const { word, examples } of batchResults) {
+      results.set(word, examples);
+    }
+  }
+  
+  return results;
+}

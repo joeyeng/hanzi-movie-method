@@ -68,6 +68,7 @@ docker-compose down
 ```
 
 The app will be available at:
+
 - **Frontend**: http://localhost:3000
 - **HanziPy API**: http://localhost:5000
 

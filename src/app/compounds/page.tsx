@@ -311,6 +311,15 @@ function CompoundsContent() {
                                     </div>
                                 )}
 
+                                {/* Example Sentences */}
+                                {compound.exampleSentences && compound.exampleSentences.length > 0 && (
+                                    <div className="mb-3 pt-2 border-t border-slate-700">
+                                        <div className="text-xs text-slate-500 mb-2">Example:</div>
+                                        <div className="text-sm text-amber-400/80">{compound.exampleSentences[0].simplified}</div>
+                                        <div className="text-xs text-slate-500 mt-1">{compound.exampleSentences[0].english}</div>
+                                    </div>
+                                )}
+
                                 {/* Actions */}
                                 <div className="flex justify-center gap-2 pt-2 border-t border-slate-700">
                                     <button

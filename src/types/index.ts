@@ -49,6 +49,15 @@ export interface CharacterDefinition {
   definition: string;
 }
 
+// Example sentence from Tatoeba database
+export interface ExampleSentence {
+  id: number;
+  simplified: string;
+  traditional: string;
+  pinyin: string;
+  english: string;
+}
+
 // Component stored in its own collection (for deduplication)
 export interface Component {
   id: string;
@@ -75,6 +84,7 @@ export interface Character {
   allDefinitions?: CharacterDefinition[]; // All definitions from dictionary, sorted with surnames last
   componentIds?: string[]; // References to Component entities
   components?: CharacterComponent[]; // Legacy: inline components (deprecated, for migration)
+  exampleSentences?: ExampleSentence[]; // Example sentences from Tatoeba
   actorId?: string;
   setId?: string;
   roomId?: string;
@@ -104,6 +114,7 @@ export interface CompoundWord {
   word: string; // The full compound word (e.g., "你好")
   pinyin: string; // Full pinyin for the word
   definition: string;
+  exampleSentences?: ExampleSentence[]; // Example sentences from Tatoeba
   notes?: string;
   createdAt: Date;
   updatedAt: Date;
