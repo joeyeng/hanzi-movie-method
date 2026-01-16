@@ -1,8 +1,9 @@
 'use client';
 
-import { use, useState } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
+import { fetchExampleSentences, TatoebaExample } from '@/lib/hanzipy';
 import Link from 'next/link';
 
 // Build movie scene with auto-prepended template and resolved names
@@ -32,8 +33,20 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
     const { compounds } = useCompounds();
     const [isEditingScene, setIsEditingScene] = useState(false);
     const [editedScene, setEditedScene] = useState('');
+    const [exampleSentences, setExampleSentences] = useState<TatoebaExample[]>([]);
+    const [loadingExamples, setLoadingExamples] = useState(false);
 
     const character = characters.find(c => c.id === id);
+
+    // Fetch example sentences when character loads
+    useEffect(() => {
+        if (character?.hanzi) {
+            setLoadingExamples(true);
+            fetchExampleSentences(character.hanzi, 3)
+                .then(setExampleSentences)
+                .finally(() => setLoadingExamples(false));
+        }
+    }, [character?.hanzi]);
 
     if (loading) {
         return (
@@ -298,11 +311,13 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                 )}
 
                 {/* Example Sentences */}
-                {character.exampleSentences && character.exampleSentences.length > 0 && (
-                    <div className="mb-6">
-                        <h3 className="text-slate-400 text-sm mb-2">Example Sentences</h3>
+                <div className="mb-6">
+                    <h3 className="text-slate-400 text-sm mb-2">Example Sentences</h3>
+                    {loadingExamples ? (
+                        <div className="text-slate-500 text-sm">Loading examples...</div>
+                    ) : exampleSentences.length > 0 ? (
                         <div className="space-y-3">
-                            {character.exampleSentences.map((sentence, index) => (
+                            {exampleSentences.map((sentence, index) => (
                                 <div key={sentence.id || index} className="bg-slate-700/30 rounded-lg p-3">
                                     <p className="text-lg text-amber-400">{sentence.simplified}</p>
                                     <p className="text-sm text-slate-400 mt-1">{sentence.pinyin}</p>
@@ -310,8 +325,10 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                                 </div>
                             ))}
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <p className="text-slate-500 text-sm">No example sentences found</p>
+                    )}
+                </div>
 
                 {/* Review stats */}
                 <div className="flex justify-between items-center text-sm text-slate-500 mb-6 py-3 border-t border-slate-700">

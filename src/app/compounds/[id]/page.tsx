@@ -1,8 +1,9 @@
 'use client';
 
-import { use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCompounds, useCharacters } from '@/hooks/useLocalStorage';
+import { fetchExampleSentences, TatoebaExample } from '@/lib/hanzipy';
 import Link from 'next/link';
 
 export default function CompoundDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -10,6 +11,8 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
     const router = useRouter();
     const { compounds, loading, remove } = useCompounds();
     const { characters } = useCharacters();
+    const [exampleSentences, setExampleSentences] = useState<TatoebaExample[]>([]);
+    const [loadingExamples, setLoadingExamples] = useState(false);
 
     const compound = compounds.find(c => c.id === id);
 
@@ -17,6 +20,16 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
     const findCharacter = (hanzi: string) => {
         return characters.find(c => c.hanzi === hanzi);
     };
+
+    // Fetch example sentences when compound loads
+    useEffect(() => {
+        if (compound?.word) {
+            setLoadingExamples(true);
+            fetchExampleSentences(compound.word, 3)
+                .then(setExampleSentences)
+                .finally(() => setLoadingExamples(false));
+        }
+    }, [compound?.word]);
 
     if (loading) {
         return (
@@ -132,11 +145,13 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                 )}
 
                 {/* Example Sentences */}
-                {compound.exampleSentences && compound.exampleSentences.length > 0 && (
-                    <div className="mb-6">
-                        <h3 className="text-slate-400 text-sm mb-2">Example Sentences</h3>
+                <div className="mb-6">
+                    <h3 className="text-slate-400 text-sm mb-2">Example Sentences</h3>
+                    {loadingExamples ? (
+                        <div className="text-slate-500 text-sm">Loading examples...</div>
+                    ) : exampleSentences.length > 0 ? (
                         <div className="space-y-3">
-                            {compound.exampleSentences.map((sentence, index) => (
+                            {exampleSentences.map((sentence, index) => (
                                 <div key={sentence.id || index} className="bg-slate-700/30 rounded-lg p-3">
                                     <p className="text-lg text-amber-400">{sentence.simplified}</p>
                                     <p className="text-sm text-slate-400 mt-1">{sentence.pinyin}</p>
@@ -144,8 +159,10 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                                 </div>
                             ))}
                         </div>
-                    </div>
-                )}
+                    ) : (
+                        <p className="text-slate-500 text-sm">No example sentences found</p>
+                    )}
+                </div>
 
                 {/* Metadata */}
                 <div className="flex justify-between items-center text-sm text-slate-500 mb-6 py-3 border-t border-slate-700">

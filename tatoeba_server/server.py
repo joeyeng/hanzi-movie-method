@@ -64,26 +64,32 @@ def search_sentences():
         cursor = conn.cursor()
         
         # Search for sentences containing the query in simplified Chinese
+        # Fetch extra to account for duplicates
         cursor.execute("""
             SELECT id, simplified, traditional, pinyin, english
             FROM examples
             WHERE simplified LIKE ?
             ORDER BY LENGTH(simplified) ASC
             LIMIT ?
-        """, (f'%{query}%', limit))
+        """, (f'%{query}%', limit * 3))
         
         rows = cursor.fetchall()
         conn.close()
         
-        sentences = [
-            {
-                'id': row['id'],
-                'simplified': row['simplified'],
-                'pinyin': row['pinyin'],
-                'english': row['english']
-            }
-            for row in rows
-        ]
+        # Deduplicate by simplified text
+        seen_simplified = set()
+        sentences = []
+        for row in rows:
+            if row['simplified'] not in seen_simplified:
+                seen_simplified.add(row['simplified'])
+                sentences.append({
+                    'id': row['id'],
+                    'simplified': row['simplified'],
+                    'pinyin': row['pinyin'],
+                    'english': row['english']
+                })
+                if len(sentences) >= limit:
+                    break
         
         return jsonify({
             'results': sentences,
@@ -122,18 +128,26 @@ def search_sentences_batch():
                 WHERE simplified LIKE ?
                 ORDER BY LENGTH(simplified) ASC
                 LIMIT ?
-            """, (f'%{query}%', limit))
+            """, (f'%{query}%', limit * 3))
             
             rows = cursor.fetchall()
-            results[query] = [
-                {
-                    'id': row['id'],
-                    'simplified': row['simplified'],
-                    'pinyin': row['pinyin'],
-                    'english': row['english']
-                }
-                for row in rows
-            ]
+            
+            # Deduplicate by simplified text
+            seen_simplified = set()
+            sentences = []
+            for row in rows:
+                if row['simplified'] not in seen_simplified:
+                    seen_simplified.add(row['simplified'])
+                    sentences.append({
+                        'id': row['id'],
+                        'simplified': row['simplified'],
+                        'pinyin': row['pinyin'],
+                        'english': row['english']
+                    })
+                    if len(sentences) >= limit:
+                        break
+            
+            results[query] = sentences
         
         conn.close()
         
