@@ -53,10 +53,11 @@ export function splitIntoCharacters(text: string): string[] {
 }
 
 /**
- * Extract compound words (sequences of 2+ Chinese characters) from text
+ * Extract compound words (sequences of 2+ Chinese characters) from text using regex
+ * This is the fallback method when jieba is not available
  * Returns unique compound words
  */
-export function extractCompoundWords(content: string): string[] {
+export function extractCompoundWordsRegex(content: string): string[] {
   const lines = content.split(/\r?\n/);
   const compounds = new Set<string>();
   
@@ -76,6 +77,41 @@ export function extractCompoundWords(content: string): string[] {
   }
   
   return [...compounds];
+}
+
+/**
+ * Extract compound words using jieba word segmentation via the API
+ * Falls back to regex-based extraction if the API is unavailable
+ */
+export async function extractCompoundWordsWithJieba(content: string): Promise<string[]> {
+  try {
+    const response = await fetch('/api/hanzi/segment', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ text: content }),
+    });
+
+    if (!response.ok) {
+      console.warn('Jieba segmentation unavailable, falling back to regex');
+      return extractCompoundWordsRegex(content);
+    }
+
+    const data = await response.json();
+    return data.compounds || [];
+  } catch (error) {
+    console.warn('Error calling jieba segment API, falling back to regex:', error);
+    return extractCompoundWordsRegex(content);
+  }
+}
+
+/**
+ * Extract compound words from text
+ * Uses jieba for better word segmentation when available
+ */
+export async function extractCompoundWords(content: string): Promise<string[]> {
+  return extractCompoundWordsWithJieba(content);
 }
 
 /**

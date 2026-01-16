@@ -20,6 +20,13 @@ except ImportError:
     decomposer = None
     dictionary = None
 
+# Try to import jieba for word segmentation
+try:
+    import jieba
+    JIEBA_AVAILABLE = True
+except ImportError:
+    JIEBA_AVAILABLE = False
+
 
 def convert_pinyin_tone_number_to_mark(pinyin: str) -> str:
     """
@@ -83,8 +90,76 @@ def health():
     """Health check endpoint"""
     return jsonify({
         'status': 'ok',
-        'hanzipy_available': HANZIPY_AVAILABLE
+        'hanzipy_available': HANZIPY_AVAILABLE,
+        'jieba_available': JIEBA_AVAILABLE
     })
+
+
+def is_chinese_char(char):
+    """Check if a character is a Chinese character"""
+    code = ord(char)
+    # CJK Unified Ideographs (most common)
+    if 0x4e00 <= code <= 0x9fff:
+        return True
+    # CJK Unified Ideographs Extension A
+    if 0x3400 <= code <= 0x4dbf:
+        return True
+    return False
+
+
+@app.route('/segment', methods=['POST'])
+def segment_text():
+    """
+    Segment Chinese text into words using jieba
+    Request body: { "text": "我喜欢学习中文" }
+    Response: { "words": ["我", "喜欢", "学习", "中文"], "compounds": ["喜欢", "学习", "中文"] }
+    
+    Returns all segmented words and filters compounds (2+ characters)
+    """
+    if not JIEBA_AVAILABLE:
+        return jsonify({'error': 'Jieba not installed'}), 500
+    
+    data = request.get_json()
+    if not data or 'text' not in data:
+        return jsonify({'error': 'Missing text parameter'}), 400
+    
+    text = data['text']
+    
+    try:
+        # Use jieba to segment the text
+        words = list(jieba.cut(text, cut_all=False))
+        
+        # Filter to only Chinese words (remove punctuation, spaces, etc.)
+        chinese_words = []
+        for word in words:
+            # Check if word contains only Chinese characters
+            if word and all(is_chinese_char(c) for c in word):
+                chinese_words.append(word)
+        
+        # Extract compounds (2+ characters)
+        compounds = [w for w in chinese_words if len(w) >= 2]
+        
+        # Remove duplicates while preserving order
+        seen_words = set()
+        unique_words = []
+        for w in chinese_words:
+            if w not in seen_words:
+                seen_words.add(w)
+                unique_words.append(w)
+        
+        seen_compounds = set()
+        unique_compounds = []
+        for w in compounds:
+            if w not in seen_compounds:
+                seen_compounds.add(w)
+                unique_compounds.append(w)
+        
+        return jsonify({
+            'words': unique_words,
+            'compounds': unique_compounds
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 
 @app.route('/lookup', methods=['POST'])

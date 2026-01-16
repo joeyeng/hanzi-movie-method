@@ -272,8 +272,8 @@ export default function DatabasePage() {
                 const parsed = await parseCharacterFileWithComponentsAsync(content);
                 setPreviewData(parsed);
 
-                // Also extract and look up compound words
-                const compoundWords = extractCompoundWords(content);
+                // Also extract and look up compound words using jieba segmentation
+                const compoundWords = await extractCompoundWords(content);
                 const compoundResults = await lookupCompoundWordsAPI(compoundWords);
                 setPreviewCompounds(compoundResults);
 
@@ -335,8 +335,8 @@ export default function DatabasePage() {
             const parsed = await parseCharacterFileWithComponentsAsync(pasteText);
             setPreviewData(parsed);
 
-            // Also extract and look up compound words
-            const compoundWords = extractCompoundWords(pasteText);
+            // Also extract and look up compound words using jieba segmentation
+            const compoundWords = await extractCompoundWords(pasteText);
             const compoundResults = await lookupCompoundWordsAPI(compoundWords);
             setPreviewCompounds(compoundResults);
 
