@@ -9,7 +9,7 @@ import Link from 'next/link';
 export default function CompoundDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const router = useRouter();
-    const { compounds, loading, remove } = useCompounds();
+    const { compounds, loading, remove, toggleLearned, toggleReviewed } = useCompounds();
     const { characters } = useCharacters();
     const [exampleSentences, setExampleSentences] = useState<TatoebaExample[]>([]);
     const [loadingExamples, setLoadingExamples] = useState(false);
@@ -66,6 +66,25 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
             </button>
 
             <div className="bg-slate-800 rounded-lg p-6">
+                {/* Status badges */}
+                <div className="flex gap-2 mb-4">
+                    {compound.learned && (
+                        <span className="text-sm bg-green-500/20 text-green-400 px-3 py-1 rounded-full">
+                            ✓ Learned
+                        </span>
+                    )}
+                    {compound.reviewed && (
+                        <span className="text-sm bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full">
+                            📚 In Review
+                        </span>
+                    )}
+                    {compound.reviewCount > 0 && (
+                        <span className="text-sm bg-slate-700 text-slate-400 px-3 py-1 rounded-full">
+                            Reviewed {compound.reviewCount}x
+                        </span>
+                    )}
+                </div>
+
                 {/* Header with compound and basic info */}
                 <div className="flex justify-between items-start mb-6">
                     <div className="flex items-start gap-4">
@@ -182,12 +201,25 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
 
                 {/* Action buttons */}
                 <div className="flex flex-wrap gap-3 pt-4 border-t border-slate-700">
-                    <Link
-                        href={`/compounds?search=${encodeURIComponent(compound.word)}`}
-                        className="flex-1 py-2 text-center bg-slate-700 text-slate-300 rounded font-medium hover:bg-slate-600 transition-colors"
+                    <button
+                        onClick={() => toggleLearned(compound.id)}
+                        className={`px-4 py-2 rounded font-medium transition-colors ${compound.learned
+                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
                     >
-                        Edit in List
-                    </Link>
+                        {compound.learned ? '✓ Learned' : 'Mark as Learned'}
+                    </button>
+                    <button
+                        onClick={() => toggleReviewed(compound.id)}
+                        className={`px-4 py-2 rounded font-medium transition-colors ${compound.reviewed
+                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        {compound.reviewed ? '📚 In Review' : 'Add to Review'}
+                    </button>
+                    <div className="flex-1"></div>
                     <button
                         onClick={handleDelete}
                         className="px-6 py-2 bg-red-600/20 text-red-400 rounded font-medium hover:bg-red-600/30 transition-colors"

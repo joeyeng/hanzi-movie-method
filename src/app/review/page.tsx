@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { useCharactersWithRelations } from '@/hooks/useLocalStorage';
-import { CharacterWithRelations } from '@/types';
+import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
+import { CharacterWithRelations, CompoundWord } from '@/types';
 import Link from 'next/link';
 
 type ReviewMode = 'all' | 'unlearned' | 'due';
+type ReviewType = 'characters' | 'compounds';
 type AnswerState = 'answering' | 'correct' | 'incorrect';
 
 // Resolve placeholders in movie scene with actual actor/room/set names
@@ -72,8 +73,11 @@ function shuffleArray<T>(array: T[]): T[] {
 
 export default function ReviewPage() {
     const { characters, loading, markReviewed, toggleLearned } = useCharactersWithRelations();
+    const { compounds, loading: loadingCompounds, markReviewed: markCompoundReviewed, toggleLearned: toggleCompoundLearned } = useCompounds();
+    const [reviewType, setReviewType] = useState<ReviewType>('characters');
     const [reviewMode, setReviewMode] = useState<ReviewMode>('unlearned');
     const [reviewQueue, setReviewQueue] = useState<CharacterWithRelations[]>([]);
+    const [compoundQueue, setCompoundQueue] = useState<CompoundWord[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [sessionStarted, setSessionStarted] = useState(false);
 
@@ -87,6 +91,7 @@ export default function ReviewPage() {
 
     // Only include characters marked as "reviewed" (ready for review)
     const reviewableCharacters = characters.filter(c => c.reviewed);
+    const reviewableCompounds = compounds.filter(c => c.reviewed);
 
     // Build review queue only when mode changes or session starts, not on every character update
     const buildReviewQueue = () => {
@@ -107,26 +112,47 @@ export default function ReviewPage() {
         return filtered.sort(() => Math.random() - 0.5);
     };
 
+    // Build compound queue
+    const buildCompoundQueue = () => {
+        let filtered: CompoundWord[];
+        switch (reviewMode) {
+            case 'unlearned':
+                filtered = reviewableCompounds.filter(c => !c.learned);
+                break;
+            case 'due':
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                filtered = reviewableCompounds.filter(c => !c.lastReviewed || new Date(c.lastReviewed) < oneDayAgo);
+                break;
+            default:
+                filtered = [...reviewableCompounds];
+        }
+        return filtered.sort(() => Math.random() - 0.5);
+    };
+
     // Only rebuild queue when loading finishes initially
     useEffect(() => {
-        if (!loading && !sessionStarted) {
+        if (!loading && !loadingCompounds && !sessionStarted) {
             setReviewQueue(buildReviewQueue());
+            setCompoundQueue(buildCompoundQueue());
             setCurrentIndex(0);
             resetQuizState();
         }
-    }, [loading, sessionStarted]);
+    }, [loading, loadingCompounds, sessionStarted]);
 
-    // Rebuild queue when review mode changes (only when not in active session)
+    // Rebuild queue when review mode or type changes (only when not in active session)
     useEffect(() => {
-        if (!loading && !sessionStarted) {
+        if (!loading && !loadingCompounds && !sessionStarted) {
             setReviewQueue(buildReviewQueue());
+            setCompoundQueue(buildCompoundQueue());
             setCurrentIndex(0);
             resetQuizState();
         }
-    }, [reviewMode]);
+    }, [reviewMode, reviewType]);
 
     const currentCharacter = reviewQueue[currentIndex];
-    const progress = reviewQueue.length > 0 ? ((currentIndex + 1) / reviewQueue.length) * 100 : 0;
+    const currentCompound = compoundQueue[currentIndex];
+    const currentQueue = reviewType === 'characters' ? reviewQueue : compoundQueue;
+    const progress = currentQueue.length > 0 ? ((currentIndex + 1) / currentQueue.length) * 100 : 0;
 
     // Generate definition choices when current character changes
     useEffect(() => {
@@ -224,11 +250,13 @@ export default function ReviewPage() {
     };
 
     const handleNext = () => {
-        if (currentCharacter) {
+        if (reviewType === 'characters' && currentCharacter) {
             markReviewed(currentCharacter.id);
+        } else if (reviewType === 'compounds' && currentCompound) {
+            markCompoundReviewed(currentCompound.id);
         }
         resetQuizState();
-        if (currentIndex < reviewQueue.length - 1) {
+        if (currentIndex < currentQueue.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
             setSessionStarted(false);
@@ -236,8 +264,10 @@ export default function ReviewPage() {
     };
 
     const handleMarkLearned = () => {
-        if (currentCharacter) {
+        if (reviewType === 'characters' && currentCharacter) {
             toggleLearned(currentCharacter.id);
+        } else if (reviewType === 'compounds' && currentCompound) {
+            toggleCompoundLearned(currentCompound.id);
         }
     };
 
@@ -246,7 +276,7 @@ export default function ReviewPage() {
     const correctTone = currentCharacter ? extractTone(currentCharacter.pinyin) : 5;
     const correctDefinition = currentCharacter?.allDefinitions?.[0]?.definition || currentCharacter?.meaning || '';
 
-    if (loading) {
+    if (loading || loadingCompounds) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-slate-400">Loading...</div>
@@ -255,23 +285,51 @@ export default function ReviewPage() {
     }
 
     if (!sessionStarted) {
+        const currentReviewable = reviewType === 'characters' ? reviewableCharacters : reviewableCompounds;
+        const currentItems = reviewType === 'characters' ? characters : compounds;
+        const itemName = reviewType === 'characters' ? 'character' : 'compound';
+        const itemNamePlural = reviewType === 'characters' ? 'characters' : 'compounds';
+        const linkHref = reviewType === 'characters' ? '/characters' : '/compounds';
+
         return (
             <div className="max-w-2xl mx-auto">
-                <h1 className="text-3xl font-bold text-amber-400 mb-2">Review Characters</h1>
-                <p className="text-slate-400 mb-8">Test your memory of the characters you&apos;ve learned</p>
+                <h1 className="text-3xl font-bold text-amber-400 mb-2">Review</h1>
+                <p className="text-slate-400 mb-6">Test your memory of what you&apos;ve learned</p>
 
-                {reviewableCharacters.length === 0 ? (
+                {/* Type selector tabs */}
+                <div className="flex gap-2 mb-6">
+                    <button
+                        onClick={() => setReviewType('characters')}
+                        className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${reviewType === 'characters'
+                            ? 'bg-amber-500 text-slate-900'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        Characters ({reviewableCharacters.length})
+                    </button>
+                    <button
+                        onClick={() => setReviewType('compounds')}
+                        className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${reviewType === 'compounds'
+                            ? 'bg-amber-500 text-slate-900'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        Compounds ({reviewableCompounds.length})
+                    </button>
+                </div>
+
+                {currentReviewable.length === 0 ? (
                     <div className="bg-slate-800 rounded-lg p-8 text-center">
                         <p className="text-slate-400 mb-4">
-                            {characters.length === 0
-                                ? "No characters to review yet."
-                                : "No characters marked for review. Add characters to your review list from the Characters page."}
+                            {currentItems.length === 0
+                                ? `No ${itemNamePlural} to review yet.`
+                                : `No ${itemNamePlural} marked for review. Add ${itemNamePlural} to your review list from the ${reviewType === 'characters' ? 'Characters' : 'Compounds'} page.`}
                         </p>
                         <Link
-                            href="/characters"
+                            href={linkHref}
                             className="inline-block bg-amber-500 text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
                         >
-                            {characters.length === 0 ? "Add Your First Character" : "Go to Characters"}
+                            {currentItems.length === 0 ? `Add Your First ${itemName.charAt(0).toUpperCase() + itemName.slice(1)}` : `Go to ${reviewType === 'characters' ? 'Characters' : 'Compounds'}`}
                         </Link>
                     </div>
                 ) : (
@@ -290,7 +348,7 @@ export default function ReviewPage() {
                                 <div>
                                     <div className="font-medium">Unlearned Only</div>
                                     <div className="text-sm text-slate-400">
-                                        {reviewableCharacters.filter(c => !c.learned).length} characters
+                                        {currentReviewable.filter(c => !c.learned).length} {itemNamePlural}
                                     </div>
                                 </div>
                             </label>
@@ -304,8 +362,8 @@ export default function ReviewPage() {
                                     className="w-4 h-4 text-amber-500"
                                 />
                                 <div>
-                                    <div className="font-medium">All Characters</div>
-                                    <div className="text-sm text-slate-400">{reviewableCharacters.length} characters in review list</div>
+                                    <div className="font-medium">All {reviewType === 'characters' ? 'Characters' : 'Compounds'}</div>
+                                    <div className="text-sm text-slate-400">{currentReviewable.length} {itemNamePlural} in review list</div>
                                 </div>
                             </label>
 
@@ -328,10 +386,10 @@ export default function ReviewPage() {
 
                         <button
                             onClick={() => setSessionStarted(true)}
-                            disabled={reviewQueue.length === 0}
+                            disabled={currentQueue.length === 0}
                             className="w-full bg-amber-500 text-slate-900 py-3 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Start Review ({reviewQueue.length} characters)
+                            Start Review ({currentQueue.length} {itemNamePlural})
                         </button>
                     </div>
                 )}
@@ -340,14 +398,15 @@ export default function ReviewPage() {
     }
 
     // Review session UI
-    if (currentIndex >= reviewQueue.length) {
+    if (currentIndex >= currentQueue.length) {
+        const itemNamePlural = reviewType === 'characters' ? 'characters' : 'compound words';
         return (
             <div className="max-w-2xl mx-auto text-center">
                 <div className="bg-slate-800 rounded-lg p-8">
                     <div className="text-6xl mb-4">🎉</div>
                     <h2 className="text-2xl font-bold text-amber-400 mb-2">Session Complete!</h2>
                     <p className="text-slate-400 mb-6">
-                        You reviewed {reviewQueue.length} character{reviewQueue.length !== 1 ? 's' : ''}.
+                        You reviewed {currentQueue.length} {currentQueue.length !== 1 ? itemNamePlural : (reviewType === 'characters' ? 'character' : 'compound word')}.
                     </p>
                     <button
                         onClick={() => setSessionStarted(false)}
@@ -360,13 +419,93 @@ export default function ReviewPage() {
         );
     }
 
+    // Compound Review Session UI
+    if (reviewType === 'compounds' && currentCompound) {
+        return (
+            <div className="max-w-2xl mx-auto">
+                {/* Progress Bar */}
+                <div className="mb-6">
+                    <div className="flex justify-between text-sm text-slate-400 mb-2">
+                        <span>Progress</span>
+                        <span>{currentIndex + 1} / {compoundQueue.length}</span>
+                    </div>
+                    <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-amber-500 transition-all duration-300"
+                            style={{ width: `${progress}%` }}
+                        />
+                    </div>
+                </div>
+
+                {/* Compound Flashcard */}
+                <div className="bg-slate-800 rounded-lg p-8">
+                    {/* Compound Word */}
+                    <div className="text-center mb-6">
+                        <div className="flex justify-center gap-2 mb-4">
+                            {currentCompound.characters.map((char, index) => (
+                                <span key={index} className="text-6xl font-bold text-amber-400">
+                                    {char}
+                                </span>
+                            ))}
+                        </div>
+                        <div className="text-2xl text-amber-300 mb-2">{currentCompound.pinyin}</div>
+                        <div className="text-lg text-slate-300">{currentCompound.definition}</div>
+                        {currentCompound.notes && (
+                            <div className="text-sm text-slate-500 mt-2 italic">{currentCompound.notes}</div>
+                        )}
+                    </div>
+
+                    {/* Status badges */}
+                    <div className="flex justify-center gap-2 mb-6">
+                        {currentCompound.learned && (
+                            <span className="text-sm bg-green-500/20 text-green-400 px-3 py-1 rounded-full">
+                                ✓ Learned
+                            </span>
+                        )}
+                        {currentCompound.reviewCount > 0 && (
+                            <span className="text-sm bg-slate-700 text-slate-400 px-3 py-1 rounded-full">
+                                Reviewed {currentCompound.reviewCount}x
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-3 pt-4 border-t border-slate-700">
+                        <button
+                            onClick={handleMarkLearned}
+                            className={`px-4 py-2 rounded-lg text-sm transition-colors ${currentCompound.learned
+                                ? 'bg-green-500/20 text-green-400'
+                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                }`}
+                        >
+                            {currentCompound.learned ? '✓ Learned' : 'Mark Learned'}
+                        </button>
+                        <button
+                            onClick={() => setSessionStarted(false)}
+                            className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg text-sm hover:bg-slate-600 transition-colors"
+                        >
+                            End Session
+                        </button>
+                        <button
+                            onClick={handleNext}
+                            className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
+                        >
+                            {currentIndex < compoundQueue.length - 1 ? 'Next Compound →' : 'Finish Review'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    // Character Review Session UI
     return (
         <div className="max-w-2xl mx-auto">
             {/* Progress Bar */}
             <div className="mb-6">
                 <div className="flex justify-between text-sm text-slate-400 mb-2">
                     <span>Progress</span>
-                    <span>{currentIndex + 1} / {reviewQueue.length}</span>
+                    <span>{currentIndex + 1} / {currentQueue.length}</span>
                 </div>
                 <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                     <div
@@ -552,7 +691,7 @@ export default function ReviewPage() {
                             onClick={handleNext}
                             className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
                         >
-                            {currentIndex < reviewQueue.length - 1 ? 'Next Character →' : 'Finish Review'}
+                            {currentIndex < currentQueue.length - 1 ? 'Next Character →' : 'Finish Review'}
                         </button>
                     )}
                 </div>

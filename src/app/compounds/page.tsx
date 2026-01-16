@@ -22,12 +22,14 @@ function normalizePinyin(pinyin: string): string {
 }
 
 function CompoundsContent() {
-    const { compounds, loading, add, update, remove } = useCompounds();
+    const { compounds, loading, add, update, remove, toggleLearned, toggleReviewed } = useCompounds();
     const { characters } = useCharacters();
     const searchParams = useSearchParams();
     const [showForm, setShowForm] = useState(false);
     const [editingCompound, setEditingCompound] = useState<CompoundWord | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [filterLearned, setFilterLearned] = useState<'all' | 'learned' | 'unlearned'>('all');
+    const [filterReviewed, setFilterReviewed] = useState<'all' | 'reviewed' | 'not-reviewed'>('all');
     const [currentPage, setCurrentPage] = useState(1);
 
     // Initialize search from URL param
@@ -52,7 +54,18 @@ function CompoundsContent() {
             compound.pinyin.toLowerCase().includes(searchLower) ||
             normalizePinyin(compound.pinyin).includes(searchNormalized) ||
             compound.definition.toLowerCase().includes(searchLower);
-        return matchesSearch;
+        
+        const matchesLearned =
+            filterLearned === 'all' ||
+            (filterLearned === 'learned' && compound.learned) ||
+            (filterLearned === 'unlearned' && !compound.learned);
+
+        const matchesReviewed =
+            filterReviewed === 'all' ||
+            (filterReviewed === 'reviewed' && compound.reviewed) ||
+            (filterReviewed === 'not-reviewed' && !compound.reviewed);
+
+        return matchesSearch && matchesLearned && matchesReviewed;
     });
 
     // Pagination
@@ -63,6 +76,16 @@ function CompoundsContent() {
     // Reset to page 1 when search changes
     const handleSearchChange = (value: string) => {
         setSearchQuery(value);
+        setCurrentPage(1);
+    };
+
+    const handleFilterChange = (value: 'all' | 'learned' | 'unlearned') => {
+        setFilterLearned(value);
+        setCurrentPage(1);
+    };
+
+    const handleReviewedFilterChange = (value: 'all' | 'reviewed' | 'not-reviewed') => {
+        setFilterReviewed(value);
         setCurrentPage(1);
     };
 
@@ -146,8 +169,8 @@ function CompoundsContent() {
                 </button>
             </div>
 
-            {/* Search */}
-            <div className="mb-6">
+            {/* Search and Filters */}
+            <div className="flex flex-col gap-3 mb-6">
                 <input
                     type="text"
                     placeholder="Search compounds..."
@@ -155,6 +178,65 @@ function CompoundsContent() {
                     onChange={(e) => handleSearchChange(e.target.value)}
                     className="w-full sm:max-w-md px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
                 />
+                <div className="flex flex-wrap gap-2">
+                    <span className="text-slate-400 text-sm self-center mr-2">Learned:</span>
+                    <button
+                        onClick={() => handleFilterChange('all')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterLearned === 'all'
+                            ? 'bg-amber-500 text-slate-900'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        All
+                    </button>
+                    <button
+                        onClick={() => handleFilterChange('learned')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterLearned === 'learned'
+                            ? 'bg-green-500 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        ✓ Learned
+                    </button>
+                    <button
+                        onClick={() => handleFilterChange('unlearned')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterLearned === 'unlearned'
+                            ? 'bg-slate-500 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        Not Learned
+                    </button>
+                    <span className="text-slate-600 mx-2">|</span>
+                    <span className="text-slate-400 text-sm self-center mr-2">Review:</span>
+                    <button
+                        onClick={() => handleReviewedFilterChange('all')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterReviewed === 'all'
+                            ? 'bg-amber-500 text-slate-900'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        All
+                    </button>
+                    <button
+                        onClick={() => handleReviewedFilterChange('reviewed')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterReviewed === 'reviewed'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        📚 In Review
+                    </button>
+                    <button
+                        onClick={() => handleReviewedFilterChange('not-reviewed')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterReviewed === 'not-reviewed'
+                            ? 'bg-slate-500 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        Not in Review
+                    </button>
+                </div>
             </div>
 
             {/* Form Modal */}
@@ -254,8 +336,25 @@ function CompoundsContent() {
                         {paginatedCompounds.map((compound) => (
                             <div
                                 key={compound.id}
-                                className="bg-slate-800 rounded-lg p-4 border border-slate-700 hover:border-amber-500/50 transition-colors relative"
+                                className={`bg-slate-800 rounded-lg p-4 border transition-colors relative ${compound.learned
+                                    ? 'border-green-500/50 hover:border-green-400'
+                                    : 'border-slate-700 hover:border-amber-500/50'
+                                    }`}
                             >
+                                {/* Status badges */}
+                                <div className="absolute top-3 left-3 flex gap-1">
+                                    {compound.learned && (
+                                        <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded-full">
+                                            ✓ Learned
+                                        </span>
+                                    )}
+                                    {compound.reviewed && (
+                                        <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                                            📚 Review
+                                        </span>
+                                    )}
+                                </div>
+
                                 {/* Google Translate Icon */}
                                 <a
                                     href={`https://translate.google.com/?sl=zh-CN&tl=en&text=${encodeURIComponent(compound.word)}&op=translate`}
@@ -272,7 +371,7 @@ function CompoundsContent() {
                                 {/* Clickable Compound Word - links to detail page */}
                                 <Link
                                     href={`/compounds/${compound.id}`}
-                                    className="flex justify-center gap-2 mb-3 hover:opacity-80 transition-opacity"
+                                    className="flex justify-center gap-2 mb-3 mt-6 hover:opacity-80 transition-opacity"
                                 >
                                     {compound.characters.map((char, index) => (
                                         <span
@@ -300,6 +399,30 @@ function CompoundsContent() {
                                         {compound.notes}
                                     </div>
                                 )}
+
+                                {/* Toggle buttons */}
+                                <div className="flex justify-center gap-2 mt-4 pt-3 border-t border-slate-700">
+                                    <button
+                                        onClick={() => toggleLearned(compound.id)}
+                                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${compound.learned
+                                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
+                                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                                            }`}
+                                        title={compound.learned ? 'Mark as not learned' : 'Mark as learned'}
+                                    >
+                                        {compound.learned ? '✓ Learned' : 'Mark Learned'}
+                                    </button>
+                                    <button
+                                        onClick={() => toggleReviewed(compound.id)}
+                                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${compound.reviewed
+                                            ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
+                                            : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                                            }`}
+                                        title={compound.reviewed ? 'Remove from review' : 'Add to review'}
+                                    >
+                                        {compound.reviewed ? '📚 In Review' : 'Add to Review'}
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>

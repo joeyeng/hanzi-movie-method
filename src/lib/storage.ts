@@ -270,11 +270,14 @@ export function saveCompounds(compounds: CompoundWord[]): void {
   setItem(STORAGE_KEYS.compounds, compounds);
 }
 
-export function addCompound(compound: Omit<CompoundWord, 'id' | 'createdAt' | 'updatedAt'>): CompoundWord {
+export function addCompound(compound: Omit<CompoundWord, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned' | 'reviewed'>): CompoundWord {
   const compounds = getCompounds();
   const newCompound: CompoundWord = {
     ...compound,
     id: crypto.randomUUID(),
+    learned: false,
+    reviewed: false,
+    reviewCount: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
@@ -298,6 +301,46 @@ export function deleteCompound(id: string): boolean {
   if (filtered.length === compounds.length) return false;
   saveCompounds(filtered);
   return true;
+}
+
+export function toggleCompoundLearned(id: string): CompoundWord | null {
+  const compounds = getCompounds();
+  const index = compounds.findIndex(c => c.id === id);
+  if (index === -1) return null;
+  compounds[index] = {
+    ...compounds[index],
+    learned: !compounds[index].learned,
+    updatedAt: new Date(),
+  };
+  saveCompounds(compounds);
+  return compounds[index];
+}
+
+export function toggleCompoundReviewed(id: string): CompoundWord | null {
+  const compounds = getCompounds();
+  const index = compounds.findIndex(c => c.id === id);
+  if (index === -1) return null;
+  compounds[index] = {
+    ...compounds[index],
+    reviewed: !compounds[index].reviewed,
+    updatedAt: new Date(),
+  };
+  saveCompounds(compounds);
+  return compounds[index];
+}
+
+export function markCompoundReviewed(id: string): CompoundWord | null {
+  const compounds = getCompounds();
+  const index = compounds.findIndex(c => c.id === id);
+  if (index === -1) return null;
+  compounds[index] = {
+    ...compounds[index],
+    reviewCount: (compounds[index].reviewCount || 0) + 1,
+    lastReviewed: new Date(),
+    updatedAt: new Date(),
+  };
+  saveCompounds(compounds);
+  return compounds[index];
 }
 
 // Components (character radicals/sub-characters)

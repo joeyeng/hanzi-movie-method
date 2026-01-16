@@ -113,6 +113,10 @@ export interface CompoundWord {
   definition: string;
   exampleSentences?: ExampleSentence[]; // Example sentences from Tatoeba
   notes?: string;
+  learned: boolean;
+  reviewed: boolean; // Whether the compound is ready for review sessions
+  reviewCount: number;
+  lastReviewed?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

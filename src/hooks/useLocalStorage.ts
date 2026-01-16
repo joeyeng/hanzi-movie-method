@@ -290,7 +290,7 @@ export function useCompounds() {
     setLoading(false);
   }, []);
 
-  const add = useCallback((compound: Omit<CompoundWord, 'id' | 'createdAt' | 'updatedAt'>) => {
+  const add = useCallback((compound: Omit<CompoundWord, 'id' | 'createdAt' | 'updatedAt' | 'reviewCount' | 'learned' | 'reviewed'>) => {
     const newCompound = storage.addCompound(compound);
     setCompounds(prev => [...prev, newCompound]);
     return newCompound;
@@ -312,5 +312,29 @@ export function useCompounds() {
     return success;
   }, []);
 
-  return { compounds, loading, add, update, remove };
+  const toggleLearned = useCallback((id: string) => {
+    const updated = storage.toggleCompoundLearned(id);
+    if (updated) {
+      setCompounds(prev => prev.map(c => c.id === id ? updated : c));
+    }
+    return updated;
+  }, []);
+
+  const toggleReviewed = useCallback((id: string) => {
+    const updated = storage.toggleCompoundReviewed(id);
+    if (updated) {
+      setCompounds(prev => prev.map(c => c.id === id ? updated : c));
+    }
+    return updated;
+  }, []);
+
+  const markReviewed = useCallback((id: string) => {
+    const updated = storage.markCompoundReviewed(id);
+    if (updated) {
+      setCompounds(prev => prev.map(c => c.id === id ? updated : c));
+    }
+    return updated;
+  }, []);
+
+  return { compounds, loading, add, update, remove, toggleLearned, toggleReviewed, markReviewed };
 }
