@@ -281,14 +281,6 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                     )}
                 </div>
 
-                {/* Notes */}
-                {character.notes && (
-                    <div className="mb-6">
-                        <h3 className="text-slate-400 text-sm mb-2">Notes</h3>
-                        <p className="text-slate-400">{character.notes}</p>
-                    </div>
-                )}
-
                 {/* Compound Words */}
                 {relatedCompounds.length > 0 && (
                     <div className="mb-6">

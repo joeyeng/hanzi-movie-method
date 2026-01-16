@@ -23,7 +23,6 @@ export function CharacterForm({ actors, rooms, sets, props, onSubmit, onCancel, 
         setId: initialData?.setId || '',
         props: initialData?.props || [] as string[],
         movieScene: initialData?.movieScene || '',
-        notes: initialData?.notes || '',
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -180,18 +179,6 @@ export function CharacterForm({ actors, rooms, sets, props, onSubmit, onCancel, 
                     />
                 </div>
                 <p className="text-xs text-slate-500 mt-1">The template above is fixed. Describe the memorable scene below.</p>
-            </div>
-
-            <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Notes
-                </label>
-                <textarea
-                    value={formData.notes}
-                    onChange={e => setFormData(prev => ({ ...prev, notes: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white h-20"
-                    placeholder="Additional notes..."
-                />
             </div>
 
             <div className="flex gap-3 pt-4">
