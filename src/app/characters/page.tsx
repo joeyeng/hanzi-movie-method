@@ -243,13 +243,11 @@ function CharactersContent() {
                     <div className="text-sm text-slate-400 mb-4">
                         Showing {startIndex + 1}-{Math.min(startIndex + CHARS_PER_PAGE, filteredCharacters.length)} of {filteredCharacters.length} characters
                     </div>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {paginatedCharacters.map(character => (
                             <CharacterCard
                                 key={character.id}
                                 character={character}
-                                compounds={compounds}
-                                onDelete={() => handleDelete(character.id)}
                                 onToggleLearned={() => toggleLearned(character.id)}
                                 onToggleReviewed={() => toggleReviewed(character.id)}
                             />
