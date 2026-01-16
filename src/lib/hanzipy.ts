@@ -351,7 +351,6 @@ export async function parseCharacterFileWithComponentsAsync(content: string): Pr
 export interface TatoebaExample {
   id: number;
   simplified: string;
-  traditional: string;
   pinyin: string;
   english: string;
 }

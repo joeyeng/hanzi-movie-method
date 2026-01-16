@@ -79,7 +79,6 @@ def search_sentences():
             {
                 'id': row['id'],
                 'simplified': row['simplified'],
-                'traditional': row['traditional'],
                 'pinyin': row['pinyin'],
                 'english': row['english']
             }
@@ -130,7 +129,6 @@ def search_sentences_batch():
                 {
                     'id': row['id'],
                     'simplified': row['simplified'],
-                    'traditional': row['traditional'],
                     'pinyin': row['pinyin'],
                     'english': row['english']
                 }
@@ -171,7 +169,6 @@ def random_sentence():
             {
                 'id': row['id'],
                 'simplified': row['simplified'],
-                'traditional': row['traditional'],
                 'pinyin': row['pinyin'],
                 'english': row['english']
             }

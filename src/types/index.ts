@@ -53,7 +53,6 @@ export interface CharacterDefinition {
 export interface ExampleSentence {
   id: number;
   simplified: string;
-  traditional: string;
   pinyin: string;
   english: string;
 }

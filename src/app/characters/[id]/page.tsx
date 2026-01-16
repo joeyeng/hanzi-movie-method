@@ -302,12 +302,9 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                     <div className="mb-6">
                         <h3 className="text-slate-400 text-sm mb-2">Example Sentences</h3>
                         <div className="space-y-3">
-                            {character.exampleSentences.map((sentence, index) => (
+                                {character.exampleSentences.map((sentence, index) => (
                                 <div key={sentence.id || index} className="bg-slate-700/30 rounded-lg p-3">
                                     <p className="text-lg text-amber-400">{sentence.simplified}</p>
-                                    {sentence.traditional && sentence.traditional !== sentence.simplified && (
-                                        <p className="text-sm text-slate-500">繁: {sentence.traditional}</p>
-                                    )}
                                     <p className="text-sm text-slate-400 mt-1">{sentence.pinyin}</p>
                                     <p className="text-slate-300 mt-1">{sentence.english}</p>
                                 </div>
