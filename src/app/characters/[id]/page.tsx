@@ -301,7 +301,17 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
 
                 {/* Example Sentences */}
                 <div className="mb-6">
-                    <h3 className="text-slate-400 text-sm mb-2">Example Sentences</h3>
+                    <div className="flex justify-between items-center mb-2">
+                        <h3 className="text-slate-400 text-sm">Example Sentences</h3>
+                        <a
+                            href={`https://tatoeba.org/en/sentences/search?from=cmn&to=eng&query=${encodeURIComponent(character.hanzi)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-400 hover:text-blue-300"
+                        >
+                            View more on Tatoeba →
+                        </a>
+                    </div>
                     {loadingExamples ? (
                         <div className="text-slate-500 text-sm">Loading examples...</div>
                     ) : exampleSentences.length > 0 ? (
