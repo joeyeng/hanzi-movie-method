@@ -89,6 +89,13 @@ export default function ReviewPage() {
     const [pinyinChoices, setPinyinChoices] = useState<string[]>([]);
     const [definitionChoices, setDefinitionChoices] = useState<string[]>([]);
 
+    // Compound quiz state
+    const [compoundPinyinChoices, setCompoundPinyinChoices] = useState<string[]>([]);
+    const [compoundDefinitionChoices, setCompoundDefinitionChoices] = useState<string[]>([]);
+    const [selectedCompoundPinyin, setSelectedCompoundPinyin] = useState<string | null>(null);
+    const [selectedCompoundDefinition, setSelectedCompoundDefinition] = useState<string | null>(null);
+    const [compoundAnswerState, setCompoundAnswerState] = useState<AnswerState>('answering');
+
     // Only include characters marked as "reviewed" (ready for review)
     const reviewableCharacters = characters.filter(c => c.reviewed);
     const reviewableCompounds = compounds.filter(c => c.reviewed);
@@ -156,11 +163,19 @@ export default function ReviewPage() {
 
     // Generate definition choices when current character changes
     useEffect(() => {
-        if (currentCharacter && sessionStarted) {
+        if (currentCharacter && sessionStarted && reviewType === 'characters') {
             generatePinyinChoices();
             generateDefinitionChoices();
         }
-    }, [currentIndex, sessionStarted]);
+    }, [currentIndex, sessionStarted, reviewType]);
+
+    // Generate compound choices when current compound changes
+    useEffect(() => {
+        if (currentCompound && sessionStarted && reviewType === 'compounds') {
+            generateCompoundPinyinChoices();
+            generateCompoundDefinitionChoices();
+        }
+    }, [currentIndex, sessionStarted, reviewType]);
 
     // Reset quiz state for new question
     const resetQuizState = () => {
@@ -170,6 +185,12 @@ export default function ReviewPage() {
         setAnswerState('answering');
         setPinyinChoices([]);
         setDefinitionChoices([]);
+        // Reset compound state too
+        setSelectedCompoundPinyin(null);
+        setSelectedCompoundDefinition(null);
+        setCompoundAnswerState('answering');
+        setCompoundPinyinChoices([]);
+        setCompoundDefinitionChoices([]);
     };
 
     // Generate multiple choice options for pinyin
@@ -220,6 +241,78 @@ export default function ReviewPage() {
         // Combine and shuffle all options
         const allChoices = shuffleArray([correctDef, ...wrongAnswers]);
         setDefinitionChoices(allChoices);
+    };
+
+    // Generate multiple choice options for compound pinyin
+    const generateCompoundPinyinChoices = () => {
+        if (!currentCompound) return;
+
+        const correctPinyin = currentCompound.pinyin;
+        const charCount = currentCompound.characters.length;
+
+        // Get wrong pinyins from compounds with the same number of characters
+        const otherPinyins = compounds
+            .filter(c => c.id !== currentCompound.id && c.characters.length === charCount)
+            .map(c => c.pinyin)
+            .filter(p => p && p !== correctPinyin);
+
+        // Get unique wrong answers
+        const uniqueWrongPinyins = [...new Set(otherPinyins)];
+
+        // Shuffle and pick 3 wrong answers
+        const wrongAnswers = shuffleArray(uniqueWrongPinyins).slice(0, 3);
+
+        // Combine and shuffle all options
+        const allChoices = shuffleArray([correctPinyin, ...wrongAnswers]);
+        setCompoundPinyinChoices(allChoices);
+    };
+
+    // Generate multiple choice options for compound definitions
+    const generateCompoundDefinitionChoices = () => {
+        if (!currentCompound) return;
+
+        const correctDef = currentCompound.definition;
+
+        // Get wrong definitions from other compounds
+        const otherDefinitions = compounds
+            .filter(c => c.id !== currentCompound.id)
+            .map(c => c.definition)
+            .filter(d => d && d !== correctDef);
+
+        // Get unique wrong answers
+        const uniqueWrongDefs = [...new Set(otherDefinitions)];
+
+        // Shuffle and pick 3 wrong answers
+        const wrongAnswers = shuffleArray(uniqueWrongDefs).slice(0, 3);
+
+        // Combine and shuffle all options
+        const allChoices = shuffleArray([correctDef, ...wrongAnswers]);
+        setCompoundDefinitionChoices(allChoices);
+    };
+
+    // Check if the user's compound answer is correct
+    const checkCompoundAnswer = () => {
+        if (!currentCompound) return;
+
+        const correctPinyin = currentCompound.pinyin;
+        const correctDef = currentCompound.definition;
+
+        const pinyinCorrect = selectedCompoundPinyin === correctPinyin;
+        const definitionCorrect = selectedCompoundDefinition === correctDef;
+
+        if (pinyinCorrect && definitionCorrect) {
+            setCompoundAnswerState('correct');
+            // Mark as learned when answered correctly
+            if (!currentCompound.learned) {
+                toggleCompoundLearned(currentCompound.id);
+            }
+            // Auto advance after short delay
+            setTimeout(() => {
+                handleNext();
+            }, 1500);
+        } else {
+            setCompoundAnswerState('incorrect');
+        }
     };
 
     // Check if the user's answer is correct
@@ -421,6 +514,9 @@ export default function ReviewPage() {
 
     // Compound Review Session UI
     if (reviewType === 'compounds' && currentCompound) {
+        const correctCompoundPinyin = currentCompound.pinyin;
+        const correctCompoundDefinition = currentCompound.definition;
+
         return (
             <div className="max-w-2xl mx-auto">
                 {/* Progress Bar */}
@@ -437,10 +533,10 @@ export default function ReviewPage() {
                     </div>
                 </div>
 
-                {/* Compound Flashcard */}
+                {/* Compound Quiz Card */}
                 <div className="bg-slate-800 rounded-lg p-8">
-                    {/* Compound Word */}
-                    <div className="text-center mb-6">
+                    {/* Question - Compound Word */}
+                    <div className="text-center mb-8">
                         <div className="flex justify-center gap-2 mb-4">
                             {currentCompound.characters.map((char, index) => (
                                 <span key={index} className="text-6xl font-bold text-amber-400">
@@ -448,26 +544,95 @@ export default function ReviewPage() {
                                 </span>
                             ))}
                         </div>
-                        <div className="text-2xl text-amber-300 mb-2">{currentCompound.pinyin}</div>
-                        <div className="text-lg text-slate-300">{currentCompound.definition}</div>
-                        {currentCompound.notes && (
-                            <div className="text-sm text-slate-500 mt-2 italic">{currentCompound.notes}</div>
-                        )}
                     </div>
 
-                    {/* Status badges */}
-                    <div className="flex justify-center gap-2 mb-6">
-                        {currentCompound.learned && (
-                            <span className="text-sm bg-green-500/20 text-green-400 px-3 py-1 rounded-full">
-                                ✓ Learned
-                            </span>
-                        )}
-                        {currentCompound.reviewCount > 0 && (
-                            <span className="text-sm bg-slate-700 text-slate-400 px-3 py-1 rounded-full">
-                                Reviewed {currentCompound.reviewCount}x
-                            </span>
-                        )}
-                    </div>
+                    {/* Correct Answer Feedback */}
+                    {compoundAnswerState === 'correct' && (
+                        <div className="bg-green-500/20 border border-green-500 rounded-lg p-4 mb-6 text-center">
+                            <div className="text-green-400 text-xl font-bold">✓ Correct!</div>
+                        </div>
+                    )}
+
+                    {/* Incorrect Answer Feedback */}
+                    {compoundAnswerState === 'incorrect' && (
+                        <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-6">
+                            <div className="text-red-400 text-xl font-bold text-center mb-4">✗ Incorrect</div>
+                            <div className="space-y-3 text-sm">
+                                <div>
+                                    <span className="text-slate-400">Correct Pinyin:</span>
+                                    <span className="text-white ml-2 font-medium">{correctCompoundPinyin}</span>
+                                </div>
+                                <div>
+                                    <span className="text-slate-400">Correct Definition:</span>
+                                    <span className="text-white ml-2">{correctCompoundDefinition}</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Quiz Form */}
+                    {compoundAnswerState === 'answering' && (
+                        <div className="space-y-6 mb-8">
+                            {/* Pinyin Multiple Choice */}
+                            <div>
+                                <label className="block text-slate-400 text-sm mb-2">Select Pinyin</label>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {compoundPinyinChoices.map((pinyin, index) => (
+                                        <label
+                                            key={index}
+                                            className={`flex items-center gap-3 px-4 py-3 rounded-lg cursor-pointer transition-colors ${selectedCompoundPinyin === pinyin
+                                                ? 'bg-amber-500 text-slate-900'
+                                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                                }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="compoundPinyin"
+                                                checked={selectedCompoundPinyin === pinyin}
+                                                onChange={() => setSelectedCompoundPinyin(pinyin)}
+                                                className="w-4 h-4 text-amber-500 accent-amber-500"
+                                            />
+                                            <span className="font-medium">{pinyin}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Definition Multiple Choice */}
+                            <div>
+                                <label className="block text-slate-400 text-sm mb-2">Select Definition</label>
+                                <div className="space-y-2">
+                                    {compoundDefinitionChoices.map((def, index) => (
+                                        <label
+                                            key={index}
+                                            className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-lg cursor-pointer transition-colors ${selectedCompoundDefinition === def
+                                                ? 'bg-amber-500 text-slate-900'
+                                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                                                }`}
+                                        >
+                                            <input
+                                                type="radio"
+                                                name="compoundDefinition"
+                                                checked={selectedCompoundDefinition === def}
+                                                onChange={() => setSelectedCompoundDefinition(def)}
+                                                className="w-4 h-4 text-amber-500 accent-amber-500"
+                                            />
+                                            <span>{def}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Check Answer Button */}
+                            <button
+                                onClick={checkCompoundAnswer}
+                                disabled={!selectedCompoundPinyin || !selectedCompoundDefinition}
+                                className="w-full bg-amber-500 text-slate-900 py-3 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Check Answer
+                            </button>
+                        </div>
+                    )}
 
                     {/* Actions */}
                     <div className="flex gap-3 pt-4 border-t border-slate-700">
@@ -486,12 +651,14 @@ export default function ReviewPage() {
                         >
                             End Session
                         </button>
-                        <button
-                            onClick={handleNext}
-                            className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
-                        >
-                            {currentIndex < compoundQueue.length - 1 ? 'Next Compound →' : 'Finish Review'}
-                        </button>
+                        {compoundAnswerState === 'incorrect' && (
+                            <button
+                                onClick={handleNext}
+                                className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
+                            >
+                                {currentIndex < compoundQueue.length - 1 ? 'Next Compound →' : 'Finish Review'}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
