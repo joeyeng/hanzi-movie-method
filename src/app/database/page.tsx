@@ -105,7 +105,7 @@ function parsePinyin(pinyin: string): { initial: string; final: string; tone: nu
 
     // Map the final to HMM finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
     // The final extracted needs to be mapped to the HMM system
-    const hmmFinal = mapToHmmFinal(final, initial);
+    const hmmFinal = final ? mapToHmmFinal(final, initial) : 'Ø';
 
     return { initial: initial + '-', final: hmmFinal, tone };
 }
