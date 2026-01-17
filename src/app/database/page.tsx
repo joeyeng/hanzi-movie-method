@@ -233,13 +233,13 @@ function findSetForFinal(final: string, sets: Set[]): Set | undefined {
     if (!final) return undefined;
     // Normalize: ensure dash prefix
     const normalizedFinal = final.toLowerCase().startsWith('-') ? final.toLowerCase() : '-' + final.toLowerCase();
-    
+
     return sets.find(s => {
         const setFinal = s.final.toLowerCase().startsWith('-') ? s.final.toLowerCase() : '-' + s.final.toLowerCase();
-        
+
         // Direct match
         if (setFinal === normalizedFinal) return true;
-        
+
         // Handle optional characters in parentheses
         // If set final has (x), it should match both with and without x
         const parenMatch = setFinal.match(/^(-?)\(([^)]+)\)(.*)$/);
@@ -249,24 +249,24 @@ function findSetForFinal(final: string, sets: Set[]): Set | undefined {
             const withOptional = dash + optional + rest;
             // Match with optional chars excluded: -(e)i matches -i
             const withoutOptional = dash + rest;
-            
+
             if (normalizedFinal === withOptional || normalizedFinal === withoutOptional) {
                 return true;
             }
         }
-        
+
         // Also check if the input final has parentheses that the set doesn't
         const inputParenMatch = normalizedFinal.match(/^(-?)\(([^)]+)\)(.*)$/);
         if (inputParenMatch) {
             const [, dash, optional, rest] = inputParenMatch;
             const withOptional = dash + optional + rest;
             const withoutOptional = dash + rest;
-            
+
             if (setFinal === withOptional || setFinal === withoutOptional) {
                 return true;
             }
         }
-        
+
         return false;
     });
 }
