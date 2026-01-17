@@ -236,9 +236,9 @@ function generateMovieScene(hanzi: string, meaning: string): string {
 }
 
 export default function DatabasePage() {
-    const { actors, add: addActor } = useActors();
-    const { rooms, add: addRoom } = useRooms();
-    const { sets, add: addSet } = useSets();
+    const { actors, add: addActor, update: updateActor } = useActors();
+    const { rooms, add: addRoom, update: updateRoom } = useRooms();
+    const { sets, add: addSet, update: updateSet } = useSets();
     const { props, add: addProp } = useProps();
     const { characters, add: addCharacter } = useCharacters();
     const { compounds, add: addCompound } = useCompounds();
@@ -364,12 +364,22 @@ export default function DatabasePage() {
     };
 
     const ensureActorsAndSets = () => {
-        // First, import default actors if needed
-        const existingInitials = new globalThis.Set(actors.map(a => a.initial.toLowerCase()));
+        // First, import default actors - update existing or add new
+        const actorsByInitial = new Map(actors.map(a => [a.initial.toLowerCase(), a]));
         let actorCount = 0;
 
         exampleActors.forEach(actor => {
-            if (!existingInitials.has(actor.initial.toLowerCase())) {
+            const existingActor = actorsByInitial.get(actor.initial.toLowerCase());
+            if (existingActor) {
+                // Update existing actor
+                updateActor(existingActor.id, {
+                    name: actor.name,
+                    category: actor.category as 'male' | 'female' | 'fictional' | 'basketball_players',
+                    emoji: actor.emoji,
+                    description: actor.description,
+                });
+                actorCount++;
+            } else {
                 addActor({
                     name: actor.name,
                     initial: actor.initial,
@@ -381,12 +391,21 @@ export default function DatabasePage() {
             }
         });
 
-        // Import default rooms if needed
-        const existingTones = new globalThis.Set(rooms.map(r => r.tone));
+        // Import default rooms - update existing or add new
+        const roomsByTone = new Map(rooms.map(r => [r.tone, r]));
         let roomCount = 0;
 
         exampleRooms.forEach(room => {
-            if (!existingTones.has(room.tone)) {
+            const existingRoom = roomsByTone.get(room.tone);
+            if (existingRoom) {
+                // Update existing room
+                updateRoom(existingRoom.id, {
+                    name: room.name,
+                    emoji: room.emoji,
+                    description: room.description,
+                });
+                roomCount++;
+            } else {
                 addRoom({
                     name: room.name,
                     tone: room.tone,
@@ -397,12 +416,21 @@ export default function DatabasePage() {
             }
         });
 
-        // Import default sets if needed (by final only, no tone)
-        const existingFinals = new globalThis.Set(sets.map(s => s.final.toLowerCase()));
+        // Import default sets - update existing or add new (by final only, no tone)
+        const setsByFinal = new Map(sets.map(s => [s.final.toLowerCase(), s]));
         let setCount = 0;
 
         exampleSets.forEach(set => {
-            if (!existingFinals.has(set.final.toLowerCase())) {
+            const existingSet = setsByFinal.get(set.final.toLowerCase());
+            if (existingSet) {
+                // Update existing set
+                updateSet(existingSet.id, {
+                    name: set.name,
+                    emoji: set.emoji,
+                    description: set.description,
+                });
+                setCount++;
+            } else {
                 addSet({
                     name: set.name,
                     final: set.final,
@@ -568,11 +596,22 @@ export default function DatabasePage() {
     };
 
     const importDefaultActors = () => {
-        const existingInitials = new globalThis.Set(actors.map(a => a.initial.toLowerCase()));
-        let count = 0;
+        const actorsByInitial = new Map(actors.map(a => [a.initial.toLowerCase(), a]));
+        let addedCount = 0;
+        let updatedCount = 0;
 
         exampleActors.forEach(actor => {
-            if (!existingInitials.has(actor.initial.toLowerCase())) {
+            const existingActor = actorsByInitial.get(actor.initial.toLowerCase());
+            if (existingActor) {
+                // Update existing actor
+                updateActor(existingActor.id, {
+                    name: actor.name,
+                    category: actor.category as 'male' | 'female' | 'fictional' | 'basketball_players',
+                    emoji: actor.emoji,
+                    description: actor.description,
+                });
+                updatedCount++;
+            } else {
                 addActor({
                     name: actor.name,
                     initial: actor.initial,
@@ -580,49 +619,78 @@ export default function DatabasePage() {
                     emoji: actor.emoji,
                     description: actor.description,
                 });
-                count++;
+                addedCount++;
             }
         });
 
-        setImportStatus(prev => [...prev, `Imported ${count} new actors`]);
+        const messages: string[] = [];
+        if (addedCount > 0) messages.push(`Added ${addedCount} new actors`);
+        if (updatedCount > 0) messages.push(`Updated ${updatedCount} existing actors`);
+        setImportStatus(prev => [...prev, messages.join(', ') || 'No actor changes']);
     };
 
     const importDefaultRooms = () => {
-        const existingTones = new globalThis.Set(rooms.map(r => r.tone));
-        let count = 0;
+        const roomsByTone = new Map(rooms.map(r => [r.tone, r]));
+        let addedCount = 0;
+        let updatedCount = 0;
 
         exampleRooms.forEach(room => {
-            if (!existingTones.has(room.tone)) {
+            const existingRoom = roomsByTone.get(room.tone);
+            if (existingRoom) {
+                // Update existing room
+                updateRoom(existingRoom.id, {
+                    name: room.name,
+                    emoji: room.emoji,
+                    description: room.description,
+                });
+                updatedCount++;
+            } else {
                 addRoom({
                     name: room.name,
                     tone: room.tone,
                     emoji: room.emoji,
                     description: room.description,
                 });
-                count++;
+                addedCount++;
             }
         });
 
-        setImportStatus(prev => [...prev, `Imported ${count} new rooms`]);
+        const messages: string[] = [];
+        if (addedCount > 0) messages.push(`Added ${addedCount} new rooms`);
+        if (updatedCount > 0) messages.push(`Updated ${updatedCount} existing rooms`);
+        setImportStatus(prev => [...prev, messages.join(', ') || 'No room changes']);
     };
 
     const importDefaultSets = () => {
-        const existingFinals = new globalThis.Set(sets.map(s => s.final.toLowerCase()));
-        let count = 0;
+        const setsByFinal = new Map(sets.map(s => [s.final.toLowerCase(), s]));
+        let addedCount = 0;
+        let updatedCount = 0;
 
         exampleSets.forEach(set => {
-            if (!existingFinals.has(set.final.toLowerCase())) {
+            const existingSet = setsByFinal.get(set.final.toLowerCase());
+            if (existingSet) {
+                // Update existing set
+                updateSet(existingSet.id, {
+                    name: set.name,
+                    emoji: set.emoji,
+                    description: set.description,
+                });
+                updatedCount++;
+            } else {
                 addSet({
                     name: set.name,
                     final: set.final,
                     emoji: set.emoji,
                     description: set.description,
                 });
-                count++;
+                addedCount++;
             }
         });
 
-        setImportStatus(prev => [...prev, `Imported ${count} new sets`]);
+        const messages: string[] = [];
+        if (addedCount > 0) messages.push(`Added ${addedCount} new sets`);
+        if (updatedCount > 0) messages.push(`Updated ${updatedCount} existing sets`);
+        setImportStatus(prev => [...prev, messages.join(', ') || 'No set changes']);
     };
 
     const importDefaultProps = () => {
