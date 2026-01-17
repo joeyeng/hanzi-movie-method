@@ -147,16 +147,16 @@ export default function ActorsPage() {
                         </div>
                     )}
 
-                    {/* World Leaders */}
-                    {filteredActors.filter(a => a.category === 'world_leader').length > 0 && (
+                    {/* Basketball Players */}
+                    {filteredActors.filter(a => a.category === 'basketball_players').length > 0 && (
                         <div>
                             <h2 className="text-xl font-semibold text-yellow-300 mb-3 flex items-center gap-2">
                                 <span className="w-3 h-3 bg-yellow-500 rounded-full"></span>
-                                World Leaders
+                                Basketball Players
                                 <span className="text-sm font-normal text-slate-500">(yu-, nü-, lü-, ju-, qu-, xu-)</span>
                             </h2>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {filteredActors.filter(a => a.category === 'world_leader').map(actor => (
+                                {filteredActors.filter(a => a.category === 'basketball_players').map(actor => (
                                     <ActorCard key={actor.id} actor={actor} onEdit={handleEdit} onDelete={handleDelete} />
                                 ))}
                             </div>

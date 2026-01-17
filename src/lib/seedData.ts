@@ -127,7 +127,7 @@ export const seedCharacters: SeedCharacter[] = [
 ];
 
 // Example actors for Hanzi Movie Method initials
-// Categories: Male (basic initials), Female (y-/i- initials), Fictional (w-/u- initials), World Leaders (ü initials)
+// Categories: Male (basic initials), Female (y-/i- initials), Fictional (w-/u- initials), Basketball Players (ü initials)
 
 export const exampleActors = [
   // MALE actors - initials: b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, zh-, ch-, sh-, r-, z-, c-, s-, Ø (null initial)
@@ -186,12 +186,12 @@ export const exampleActors = [
   { name: "Forrest (Gu)mp", initial: "gu-", emoji: "🐉", category: "fictional", description: "Fictional - for gu- sounds like gù, gú" },
 
   // BASKETBALL PLAYERS - initials: yu-, nü-, lü-, ju-, qu-, xu-
-  { name: "Yao Ming", initial: "yu-", emoji: "🏛️", category: "world_leader", description: "World leader - for yu- sounds like yuán, yuè" },
-  { name: "Ma(nu) Ginobili", initial: "nü-", emoji: "🌍", category: "world_leader", description: "World leader - for nü- sounds like nǚ" },
-  { name: "Skip to my (Lu)", initial: "lü-", emoji: "🗡️", category: "world_leader", description: "World leader - for lü- sounds like lǜ, lǚ" },
-  { name: "Julius Erving", initial: "ju-", emoji: "🏛️", category: "world_leader", description: "World leader - for ju- sounds like jù, jǔ" },
-  { name: "Sha(qu)ille O'Neal", initial: "qu-", emoji: "👑", category: "world_leader", description: "World leader - for qu- sounds like qù, qǔ" },
-  { name: "Sue Bird", initial: "xu-", emoji: "🇨🇳", category: "world_leader", description: "World leader - for xu- sounds like xǔ, xù" },
+  { name: "Yao Ming", initial: "yu-", emoji: "🏛️", category: "basketball_players", description: "Basketball player - for yu- sounds like yuán, yuè" },
+  { name: "Ma(nu) Ginobili", initial: "nü-", emoji: "🌍", category: "basketball_players", description: "Basketball player - for nü- sounds like nǚ" },
+  { name: "Skip to my (Lu)", initial: "lü-", emoji: "🗡️", category: "basketball_players", description: "Basketball player - for lü- sounds like lǜ, lǚ" },
+  { name: "Julius Erving", initial: "ju-", emoji: "🏛️", category: "basketball_players", description: "Basketball player - for ju- sounds like jù, jǔ" },
+  { name: "Sha(qu)ille O'Neal", initial: "qu-", emoji: "👑", category: "basketball_players", description: "Basketball player - for qu- sounds like qù, qǔ" },
+  { name: "Sue Bird", initial: "xu-", emoji: "🇨🇳", category: "basketball_players", description: "Basketball player - for xu- sounds like xǔ, xù" },
 ];
 
 // Example rooms for each tone

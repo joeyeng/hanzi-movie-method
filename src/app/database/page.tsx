@@ -24,7 +24,7 @@ interface PreviewCharacter {
 //   Male: b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, zh-, ch-, sh-, r-, z-, c-, s-, Ø (null)
 //   Female: y-, bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-
 //   Fictional: w-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, zhu-, chu-, shu-, ru-, ku-, hu-, gu-
-//   World Leaders: yu-, nü-, lü-, ju-, qu-, xu-
+//   Basketball Players: yu-, nü-, lü-, ju-, qu-, xu-
 function parsePinyin(pinyin: string): { initial: string; final: string; tone: number } {
     if (!pinyin) return { initial: '', final: '', tone: 5 };
 
@@ -64,13 +64,13 @@ function parsePinyin(pinyin: string): { initial: string; final: string; tone: nu
 
     // HMM uses specific initials based on sound categories
     // Order matters - check longer initials first, then shorter ones
-    // World Leaders (ü sounds): yu-, nü-, lü-, ju-, qu-, xu-
+    // Basketball Players (ü sounds): yu-, nü-, lü-, ju-, qu-, xu-
     // Fictional (u sounds): zhu-, chu-, shu-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, ru-, ku-, hu-, gu-, w-
     // Female (i sounds): bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-, y-
     // Male (basic): zh-, ch-, sh-, b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, r-, z-, c-, s-, Ø
 
     const hmmInitials = [
-        // World Leaders (ü initials) - must check first
+        // Basketball Players (ü initials) - must check first
         'yu', 'nü', 'lü', 'ju', 'qu', 'xu',
         // Fictional (u initials) 
         'zhu', 'chu', 'shu', 'bu', 'pu', 'mu', 'fu', 'du', 'tu', 'nu', 'lu', 'zu', 'cu', 'su', 'ru', 'ku', 'hu', 'gu',
@@ -373,7 +373,7 @@ export default function DatabasePage() {
                 addActor({
                     name: actor.name,
                     initial: actor.initial,
-                    category: actor.category as 'male' | 'female' | 'fictional' | 'world_leader',
+                    category: actor.category as 'male' | 'female' | 'fictional' | 'basketball_players',
                     emoji: actor.emoji,
                     description: actor.description,
                 });
@@ -576,7 +576,7 @@ export default function DatabasePage() {
                 addActor({
                     name: actor.name,
                     initial: actor.initial,
-                    category: actor.category as 'male' | 'female' | 'fictional' | 'world_leader',
+                    category: actor.category as 'male' | 'female' | 'fictional' | 'basketball_players',
                     emoji: actor.emoji,
                     description: actor.description,
                 });

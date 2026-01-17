@@ -13,7 +13,7 @@ export function ActorForm({ onSubmit, onCancel, initialData }: ActorFormProps) {
     const [formData, setFormData] = useState({
         name: initialData?.name || '',
         initial: initialData?.initial || '',
-        category: initialData?.category || 'male' as 'male' | 'female' | 'fictional' | 'world_leader',
+        category: initialData?.category || 'male' as 'male' | 'female' | 'fictional' | 'basketball_players',
         emoji: initialData?.emoji || '',
         description: initialData?.description || '',
         imageUrl: initialData?.imageUrl || '',
@@ -54,13 +54,13 @@ export function ActorForm({ onSubmit, onCancel, initialData }: ActorFormProps) {
                     <select
                         required
                         value={formData.category}
-                        onChange={e => setFormData(prev => ({ ...prev, category: e.target.value as 'male' | 'female' | 'fictional' | 'world_leader' }))}
+                        onChange={e => setFormData(prev => ({ ...prev, category: e.target.value as 'male' | 'female' | 'fictional' | 'basketball_players' }))}
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
                     >
                         <option value="male">Male (b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, zh-, ch-, sh-, r-, z-, c-, s-, Ø)</option>
                         <option value="female">Female (y-, bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-)</option>
                         <option value="fictional">Fictional (w-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, zhu-, chu-, shu-, ru-, ku-, hu-, gu-)</option>
-                        <option value="world_leader">World Leader (yu-, nü-, lü-, ju-, qu-, xu-)</option>
+                        <option value="basketball_players">Basketball Players (yu-, nü-, lü-, ju-, qu-, xu-)</option>
                     </select>
                 </div>
             </div>
