@@ -82,6 +82,10 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
         setIsEditingScene(true);
     };
 
+    const handleSetDefaultDefinition = (pinyin: string, definition: string) => {
+        update(character.id, { pinyin, meaning: definition });
+    };
+
     // Get the template with resolved names for display
     const templatePrefix = `${character.actor?.name || '[Actor]'} is at ${character.set?.name || '[Set]'} in the ${character.room?.name || '[Room]'}.`;
 
@@ -138,15 +142,26 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                 {/* Additional definitions */}
                 {hasMultipleDefinitions && (
                     <div className="mb-6 p-4 bg-slate-700/30 rounded-lg">
-                        <h3 className="text-sm font-medium text-slate-300 mb-2">All Definitions</h3>
+                        <h3 className="text-sm font-medium text-slate-300 mb-2">All Definitions <span className="text-slate-500">(click to set as default)</span></h3>
                         <div className="space-y-2">
-                            {character.allDefinitions!.map((def, index) => (
-                                <div key={index} className="text-sm">
-                                    <span className="text-slate-300">{def.pinyin}</span>
-                                    <span className="text-slate-500 mx-2">—</span>
-                                    <span className="text-slate-400">{def.definition}</span>
-                                </div>
-                            ))}
+                            {character.allDefinitions!.map((def, index) => {
+                                const isDefault = def.pinyin === character.pinyin && def.definition === character.meaning;
+                                return (
+                                    <button
+                                        key={index}
+                                        onClick={() => handleSetDefaultDefinition(def.pinyin, def.definition)}
+                                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${isDefault
+                                                ? 'bg-amber-500/20 border border-amber-500/50'
+                                                : 'hover:bg-slate-600/50'
+                                            }`}
+                                    >
+                                        <span className={isDefault ? 'text-amber-400' : 'text-slate-300'}>{def.pinyin}</span>
+                                        <span className="text-slate-500 mx-2">—</span>
+                                        <span className={isDefault ? 'text-amber-300' : 'text-slate-400'}>{def.definition}</span>
+                                        {isDefault && <span className="ml-2 text-amber-500 text-xs">(default)</span>}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                 )}

@@ -296,16 +296,14 @@ export default function ReviewPage() {
     const generateDefinitionChoices = () => {
         if (!currentCharacter) return;
 
-        // Get correct answer - first definition or meaning
-        const correctDef = currentCharacter.allDefinitions?.[0]?.definition || currentCharacter.meaning;
+        // Get correct answer - use the default meaning (user can change this on detail page)
+        const correctDef = currentCharacter.meaning;
 
         // Get random wrong definitions from other characters
         const otherDefinitions = characters
             .filter(c => c.id !== currentCharacter.id)
             .flatMap(c => {
-                if (c.allDefinitions && c.allDefinitions.length > 0) {
-                    return c.allDefinitions.map(d => d.definition);
-                }
+                // Use their default meaning
                 return [c.meaning];
             })
             .filter(d => d && d !== correctDef);
@@ -427,7 +425,7 @@ export default function ReviewPage() {
 
         const correctPinyin = normalizePinyin(currentCharacter.pinyin.split(',')[0].split(' ')[0]);
         const correctTone = extractTone(currentCharacter.pinyin);
-        const correctDef = currentCharacter.allDefinitions?.[0]?.definition || currentCharacter.meaning;
+        const correctDef = currentCharacter.meaning;
 
         const pinyinCorrect = selectedPinyin === correctPinyin;
         const toneCorrect = selectedTone === correctTone;
@@ -483,7 +481,7 @@ export default function ReviewPage() {
     // Get correct answers for display
     const correctPinyin = currentCharacter?.pinyin.split(',')[0].split(' ')[0] || '';
     const correctTone = currentCharacter ? extractTone(currentCharacter.pinyin) : 5;
-    const correctDefinition = currentCharacter?.allDefinitions?.[0]?.definition || currentCharacter?.meaning || '';
+    const correctDefinition = currentCharacter?.meaning || '';
 
     if (loading || loadingCompounds) {
         return (
