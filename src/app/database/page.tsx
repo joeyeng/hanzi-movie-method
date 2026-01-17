@@ -105,13 +105,14 @@ function parsePinyin(pinyin: string): { initial: string; final: string; tone: nu
 
     // Map the final to HMM finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
     // The final extracted needs to be mapped to the HMM system
-    const hmmFinal = mapToHmmFinal(final);
+    const hmmFinal = mapToHmmFinal(final, initial);
 
     return { initial: initial + '-', final: hmmFinal, tone };
 }
 
 // Map pinyin final to HMM final system
-function mapToHmmFinal(final: string): string {
+// Initial is needed for context-aware mapping (e.g., 'u' after 'li' = -ou, but 'u' after 'b' = -o)
+function mapToHmmFinal(final: string, initial: string = ''): string {
     // Direct mappings for HMM finals
     // -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
 
@@ -172,12 +173,19 @@ function mapToHmmFinal(final: string): string {
         'eng': '-(e)ng',
         'ing': '-(e)ng', // ting -> t- + -(e)ng
 
-        // Special cases
-        'i': '-(e)n',   // zi, ci, si, zhi, chi, shi, ri have special 'i' that's more like schwa
-        'u': '-o',      // bu, pu, mu, fu -> -o sound
+        // -(e)i family - 'ei' after most consonants, 'i' after u-ending initials (shui = shu- + -(e)i)
+        'i': '-(e)i',   // shui -> shu- + -(e)i, dui -> du- + -(e)i
+        'u': '-o',      // bu, pu, mu, fu -> -o sound (but after i-initials, handled separately below)
         'ü': '-o',      // nü, lü -> -o sound
         'er': '-e',     // er special
     };
+
+    // Special case: 'u' after i-ending initials (bi, pi, mi, di, ti, ji, qi, xi, ni, li) is the -ou sound
+    // e.g., liu = li- + -ou, niu = ni- + -ou, jiu = ji- + -ou
+    const iEndingInitials = ['bi', 'pi', 'mi', 'di', 'ti', 'ji', 'qi', 'xi', 'ni', 'li'];
+    if (final === 'u' && iEndingInitials.includes(initial.toLowerCase())) {
+        return '-ou';
+    }
 
     // Check for exact match first
     if (mappings[final]) {
@@ -197,7 +205,7 @@ function mapToHmmFinal(final: string): string {
     if (final.endsWith('a')) return '-a';
     if (final.endsWith('o')) return '-o';
     if (final.endsWith('e')) return '-e';
-    if (final.endsWith('i')) return '-(e)n';
+    if (final.endsWith('i')) return '-(e)i';
     if (final.endsWith('u')) return '-ou';
 
     return '-' + final; // Fallback with dash prefix
@@ -220,13 +228,46 @@ function findRoomForTone(tone: number, rooms: Room[]): Room | undefined {
 }
 
 // Find set by final (HMM format like "-a", "-ai", "-(e)n")
+// Handles optional characters in parentheses: (e)i matches both ei and i
 function findSetForFinal(final: string, sets: Set[]): Set | undefined {
     if (!final) return undefined;
-    // Normalize both to compare: ensure dash prefix
+    // Normalize: ensure dash prefix
     const normalizedFinal = final.toLowerCase().startsWith('-') ? final.toLowerCase() : '-' + final.toLowerCase();
+    
     return sets.find(s => {
         const setFinal = s.final.toLowerCase().startsWith('-') ? s.final.toLowerCase() : '-' + s.final.toLowerCase();
-        return setFinal === normalizedFinal;
+        
+        // Direct match
+        if (setFinal === normalizedFinal) return true;
+        
+        // Handle optional characters in parentheses
+        // If set final has (x), it should match both with and without x
+        const parenMatch = setFinal.match(/^(-?)\(([^)]+)\)(.*)$/);
+        if (parenMatch) {
+            const [, dash, optional, rest] = parenMatch;
+            // Match with optional chars included: -(e)i matches -ei
+            const withOptional = dash + optional + rest;
+            // Match with optional chars excluded: -(e)i matches -i
+            const withoutOptional = dash + rest;
+            
+            if (normalizedFinal === withOptional || normalizedFinal === withoutOptional) {
+                return true;
+            }
+        }
+        
+        // Also check if the input final has parentheses that the set doesn't
+        const inputParenMatch = normalizedFinal.match(/^(-?)\(([^)]+)\)(.*)$/);
+        if (inputParenMatch) {
+            const [, dash, optional, rest] = inputParenMatch;
+            const withOptional = dash + optional + rest;
+            const withoutOptional = dash + rest;
+            
+            if (setFinal === withOptional || setFinal === withoutOptional) {
+                return true;
+            }
+        }
+        
+        return false;
     });
 }
 

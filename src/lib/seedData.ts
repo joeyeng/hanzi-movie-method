@@ -204,7 +204,8 @@ export const exampleRooms = [
 ];
 
 // Example sets for HMM finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
-export const exampleSets = [
+export const exampleSets = [  
+  { name: "Childhood Home", final: "Ø", emoji: "🏡", description: "Null final" },
   { name: "Australia", final: "-a", emoji: "🦘", description: "For -a finals (tā, nà, dà, mā)" },
   { name: "Chiang Mai", final: "-ai", emoji: "🐘", description: "For -ai finals (lái, mǎi, dài, ài)" },
   { name: "Macau", final: "-ao", emoji: "🎰", description: "For -ao finals (hǎo, dào, gāo, zǎo)" },
@@ -214,7 +215,7 @@ export const exampleSets = [
   { name: "Hong Kong", final: "-ong", emoji: "🌸", description: "For -ong finals (zhōng, dōng, tóng, gōng)" },
   { name: "Seoul", final: "-ou", emoji: "🫰", description: "For -ou finals (dōu, zǒu, gǒu, hòu)" },
   { name: "Osaka", final: "-e", emoji: "⛩", description: "For -e finals (hé, gē, lè, dé)" },
-  { name: "Beijing", final: "-ei", emoji: "🏛️", description: "For -ei finals (měi, bèi, fēi, gěi)" },
+  { name: "Beijing", final: "-(e)i", emoji: "🏛️", description: "For -ei finals (měi, bèi, fēi, gěi)" },
   { name: "Shenzhen", final: "-(e)n", emoji: "🤖", description: "For -(e)n finals (rén, hěn, shén, mén) - 'en' after most, 'n' after i/ü" },
   { name: "Chengdu", final: "-(e)ng", emoji: "🫕", description: "For -(e)ng finals (néng, shēng, míng, tīng) - 'eng' after most, 'ng' after i" },
 ];
