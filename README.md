@@ -58,8 +58,8 @@ The Hanzi Movie Method is a mnemonic system for learning Chinese characters that
 
 ### Backend Services
 
-- **HanziPy Server** (Port 5000) - Character decomposition using hanzipy and jieba
-- **Tatoeba Server** (Port 5001) - Example sentence lookups
+- **HanziPy Server** (Port 6001) - Character decomposition using hanzipy and jieba
+- **Tatoeba Server** (Port 6002) - Example sentence lookups
 
 ## Getting Started
 
@@ -87,9 +87,9 @@ docker-compose down
 
 The app will be available at:
 
-- **Frontend**: http://localhost:3000
-- **HanziPy API**: http://localhost:5000
-- **Tatoeba API**: http://localhost:5001
+- **Frontend**: http://localhost:6000
+- **HanziPy API**: http://localhost:6001
+- **Tatoeba API**: http://localhost:6002
 
 ### Manual Installation
 
@@ -119,7 +119,7 @@ The app will be available at:
    cd tatoeba_server && python server.py
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000)
+4. Open [http://localhost:6000](http://localhost:6000)
 
 ## Usage
 

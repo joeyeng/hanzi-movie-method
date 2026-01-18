@@ -5,13 +5,13 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "4000:4000"
+      - "6000:6000"
     environment:
       - NODE_ENV=production
-      - PORT=4000
+      - PORT=6000
       - HOSTNAME=0.0.0.0
-      - HANZIPY_SERVER_URL=http://hanzipy:4001
-      - TATOEBA_SERVER_URL=http://tatoeba:4002
+      - HANZIPY_SERVER_URL=http://hanzipy:6001
+      - TATOEBA_SERVER_URL=http://tatoeba:6002
     depends_on:
       - hanzipy
       - tatoeba
@@ -23,10 +23,10 @@ services:
       context: ./hanzipy_server
       dockerfile: Dockerfile
     ports:
-      - "4001:4001"
+      - "6001:6001"
     environment:
       - FLASK_ENV=production
-      - PORT=4001
+      - PORT=6001
     restart: unless-stopped
 
   # Tatoeba Example Sentences Server
@@ -35,8 +35,8 @@ services:
       context: ./tatoeba_server
       dockerfile: Dockerfile
     ports:
-      - "4002:4002"
+      - "6002:6002"
     environment:
       - FLASK_ENV=production
-      - PORT=4002
+      - PORT=6002
     restart: unless-stopped
