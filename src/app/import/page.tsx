@@ -2,12 +2,12 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { useActors, useRooms, useSets, useProps, useCharacters, useCompounds, useComponents } from '@/hooks/useLocalStorage';
+import { useActors, useRooms, useSets, useProps, useCharacters, useCompounds } from '@/hooks/useLocalStorage';
 import { exampleActors, exampleRooms, exampleSets } from '@/lib/seedData';
 import defaults from '@/lib/defaults.json';
-import { parseCharacterFileWithComponentsAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult, HanziComponent } from '@/lib/hanzipy';
+import { parseCharacterFileAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult } from '@/lib/hanzipy';
 import * as storage from '@/lib/storage';
-import type { Actor, Room, Set, Character } from '@/types';
+import type { Actor, Room, Set } from '@/types';
 
 // Preview data type
 interface PreviewCharacter {
@@ -15,17 +15,9 @@ interface PreviewCharacter {
     pinyin: string | null;
     definition: string | null;
     found: boolean;
-    all_definitions?: { pinyin: string; definition: string }[];
-    components?: HanziComponent[];
 }
 
-// Parse pinyin to extract initial, final, and tone using Hanzi Movie Method system
-// HMM Finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
-// HMM Initials: 
-//   Male: b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, zh-, ch-, sh-, r-, z-, c-, s-, Ø (null)
-//   Female: y-, bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-
-//   Fictional: w-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, zhu-, chu-, shu-, ru-, ku-, hu-, gu-
-//   Basketball Players: yu-, nü-, lü-, ju-, qu-, xu-
+// Parse pinyin to extract initial, final, and tone
 function parsePinyin(pinyin: string): { initial: string; final: string; tone: number } {
     if (!pinyin) return { initial: '', final: '', tone: 5 };
 
@@ -63,49 +55,22 @@ function parsePinyin(pinyin: string): { initial: string; final: string; tone: nu
         }
     }
 
-    // HMM uses specific initials based on sound categories
-    // Order matters - check longer initials first, then shorter ones
-    // Basketball Players (ü sounds): yu-, nü-, lü-, ju-, qu-, xu-
-    // Fictional (u sounds): zhu-, chu-, shu-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, ru-, ku-, hu-, gu-, w-
-    // Female (i sounds): bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-, y-
-    // Male (basic): zh-, ch-, sh-, b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, r-, z-, c-, s-, Ø
-
-    const hmmInitials = [
-        // Basketball Players (ü initials) - must check first
-        'yu', 'nü', 'lü', 'ju', 'qu', 'xu',
-        // Fictional (u initials) 
-        'zhu', 'chu', 'shu', 'bu', 'pu', 'mu', 'fu', 'du', 'tu', 'nu', 'lu', 'zu', 'cu', 'su', 'ru', 'ku', 'hu', 'gu',
-        // Female (i initials)
-        'bi', 'pi', 'mi', 'di', 'ti', 'ji', 'qi', 'xi', 'ni', 'li',
-        // Male (basic initials) - checked last
+    // Common initials in Mandarin (longest first for proper matching)
+    const initials = [
         'zh', 'ch', 'sh',
-        'w', 'y',
         'b', 'p', 'm', 'f',
         'd', 't', 'n', 'l',
         'g', 'k', 'h',
-        'r', 'z', 'c', 's'
+        'j', 'q', 'x',
+        'z', 'c', 's',
+        'r', 'y', 'w'
     ];
 
     let initial = '';
     let final = normalized;
 
-    // Special whole-word matches: yi, wu, yu are treated as initial + null final
-    // er is a special case: null initial + null final
-    if (normalized === 'yi') {
-        return { initial: 'y-', final: 'Ø', tone };
-    }
-    if (normalized === 'wu') {
-        return { initial: 'w-', final: 'Ø', tone };
-    }
-    if (normalized === 'yu') {
-        return { initial: 'yu-', final: 'Ø', tone };
-    }
-    if (normalized === 'er') {
-        return { initial: 'Ø-', final: 'Ø', tone };
-    }
-
-    // Find the HMM initial
-    for (const init of hmmInitials) {
+    // Find the initial
+    for (const init of initials) {
         if (normalized.startsWith(init)) {
             initial = init;
             final = normalized.slice(init.length);
@@ -113,128 +78,16 @@ function parsePinyin(pinyin: string): { initial: string; final: string; tone: nu
         }
     }
 
-    // If no initial found and starts with vowel, it's a null initial (Ø)
-    if (!initial && /^[aeiouü]/.test(normalized)) {
-        initial = 'Ø';
-        final = normalized;
-    }
-
-    // Map the final to HMM finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
-    // The final extracted needs to be mapped to the HMM system
-    const hmmFinal = final ? mapToHmmFinal(final, initial) : 'Ø';
-
-    return { initial: initial + '-', final: hmmFinal, tone };
+    return { initial, final, tone };
 }
 
-// Map pinyin final to HMM final system
-// Initial is needed for context-aware mapping (e.g., 'u' after 'li' = -ou, but 'u' after 'b' = -o)
-function mapToHmmFinal(final: string, initial: string = ''): string {
-    // Direct mappings for HMM finals
-    // -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
-
-    // Handle compound finals that map to HMM finals
-    const mappings: Record<string, string> = {
-        // -a family
-        'a': '-a',
-        'ia': '-a',    // jia -> j- + -a
-        'ua': '-a',    // hua -> hu- + -a
-
-        // -ai family  
-        'ai': '-ai',
-        'uai': '-ai',  // kuai -> ku- + -ai
-
-        // -ao family
-        'ao': '-ao',
-        'iao': '-ao',  // jiao -> ji- + -ao
-
-        // -an family
-        'an': '-an',
-        'ian': '-an',  // tian -> ti- + -an (but HMM treats -ian differently)
-        'uan': '-an',  // duan -> du- + -an
-        'üan': '-an',  // yuan -> yu- + -an
-
-        // -ang family
-        'ang': '-ang',
-        'iang': '-ang', // xiang -> xi- + -ang
-        'uang': '-ang', // huang -> hu- + -ang
-
-        // -o family
-        'o': '-o',
-        'uo': '-o',    // duo -> du- + -o
-
-        // -ong family
-        'ong': '-ong',
-        'iong': '-ong', // xiong -> xi- + -ong
-
-        // -ou family
-        'ou': '-ou',
-        'iu': '-ou',   // liu -> li- + -ou (iu is actually iou)
-
-        // -e family
-        'e': '-e',
-        'ie': '-e',    // xie -> xi- + -e
-        'üe': '-e',    // yue -> yu- + -e
-
-        // -ei family
-        'ei': '-ei',
-        'ui': '-ei',   // hui -> hu- + -ei (ui is actually uei)
-
-        // -(e)n family - 'en' after most consonants, 'n' after i/ü
-        'en': '-(e)n',
-        'in': '-(e)n',  // xin -> xi- + -(e)n
-        'un': '-(e)n',  // dun -> du- + -(e)n
-        'ün': '-(e)n',  // yun -> yu- + -(e)n
-
-        // -(e)ng family - 'eng' after most consonants, 'ng' after i
-        'eng': '-(e)ng',
-        'ing': '-(e)ng', // ting -> t- + -(e)ng
-
-        // -(e)i family - 'ei' after most consonants, 'i' after u-ending initials (shui = shu- + -(e)i)
-        'i': '-(e)i',   // shui -> shu- + -(e)i, dui -> du- + -(e)i
-        'u': '-o',      // bu, pu, mu, fu -> -o sound (but after i-initials, handled separately below)
-        'ü': '-o',      // nü, lü -> -o sound
-        'er': '-e',     // er special
-    };
-
-    // Special case: 'u' after i-ending initials (bi, pi, mi, di, ti, ji, qi, xi, ni, li) is the -ou sound
-    // e.g., liu = li- + -ou, niu = ni- + -ou, jiu = ji- + -ou
-    const iEndingInitials = ['bi', 'pi', 'mi', 'di', 'ti', 'ji', 'qi', 'xi', 'ni', 'li'];
-    if (final === 'u' && iEndingInitials.includes(initial.toLowerCase())) {
-        return '-ou';
-    }
-
-    // Check for exact match first
-    if (mappings[final]) {
-        return mappings[final];
-    }
-
-    // If no mapping found, try to find best match by checking endings
-    for (const [ending, hmmFinal] of Object.entries(mappings)) {
-        if (final.endsWith(ending) && ending.length > 1) {
-            return hmmFinal;
-        }
-    }
-
-    // Default fallback - try to match the ending vowel
-    if (final.endsWith('ng')) return '-(e)ng';
-    if (final.endsWith('n')) return '-(e)n';
-    if (final.endsWith('a')) return '-a';
-    if (final.endsWith('o')) return '-o';
-    if (final.endsWith('e')) return '-e';
-    if (final.endsWith('i')) return '-(e)i';
-    if (final.endsWith('u')) return '-ou';
-
-    return '-' + final; // Fallback with dash prefix
-}
-
-// Find actor by initial (HMM format with dash suffix like "b-", "ji-", "Ø-")
+// Find actor by initial
 function findActorForInitial(initial: string, actors: Actor[]): Actor | undefined {
     if (!initial) return undefined;
-    // Normalize both to compare: remove dashes
-    const normalizedInitial = initial.toLowerCase().replace(/-$/, '');
+    // Try matching with and without dash suffix (e.g., "j" matches "j-" or "j")
     return actors.find(a => {
         const actorInitial = a.initial.toLowerCase().replace(/-$/, '');
-        return actorInitial === normalizedInitial;
+        return actorInitial === initial.toLowerCase();
     });
 }
 
@@ -243,68 +96,32 @@ function findRoomForTone(tone: number, rooms: Room[]): Room | undefined {
     return rooms.find(r => r.tone === tone);
 }
 
-// Find set by final (HMM format like "-a", "-ai", "-(e)n")
-// Handles optional characters in parentheses: (e)i matches both ei and i
+// Find set by final
 function findSetForFinal(final: string, sets: Set[]): Set | undefined {
     if (!final) return undefined;
-    // Normalize: ensure dash prefix
-    const normalizedFinal = final.toLowerCase().startsWith('-') ? final.toLowerCase() : '-' + final.toLowerCase();
-
+    // Try matching with and without dash prefix (e.g., "i" matches "-i" or "i")
     return sets.find(s => {
-        const setFinal = s.final.toLowerCase().startsWith('-') ? s.final.toLowerCase() : '-' + s.final.toLowerCase();
-
-        // Direct match
-        if (setFinal === normalizedFinal) return true;
-
-        // Handle optional characters in parentheses
-        // If set final has (x), it should match both with and without x
-        const parenMatch = setFinal.match(/^(-?)\(([^)]+)\)(.*)$/);
-        if (parenMatch) {
-            const [, dash, optional, rest] = parenMatch;
-            // Match with optional chars included: -(e)i matches -ei
-            const withOptional = dash + optional + rest;
-            // Match with optional chars excluded: -(e)i matches -i
-            const withoutOptional = dash + rest;
-
-            if (normalizedFinal === withOptional || normalizedFinal === withoutOptional) {
-                return true;
-            }
-        }
-
-        // Also check if the input final has parentheses that the set doesn't
-        const inputParenMatch = normalizedFinal.match(/^(-?)\(([^)]+)\)(.*)$/);
-        if (inputParenMatch) {
-            const [, dash, optional, rest] = inputParenMatch;
-            const withOptional = dash + optional + rest;
-            const withoutOptional = dash + rest;
-
-            if (setFinal === withOptional || setFinal === withoutOptional) {
-                return true;
-            }
-        }
-
-        return false;
+        const setFinal = s.final.toLowerCase().replace(/^-/, '');
+        return setFinal === final.toLowerCase();
     });
 }
 
-// Generate movie scene description (template is auto-prepended in CharacterCard)
+// Generate movie scene template
 function generateMovieScene(hanzi: string, meaning: string): string {
-    return `They see a ${meaning.split(',')[0].trim()} (${hanzi}) and interact with it memorably.`;
+    return `{{ACTOR}} is in the {{ROOM}} at {{SET}}. They see a ${meaning.split(',')[0].trim()} (${hanzi}) and interact with it memorably.`;
 }
 
-export default function DatabasePage() {
-    const { actors, add: addActor, update: updateActor } = useActors();
-    const { rooms, add: addRoom, update: updateRoom } = useRooms();
-    const { sets, add: addSet, update: updateSet } = useSets();
+export default function ImportPage() {
+    const { actors, add: addActor } = useActors();
+    const { rooms, add: addRoom } = useRooms();
+    const { sets, add: addSet } = useSets();
     const { props, add: addProp } = useProps();
     const { characters, add: addCharacter } = useCharacters();
     const { compounds, add: addCompound } = useCompounds();
-    const { components, findOrCreate: findOrCreateComponent } = useComponents();
 
     const [importing, setImporting] = useState(false);
     const [parsing, setParsing] = useState(false);
     const [importStatus, setImportStatus] = useState<string[]>([]);
-    const [importProgress, setImportProgress] = useState({ current: 0, total: 0, phase: '' });
     const [dragActive, setDragActive] = useState(false);
     const [previewData, setPreviewData] = useState<PreviewCharacter[]>([]);
     const [previewCompounds, setPreviewCompounds] = useState<CompoundWordResult[]>([]);
@@ -322,27 +139,25 @@ export default function DatabasePage() {
         reader.onload = async (e) => {
             const content = e.target?.result as string;
             setParsing(true);
-            setImportStatus(['Looking up characters, components, and compound words via HanziPy...']);
+            setImportStatus(['Looking up characters and compound words via HanziPy...']);
 
             try {
-                // Use the async character file parser that calls the HanziPy API with components
-                const parsed = await parseCharacterFileWithComponentsAsync(content);
+                // Use the async character file parser that calls the HanziPy API
+                const parsed = await parseCharacterFileAsync(content);
                 setPreviewData(parsed);
 
-                // Also extract and look up compound words using jieba segmentation
-                const compoundWords = await extractCompoundWords(content);
+                // Also extract and look up compound words
+                const compoundWords = extractCompoundWords(content);
                 const compoundResults = await lookupCompoundWordsAPI(compoundWords);
                 setPreviewCompounds(compoundResults);
 
                 const foundCount = parsed.filter(p => p.found).length;
                 const notFoundCount = parsed.filter(p => !p.found).length;
                 const compoundFoundCount = compoundResults.filter(c => c.found).length;
-                const componentsCount = parsed.reduce((acc, p) => acc + (p.components?.length || 0), 0);
 
                 setImportStatus([
                     `Parsed ${parsed.length} unique characters from file`,
                     foundCount > 0 ? `Found ${foundCount} characters in HanziPy` : '',
-                    componentsCount > 0 ? `Found ${componentsCount} total components` : '',
                     notFoundCount > 0 ? `${notFoundCount} characters not found (will import without pinyin)` : '',
                     compoundWords.length > 0 ? `Found ${compoundWords.length} compound words (${compoundFoundCount} with definitions)` : '',
                 ].filter(Boolean));
@@ -386,26 +201,24 @@ export default function DatabasePage() {
     const handlePasteImport = async () => {
         if (!pasteText.trim()) return;
         setParsing(true);
-        setImportStatus(['Looking up characters, components, and compound words via HanziPy...']);
+        setImportStatus(['Looking up characters and compound words via HanziPy...']);
 
         try {
-            const parsed = await parseCharacterFileWithComponentsAsync(pasteText);
+            const parsed = await parseCharacterFileAsync(pasteText);
             setPreviewData(parsed);
 
-            // Also extract and look up compound words using jieba segmentation
-            const compoundWords = await extractCompoundWords(pasteText);
+            // Also extract and look up compound words
+            const compoundWords = extractCompoundWords(pasteText);
             const compoundResults = await lookupCompoundWordsAPI(compoundWords);
             setPreviewCompounds(compoundResults);
 
             const foundCount = parsed.filter(p => p.found).length;
             const notFoundCount = parsed.filter(p => !p.found).length;
             const compoundFoundCount = compoundResults.filter(c => c.found).length;
-            const componentsCount = parsed.reduce((acc, p) => acc + (p.components?.length || 0), 0);
 
             setImportStatus([
                 `Parsed ${parsed.length} unique characters from text`,
                 foundCount > 0 ? `Found ${foundCount} characters in HanziPy` : '',
-                componentsCount > 0 ? `Found ${componentsCount} total components` : '',
                 notFoundCount > 0 ? `${notFoundCount} characters not found (will import without pinyin)` : '',
                 compoundWords.length > 0 ? `Found ${compoundWords.length} compound words (${compoundFoundCount} with definitions)` : '',
             ].filter(Boolean));
@@ -421,77 +234,45 @@ export default function DatabasePage() {
     };
 
     const ensureActorsAndSets = () => {
-        // First, import default actors - update existing or add new
-        const actorsByInitial = new Map(actors.map(a => [a.initial.toLowerCase(), a]));
+        // First, import default actors if needed
+        const existingInitials = new globalThis.Set(actors.map(a => a.initial.toLowerCase()));
         let actorCount = 0;
 
         exampleActors.forEach(actor => {
-            const existingActor = actorsByInitial.get(actor.initial.toLowerCase());
-            if (existingActor) {
-                // Update existing actor
-                updateActor(existingActor.id, {
-                    name: actor.name,
-                    category: actor.category as 'male' | 'female' | 'fictional' | 'basketball_players',
-                    emoji: actor.emoji,
-                    description: defaults.actorDescriptions[actor.initial as keyof typeof defaults.actorDescriptions],
-                });
-                actorCount++;
-            } else {
+            if (!existingInitials.has(actor.initial.toLowerCase())) {
                 addActor({
                     name: actor.name,
                     initial: actor.initial,
-                    category: actor.category as 'male' | 'female' | 'fictional' | 'basketball_players',
-                    emoji: actor.emoji,
                     description: defaults.actorDescriptions[actor.initial as keyof typeof defaults.actorDescriptions],
                 });
                 actorCount++;
             }
         });
 
-        // Import default rooms - update existing or add new
-        const roomsByTone = new Map(rooms.map(r => [r.tone, r]));
+        // Import default rooms if needed
+        const existingTones = new globalThis.Set(rooms.map(r => r.tone));
         let roomCount = 0;
 
         exampleRooms.forEach(room => {
-            const existingRoom = roomsByTone.get(room.tone);
-            if (existingRoom) {
-                // Update existing room
-                updateRoom(existingRoom.id, {
-                    name: room.name,
-                    emoji: room.emoji,
-                    description: room.description,
-                });
-                roomCount++;
-            } else {
+            if (!existingTones.has(room.tone)) {
                 addRoom({
                     name: room.name,
                     tone: room.tone,
-                    emoji: room.emoji,
                     description: room.description,
                 });
                 roomCount++;
             }
         });
 
-        // Import default sets - update existing or add new (by final only, no tone)
-        const setsByFinal = new Map(sets.map(s => [s.final.toLowerCase(), s]));
+        // Import default sets if needed (by final only, no tone)
+        const existingFinals = new globalThis.Set(sets.map(s => s.final.toLowerCase()));
         let setCount = 0;
 
         exampleSets.forEach(set => {
-            const existingSet = setsByFinal.get(set.final.toLowerCase());
-            if (existingSet) {
-                // Update existing set
-                updateSet(existingSet.id, {
-                    name: set.name,
-                    emoji: set.emoji,
-                    description: defaults.setDescriptions[set.final as keyof typeof defaults.setDescriptions],
-                });
-                setCount++;
-            } else {
+            if (!existingFinals.has(set.final.toLowerCase())) {
                 addSet({
                     name: set.name,
                     final: set.final,
-                    emoji: set.emoji,
                     description: defaults.setDescriptions[set.final as keyof typeof defaults.setDescriptions],
                 });
                 setCount++;
@@ -501,13 +282,12 @@ export default function DatabasePage() {
         return { actorCount, roomCount, setCount };
     };
 
-    const importCharactersFromPreview = async () => {
+    const importCharactersFromPreview = () => {
         if (previewData.length === 0 && previewCompounds.length === 0) return;
 
         setImporting(true);
 
         // First ensure we have actors, rooms, and sets
-        setImportProgress({ current: 0, total: 100, phase: 'Setting up actors, rooms, and sets...' });
         const { actorCount, roomCount, setCount } = ensureActorsAndSets();
 
         // Read fresh data from storage (they now have proper IDs)
@@ -516,24 +296,14 @@ export default function DatabasePage() {
         const currentSets = storage.getSets();
 
         const existingHanzi = new globalThis.Set(characters.map(c => c.hanzi));
-
-        // Calculate actual new items to import
-        const newChars = previewData.filter(c => !existingHanzi.has(c.hanzi));
-        const existingCompounds = new globalThis.Set(compounds.map(c => c.word));
-        const newCompounds = previewCompounds.filter(c => !existingCompounds.has(c.word));
-        const totalNewItems = newChars.length + newCompounds.length;
-
         let charCount = 0;
         let skipped = 0;
         let notFoundCount = 0;
-        let processedNew = 0;
 
-        setImportProgress({ current: 0, total: totalNewItems, phase: `Importing ${newChars.length} new characters...` });
-
-        for (const char of previewData) {
+        previewData.forEach(char => {
             if (existingHanzi.has(char.hanzi)) {
                 skipped++;
-                continue;
+                return;
             }
 
             // Skip characters without pinyin if user wants
@@ -542,17 +312,11 @@ export default function DatabasePage() {
                 // Still import but with placeholder data
                 const movieScene = `Complete this movie scene for ${char.hanzi}...`;
 
-                // Convert components to componentIds (deduplicated)
-                const componentIds = char.components?.map(comp =>
-                    findOrCreateComponent(comp.character, comp.pinyin, comp.definition, comp.all_definitions).id
-                ) || [];
-
                 addCharacter({
                     hanzi: char.hanzi,
                     pinyin: '',
                     meaning: char.definition || 'Unknown meaning',
-                    allDefinitions: char.all_definitions,
-                    componentIds,
+                    keyword: 'Unknown',
                     actorId: undefined,
                     roomId: undefined,
                     setId: undefined,
@@ -560,12 +324,7 @@ export default function DatabasePage() {
                     props: [],
                 });
                 charCount++;
-                processedNew++;
-                if (processedNew % 10 === 0) {
-                    setImportProgress({ current: processedNew, total: totalNewItems, phase: `Importing characters... (${charCount}/${newChars.length})` });
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                }
-                continue;
+                return;
             }
 
             // Parse pinyin to get initial, final, tone
@@ -579,17 +338,11 @@ export default function DatabasePage() {
             // Generate movie scene template
             const movieScene = generateMovieScene(char.hanzi, char.definition || 'meaning');
 
-            // Convert components to componentIds (deduplicated)
-            const componentIds = char.components?.map(comp =>
-                findOrCreateComponent(comp.character, comp.pinyin, comp.definition, comp.all_definitions).id
-            ) || [];
-
             addCharacter({
                 hanzi: char.hanzi,
                 pinyin: char.pinyin,
                 meaning: char.definition || '',
-                allDefinitions: char.all_definitions,
-                componentIds,
+                keyword: (char.definition || '').split(',')[0].trim() || char.hanzi,
                 actorId: actor?.id,
                 roomId: room?.id,
                 setId: set?.id,
@@ -598,22 +351,17 @@ export default function DatabasePage() {
             });
 
             charCount++;
-            processedNew++;
-            if (processedNew % 10 === 0) {
-                setImportProgress({ current: processedNew, total: totalNewItems, phase: `Importing characters... (${charCount}/${newChars.length})` });
-                await new Promise(resolve => setTimeout(resolve, 0));
-            }
-        }
+        });
 
         // Import compound words
-        setImportProgress({ current: processedNew, total: totalNewItems, phase: `Importing ${newCompounds.length} new compound words...` });
+        const existingCompoundWords = new globalThis.Set(compounds.map(c => c.word));
         let compoundCount = 0;
         let compoundSkipped = 0;
 
-        for (const compound of previewCompounds) {
-            if (existingCompounds.has(compound.word)) {
+        previewCompounds.forEach(compound => {
+            if (existingCompoundWords.has(compound.word)) {
                 compoundSkipped++;
-                continue;
+                return;
             }
 
             addCompound({
@@ -624,14 +372,7 @@ export default function DatabasePage() {
             });
 
             compoundCount++;
-            processedNew++;
-            if (processedNew % 20 === 0) {
-                setImportProgress({ current: processedNew, total: totalNewItems, phase: `Importing compound words... (${compoundCount}/${newCompounds.length})` });
-                await new Promise(resolve => setTimeout(resolve, 0));
-            }
-        }
-
-        setImportProgress({ current: totalNewItems, total: totalNewItems, phase: 'Complete!' });
+        });
 
         setImportStatus(prev => [
             ...prev,
@@ -648,106 +389,61 @@ export default function DatabasePage() {
         setPreviewData([]);
         setPreviewCompounds([]);
         setPasteText('');
-        setImportProgress({ current: 0, total: 0, phase: '' });
         setImporting(false);
     };
 
     const importDefaultActors = () => {
-        const actorsByInitial = new Map(actors.map(a => [a.initial.toLowerCase(), a]));
-        let addedCount = 0;
-        let updatedCount = 0;
+        const existingInitials = new globalThis.Set(actors.map(a => a.initial.toLowerCase()));
+        let count = 0;
 
         exampleActors.forEach(actor => {
-            const existingActor = actorsByInitial.get(actor.initial.toLowerCase());
-            if (existingActor) {
-                // Update existing actor
-                updateActor(existingActor.id, {
-                    name: actor.name,
-                    category: actor.category as 'male' | 'female' | 'fictional' | 'basketball_players',
-                    emoji: actor.emoji,
-                    description: defaults.actorDescriptions[actor.initial as keyof typeof defaults.actorDescriptions],
-                });
-                updatedCount++;
-            } else {
+            if (!existingInitials.has(actor.initial.toLowerCase())) {
                 addActor({
                     name: actor.name,
                     initial: actor.initial,
-                    category: actor.category as 'male' | 'female' | 'fictional' | 'basketball_players',
-                    emoji: actor.emoji,
                     description: defaults.actorDescriptions[actor.initial as keyof typeof defaults.actorDescriptions],
                 });
-                addedCount++;
+                count++;
             }
         });
 
-        const messages: string[] = [];
-        if (addedCount > 0) messages.push(`Added ${addedCount} new actors`);
-        if (updatedCount > 0) messages.push(`Updated ${updatedCount} existing actors`);
-        setImportStatus(prev => [...prev, messages.join(', ') || 'No actor changes']);
+        setImportStatus(prev => [...prev, `Imported ${count} new actors`]);
     };
 
     const importDefaultRooms = () => {
-        const roomsByTone = new Map(rooms.map(r => [r.tone, r]));
-        let addedCount = 0;
-        let updatedCount = 0;
+        const existingTones = new globalThis.Set(rooms.map(r => r.tone));
+        let count = 0;
 
         exampleRooms.forEach(room => {
-            const existingRoom = roomsByTone.get(room.tone);
-            if (existingRoom) {
-                // Update existing room
-                updateRoom(existingRoom.id, {
-                    name: room.name,
-                    emoji: room.emoji,
-                    description: room.description,
-                });
-                updatedCount++;
-            } else {
+            if (!existingTones.has(room.tone)) {
                 addRoom({
                     name: room.name,
                     tone: room.tone,
-                    emoji: room.emoji,
                     description: room.description,
                 });
-                addedCount++;
+                count++;
             }
         });
 
-        const messages: string[] = [];
-        if (addedCount > 0) messages.push(`Added ${addedCount} new rooms`);
-        if (updatedCount > 0) messages.push(`Updated ${updatedCount} existing rooms`);
-        setImportStatus(prev => [...prev, messages.join(', ') || 'No room changes']);
+        setImportStatus(prev => [...prev, `Imported ${count} new rooms`]);
     };
 
     const importDefaultSets = () => {
-        const setsByFinal = new Map(sets.map(s => [s.final.toLowerCase(), s]));
-        let addedCount = 0;
-        let updatedCount = 0;
+        const existingFinals = new globalThis.Set(sets.map(s => s.final.toLowerCase()));
+        let count = 0;
 
         exampleSets.forEach(set => {
-            const existingSet = setsByFinal.get(set.final.toLowerCase());
-            if (existingSet) {
-                // Update existing set
-                updateSet(existingSet.id, {
-                    name: set.name,
-                    emoji: set.emoji,
-                    description: defaults.setDescriptions[set.final as keyof typeof defaults.setDescriptions],
-                });
-                updatedCount++;
-            } else {
+            if (!existingFinals.has(set.final.toLowerCase())) {
                 addSet({
                     name: set.name,
                     final: set.final,
-                    emoji: set.emoji,
                     description: defaults.setDescriptions[set.final as keyof typeof defaults.setDescriptions],
                 });
-                addedCount++;
+                count++;
             }
         });
 
-        const messages: string[] = [];
-        if (addedCount > 0) messages.push(`Added ${addedCount} new sets`);
-        if (updatedCount > 0) messages.push(`Updated ${updatedCount} existing sets`);
-        setImportStatus(prev => [...prev, messages.join(', ') || 'No set changes']);
+        setImportStatus(prev => [...prev, `Imported ${count} new sets`]);
     };
 
     const clearAll = () => {
@@ -768,7 +464,7 @@ export default function DatabasePage() {
         const unlearnedCount = characters.filter(c => !c.learned).length;
 
         const backup = {
-            version: 2,
+            version: 1,
             exportedAt: new Date().toISOString(),
             data: {
                 actors: storage.getActors(),
@@ -777,7 +473,6 @@ export default function DatabasePage() {
                 props: storage.getProps(),
                 characters: characters,
                 compounds: storage.getCompounds(),
-                components: storage.getComponents(),
             }
         };
 
@@ -804,7 +499,7 @@ export default function DatabasePage() {
                 }
 
                 if (confirm('This will replace ALL current data with the backup. Continue?')) {
-                    const { actors: backupActors, rooms: backupRooms, sets: backupSets, props: backupProps, characters: backupCharacters, compounds: backupCompounds, components: backupComponents } = backup.data;
+                    const { actors: backupActors, rooms: backupRooms, sets: backupSets, props: backupProps, characters: backupCharacters, compounds: backupCompounds } = backup.data;
 
                     if (backupActors) storage.saveActors(backupActors);
                     if (backupRooms) storage.saveRooms(backupRooms);
@@ -812,7 +507,6 @@ export default function DatabasePage() {
                     if (backupProps) storage.saveProps(backupProps);
                     if (backupCharacters) storage.saveCharacters(backupCharacters);
                     if (backupCompounds) storage.saveCompounds(backupCompounds);
-                    if (backupComponents) storage.saveComponents(backupComponents);
 
                     const learnedCount = backupCharacters?.filter((c: Character) => c.learned).length || 0;
                     const unlearnedCount = backupCharacters?.filter((c: Character) => !c.learned).length || 0;
@@ -825,7 +519,6 @@ export default function DatabasePage() {
                         `Restored ${backupProps?.length || 0} props`,
                         `Restored ${backupCharacters?.length || 0} characters (${learnedCount} learned, ${unlearnedCount} unlearned)`,
                         `Restored ${backupCompounds?.length || 0} compounds`,
-                        `Restored ${backupComponents?.length || 0} components`,
                     ]);
 
                     // Reload page to refresh all data
@@ -868,8 +561,8 @@ export default function DatabasePage() {
     return (
         <div className="max-w-4xl mx-auto">
             <div className="mb-8">
-                <h1 className="text-3xl font-bold text-amber-400 mb-2">Database</h1>
-                <p className="text-slate-400">Import characters, manage data, and backup your database</p>
+                <h1 className="text-3xl font-bold text-amber-400 mb-2">Import Characters</h1>
+                <p className="text-slate-400">Upload a text file with Chinese characters or paste them directly</p>
             </div>
 
             {/* HanziPy Server Status */}
@@ -888,37 +581,6 @@ export default function DatabasePage() {
                     )}
                 </div>
             )}
-
-            {/* Current Stats */}
-            <div className="bg-slate-800 rounded-lg p-6 mb-8">
-                <h2 className="text-xl font-semibold mb-4">Current Database</h2>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 text-center">
-                    <div>
-                        <div className="text-3xl font-bold text-amber-400">{characters.length}</div>
-                        <div className="text-slate-400 text-sm">Characters</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-cyan-400">{compounds.length}</div>
-                        <div className="text-slate-400 text-sm">Compounds</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-pink-400">{components.length}</div>
-                        <div className="text-slate-400 text-sm">Components</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-blue-400">{actors.length}</div>
-                        <div className="text-slate-400 text-sm">Actors</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-purple-400">{sets.length}</div>
-                        <div className="text-slate-400 text-sm">Sets</div>
-                    </div>
-                    <div>
-                        <div className="text-3xl font-bold text-orange-400">{rooms.length}</div>
-                        <div className="text-slate-400 text-sm">Rooms</div>
-                    </div>
-                </div>
-            </div>
 
             {/* File Upload Area */}
             <div
@@ -972,94 +634,97 @@ export default function DatabasePage() {
             </div>
 
             {/* Preview */}
-            {previewData.length > 0 && (() => {
-                const existingHanziSet = new globalThis.Set(characters.map(c => c.hanzi));
-                const newChars = previewData.filter(c => !existingHanziSet.has(c.hanzi));
-                const existingChars = previewData.filter(c => existingHanziSet.has(c.hanzi));
-                return (
-                    <div className="bg-slate-800 rounded-lg p-6 mb-8">
-                        <div className="flex justify-between items-center mb-4">
-                            <h2 className="text-xl font-semibold">
-                                Preview ({newChars.length} new{existingChars.length > 0 && <span className="text-slate-500">, {existingChars.length} existing</span>})
-                            </h2>
-                            <button
-                                onClick={importCharactersFromPreview}
-                                disabled={importing || newChars.length === 0}
-                                className="bg-amber-500 text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50"
-                            >
-                                {importing ? 'Importing...' : 'Import All Characters'}
-                            </button>
-                        </div>
-
-                        {/* Import Progress */}
-                        {importing && importProgress.total > 0 && (
-                            <div className="mb-4 bg-slate-700/50 rounded-lg p-4">
-                                <div className="flex justify-between text-sm text-slate-400 mb-2">
-                                    <span>{importProgress.phase}</span>
-                                    <span>{importProgress.current} / {importProgress.total}</span>
-                                </div>
-                                <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-amber-500 transition-all duration-150"
-                                        style={{ width: `${(importProgress.current / importProgress.total) * 100}%` }}
-                                    />
-                                </div>
-                                <div className="text-xs text-slate-500 mt-2 text-center">
-                                    {Math.round((importProgress.current / importProgress.total) * 100)}% complete
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="max-h-96 overflow-y-auto">
-                            <table className="w-full text-sm">
-                                <thead className="text-slate-400 border-b border-slate-700 sticky top-0 bg-slate-800">
-                                    <tr>
-                                        <th className="text-left py-2 px-2">Character</th>
-                                        <th className="text-left py-2 px-2">Pinyin</th>
-                                        <th className="text-left py-2 px-2">Definition</th>
-                                        <th className="text-left py-2 px-2">Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {previewData.slice(0, 50).map((char, i) => {
-                                        const isExisting = existingHanziSet.has(char.hanzi);
-                                        return (
-                                            <tr key={i} className={`border-b border-slate-700/50 ${isExisting ? 'opacity-50' : ''}`}>
-                                                <td className="py-2 px-2">
-                                                    <span className="text-2xl text-amber-400">{char.hanzi}</span>
-                                                </td>
-                                                <td className="py-2 px-2 text-slate-300">
-                                                    {char.pinyin || <span className="text-slate-500">—</span>}
-                                                </td>
-                                                <td className="py-2 px-2 text-slate-400 max-w-xs">
-                                                    {char.definition || <span className="text-slate-500">—</span>}
-                                                </td>
-                                                <td className="py-2 px-2">
-                                                    {isExisting ? (
-                                                        <span className="text-slate-500 text-xs">Already imported</span>
-                                                    ) : char.found ? (
-                                                        <span className="text-green-400 text-xs">✓ Found</span>
-                                                    ) : (
-                                                        <span className="text-yellow-400 text-xs">⚠ Not in dict</span>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                            {previewData.length > 50 && (
-                                <p className="text-slate-500 text-sm mt-2 text-center">
-                                    ...and {previewData.length - 50} more characters
-                                </p>
-                            )}
-                        </div>
-                        <p className="text-slate-500 text-xs mt-4">
-                            💡 Characters will be automatically assigned actors (initial), rooms (tone), and sets (final) on import.
-                        </p>
+            {previewData.length > 0 && (
+                <div className="bg-slate-800 rounded-lg p-6 mb-8">
+                    <div className="flex justify-between items-center mb-4">
+                        <h2 className="text-xl font-semibold">Preview ({previewData.length} characters)</h2>
+                        <button
+                            onClick={importCharactersFromPreview}
+                            disabled={importing}
+                            className="bg-amber-500 text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50"
+                        >
+                            {importing ? 'Importing...' : 'Import All Characters'}
+                        </button>
                     </div>
-                );
-            })()}
+                    <div className="max-h-96 overflow-y-auto">
+                        <table className="w-full text-sm">
+                            <thead className="text-slate-400 border-b border-slate-700 sticky top-0 bg-slate-800">
+                                <tr>
+                                    <th className="text-left py-2 px-2">Character</th>
+                                    <th className="text-left py-2 px-2">Pinyin</th>
+                                    <th className="text-left py-2 px-2">Definition</th>
+                                    <th className="text-left py-2 px-2">Actor</th>
+                                    <th className="text-left py-2 px-2">Room</th>
+                                    <th className="text-left py-2 px-2">Set</th>
+                                    <th className="text-left py-2 px-2">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {previewData.slice(0, 50).map((char, i) => {
+                                    const info = getPreviewInfo(char);
+
+                                    return (
+                                        <tr key={i} className="border-b border-slate-700/50">
+                                            <td className="py-2 px-2">
+                                                <span className="text-2xl text-amber-400">{char.hanzi}</span>
+                                            </td>
+                                            <td className="py-2 px-2 text-slate-300">
+                                                {char.pinyin || <span className="text-slate-500">—</span>}
+                                            </td>
+                                            <td className="py-2 px-2 text-slate-400 truncate max-w-32">
+                                                {char.definition || <span className="text-slate-500">—</span>}
+                                            </td>
+                                            <td className="py-2 px-2">
+                                                {info.actor ? (
+                                                    <span className={info.hasActor ? 'text-blue-400' : 'text-blue-400/50'}>
+                                                        {info.actor.name}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-500">—</span>
+                                                )}
+                                            </td>
+                                            <td className="py-2 px-2">
+                                                {info.room ? (
+                                                    <span className={info.hasRoom ? 'text-orange-400' : 'text-orange-400/50'}>
+                                                        {info.room.name}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-500">—</span>
+                                                )}
+                                            </td>
+                                            <td className="py-2 px-2">
+                                                {info.set ? (
+                                                    <span className={info.hasSet ? 'text-purple-400' : 'text-purple-400/50'}>
+                                                        {info.set.name}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-slate-500">—</span>
+                                                )}
+                                            </td>
+                                            <td className="py-2 px-2">
+                                                {char.found ? (
+                                                    <span className="text-green-400 text-xs">✓ Found</span>
+                                                ) : (
+                                                    <span className="text-yellow-400 text-xs">⚠ Not in dict</span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                        {previewData.length > 50 && (
+                            <p className="text-slate-500 text-sm mt-2 text-center">
+                                ...and {previewData.length - 50} more characters
+                            </p>
+                        )}
+                    </div>
+                    <p className="text-slate-500 text-xs mt-4">
+                        💡 Characters will be automatically assigned actors (initial), rooms (tone), and sets (final).
+                        Faded colors indicate defaults that will be imported.
+                    </p>
+                </div>
+            )}
 
             {/* Compound Words Preview */}
             {previewCompounds.length > 0 && (
@@ -1118,11 +783,11 @@ export default function DatabasePage() {
 
             {/* Default Data Import */}
             <div className="bg-slate-800 rounded-lg p-6 mb-8">
-                <h2 className="text-xl font-semibold mb-4">Setup Default Actors, Rooms & Sets</h2>
+                <h2 className="text-xl font-semibold mb-4">Setup Default Actors, Rooms, Sets & Props</h2>
                 <p className="text-slate-400 text-sm mb-4">
-                    Before importing characters, set up your actors, rooms, and sets. These will be automatically matched to characters based on pinyin. Components are created automatically during character import.
+                    Before importing characters, set up your actors, rooms, and sets. These will be automatically matched to characters based on pinyin.
                 </p>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
                         <button
                             onClick={importDefaultActors}
@@ -1170,6 +835,37 @@ export default function DatabasePage() {
                     </button>
                 </div>
             )}
+
+            {/* Current Stats */}
+            <div className="bg-slate-800 rounded-lg p-6 mb-8">
+                <h2 className="text-xl font-semibold mb-4">Current Database</h2>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 text-center">
+                    <div>
+                        <div className="text-3xl font-bold text-amber-400">{characters.length}</div>
+                        <div className="text-slate-400 text-sm">Characters</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-cyan-400">{compounds.length}</div>
+                        <div className="text-slate-400 text-sm">Compounds</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-blue-400">{actors.length}</div>
+                        <div className="text-slate-400 text-sm">Actors</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-orange-400">{rooms.length}</div>
+                        <div className="text-slate-400 text-sm">Rooms</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-purple-400">{sets.length}</div>
+                        <div className="text-slate-400 text-sm">Sets</div>
+                    </div>
+                    <div>
+                        <div className="text-3xl font-bold text-pink-400">{props.length}</div>
+                        <div className="text-slate-400 text-sm">Props</div>
+                    </div>
+                </div>
+            </div>
 
             {/* Backup & Restore */}
             <div className="bg-slate-800 rounded-lg p-6 mb-8">
