@@ -88,6 +88,21 @@ function parsePinyin(pinyin: string): { initial: string; final: string; tone: nu
     let initial = '';
     let final = normalized;
 
+    // Special whole-word matches: yi, wu, yu are treated as initial + null final
+    // er is a special case: null initial + null final
+    if (normalized === 'yi') {
+        return { initial: 'y-', final: 'Ø', tone };
+    }
+    if (normalized === 'wu') {
+        return { initial: 'w-', final: 'Ø', tone };
+    }
+    if (normalized === 'yu') {
+        return { initial: 'yu-', final: 'Ø', tone };
+    }
+    if (normalized === 'er') {
+        return { initial: 'Ø-', final: 'Ø', tone };
+    }
+
     // Find the HMM initial
     for (const init of hmmInitials) {
         if (normalized.startsWith(init)) {
