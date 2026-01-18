@@ -7,7 +7,7 @@ import { exampleActors, exampleRooms, exampleSets } from '@/lib/seedData';
 import defaults from '@/lib/defaults.json';
 import { parseCharacterFileAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult } from '@/lib/hanzipy';
 import * as storage from '@/lib/storage';
-import type { Actor, Room, Set } from '@/types';
+import type { Actor, Room, Set, Character } from '@/types';
 
 // Preview data type
 interface PreviewCharacter {
@@ -147,7 +147,7 @@ export default function ImportPage() {
                 setPreviewData(parsed);
 
                 // Also extract and look up compound words
-                const compoundWords = extractCompoundWords(content);
+                const compoundWords = await extractCompoundWords(content);
                 const compoundResults = await lookupCompoundWordsAPI(compoundWords);
                 setPreviewCompounds(compoundResults);
 
@@ -208,7 +208,7 @@ export default function ImportPage() {
             setPreviewData(parsed);
 
             // Also extract and look up compound words
-            const compoundWords = extractCompoundWords(pasteText);
+            const compoundWords = await extractCompoundWords(pasteText);
             const compoundResults = await lookupCompoundWordsAPI(compoundWords);
             setPreviewCompounds(compoundResults);
 
@@ -316,7 +316,6 @@ export default function ImportPage() {
                     hanzi: char.hanzi,
                     pinyin: '',
                     meaning: char.definition || 'Unknown meaning',
-                    keyword: 'Unknown',
                     actorId: undefined,
                     roomId: undefined,
                     setId: undefined,
@@ -342,7 +341,6 @@ export default function ImportPage() {
                 hanzi: char.hanzi,
                 pinyin: char.pinyin,
                 meaning: char.definition || '',
-                keyword: (char.definition || '').split(',')[0].trim() || char.hanzi,
                 actorId: actor?.id,
                 roomId: room?.id,
                 setId: set?.id,
