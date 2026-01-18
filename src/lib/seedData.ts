@@ -156,7 +156,7 @@ export const exampleActors = [
   { name: "Billie Eilish", initial: "bi-", emoji: "🧢", category: "female", description: "Female actor - for bi- sounds like bǐ" },
   { name: "Pink", initial: "pi-", emoji: "🩷", category: "female", description: "Female actor - for pi- sounds like piào" },
   { name: "Michelle Obama", initial: "mi-", emoji: "👩🏿", category: "female", description: "Female actor - for mi- sounds like míng" },
-  { name: "Cyn(di) Lauper", initial: "di-", emoji: "📼", category: "female", description: "Female actor - for di- sounds like dì" },
+  { name: "Cameron Diaz", initial: "di-", emoji: "🎭", category: "female", description: "Female actor - for di- sounds like dì" },
   { name: "TEA (Tanya)", initial: "ti-", emoji: "🍵", category: "female", description: "Female actor - for ti- sounds like tiān" },
   { name: "Jisoo", initial: "ji-", emoji: "🪷", category: "female", description: "Female actor - for ji- sounds like jiù, jiā, jiàn" },
   { name: "Chiquita", initial: "qi-", emoji: "👶🏻", category: "female", description: "Female actor - for qi- sounds like qǐng, qī" },
