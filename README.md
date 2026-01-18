@@ -15,28 +15,33 @@ The Hanzi Movie Method is a mnemonic system for learning Chinese characters that
 ## Features
 
 ### Character Management
+
 - 📝 Add, edit, and delete Chinese characters with their movie scenes
 - 🔍 Search & filter by hanzi, pinyin, or meaning
 - 📊 View character decomposition and components
 - 🔗 Track compound words containing each character
 
 ### Database Management
+
 - 🎭 **Actors** - Organize by category (male, female, fictional, basketball players) with initial sound assignments
 - 🏠 **Sets** - Manage locations by final sound with automatic HMM final mapping
 - 🚪 **Rooms** - Assign rooms to tones (1-5) within each set
 - 🧩 **Components** - View and manage character components/radicals
 
 ### Import System
+
 - 📥 Import example actors, sets, and rooms with one click
 - 🔄 Smart import updates existing entries instead of creating duplicates
 - 📋 Default descriptions loaded from centralized configuration
 
 ### Review System
+
 - 📖 Flashcard-style review with progress tracking
 - ⭐ Track review status and accuracy
 - 🎯 Focus on characters that need more practice
 
 ### API Integration
+
 - 🔤 Pinyin segmentation with intelligent final sound parsing
 - 🧱 Character decomposition via HanziPy
 - 📚 Example sentences from Tatoeba database
@@ -52,6 +57,7 @@ The Hanzi Movie Method is a mnemonic system for learning Chinese characters that
 - **Local Storage** - Client-side data persistence
 
 ### Backend Services
+
 - **HanziPy Server** (Port 5000) - Character decomposition using hanzipy and jieba
 - **Tatoeba Server** (Port 5001) - Example sentence lookups
 
@@ -80,6 +86,7 @@ docker-compose down
 ```
 
 The app will be available at:
+
 - **Frontend**: http://localhost:3000
 - **HanziPy API**: http://localhost:5000
 - **Tatoeba API**: http://localhost:5001
@@ -87,17 +94,20 @@ The app will be available at:
 ### Manual Installation
 
 1. Install frontend dependencies:
+
    ```bash
    npm install
    ```
 
 2. Install Python dependencies for backend services:
+
    ```bash
    cd hanzipy_server && pip install -r requirements.txt
    cd ../tatoeba_server && pip install flask
    ```
 
 3. Start the services:
+
    ```bash
    # Terminal 1 - Frontend
    npm run dev
@@ -178,15 +188,18 @@ hanzi-movie-method/
 ## HMM Sound Mappings
 
 ### Initial Sounds (Actors by Category)
+
 - **Male**: b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, zh-, ch-, sh-, r-, z-, c-, s-, Ø-
 - **Female**: y-, bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-
 - **Fictional**: w-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, zhu-, chu-, shu-, ru-, ku-, hu-, gu-
 - **Basketball Players**: yu-, nü-, lü-, ju-, qu-, xu-
 
 ### Final Sounds (Sets)
+
 - -Ø (null), -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -(e)i, -(e)n, -(e)ng
 
 ### Tones (Rooms)
+
 - Tone 1 (high level), Tone 2 (rising), Tone 3 (dipping), Tone 4 (falling), Tone 5 (neutral)
 
 ## License
