@@ -10,6 +10,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy server code
 COPY server.py .
 
-EXPOSE 5000
+# Port is set via PORT environment variable (default: 5000)
+EXPOSE 4001
 
 CMD ["python", "server.py"]

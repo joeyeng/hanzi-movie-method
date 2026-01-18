@@ -15,6 +15,6 @@ RUN pip install --no-cache-dir flask flask-cors
 # Copy server code
 COPY server.py .
 
-EXPOSE 5001
+EXPOSE 4002
 
 CMD ["python", "server.py"]
