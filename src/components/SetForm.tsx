@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { Set } from '@/types';
 import defaults from '@/lib/defaults.json';
+// import { EmojiPicker } from './EmojiPicker';
 
 // HMM finals - the 13 consolidated final sounds used in the Hanzi Movie Method
 const FINALS = [
@@ -114,9 +115,16 @@ export function SetForm({ onSubmit, onCancel, initialData, existingSets = [] }: 
                     </label>
                     <input
                         type="text"
+                        inputMode="none"
                         value={formData.emoji}
                         onChange={e => setFormData(prev => ({ ...prev, emoji: e.target.value }))}
-                        className="w-20 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-center text-xl"
+                        onFocus={e => {
+                            // Try to show native emoji picker (works on some browsers)
+                            if ('showPicker' in HTMLInputElement.prototype) {
+                                try { (e.target as HTMLInputElement & { showPicker: () => void }).showPicker(); } catch { }
+                            }
+                        }}
+                        className="w-16 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-center text-xl cursor-pointer"
                         placeholder="🏠"
                         maxLength={2}
                     />

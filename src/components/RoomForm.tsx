@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Room } from '@/types';
+// import { EmojiPicker } from './EmojiPicker';
 
 interface RoomFormProps {
     initialData?: Room;
@@ -55,10 +56,17 @@ export function RoomForm({ initialData, onSubmit, onCancel }: RoomFormProps) {
                     </label>
                     <input
                         type="text"
+                        inputMode="none"
                         value={emoji}
                         onChange={e => setEmoji(e.target.value)}
+                        onFocus={e => {
+                            // Try to show native emoji picker (works on some browsers)
+                            if ('showPicker' in HTMLInputElement.prototype) {
+                                try { (e.target as HTMLInputElement & { showPicker: () => void }).showPicker(); } catch { }
+                            }
+                        }}
+                        className="w-16 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-center text-xl cursor-pointer"
                         placeholder="🛋️"
-                        className="w-20 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white text-center text-xl placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500"
                         maxLength={2}
                     />
                 </div>
