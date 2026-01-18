@@ -80,6 +80,7 @@ export default function ActorsPage() {
                         </h2>
                         <ActorForm
                             initialData={editingActor || undefined}
+                            existingActors={actors}
                             onSubmit={handleSubmit}
                             onCancel={() => {
                                 setShowForm(false);

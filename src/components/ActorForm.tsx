@@ -1,15 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Actor } from '@/types';
+
+// HMM initials grouped by category
+const INITIALS_BY_CATEGORY = {
+    male: ['b-', 'p-', 'm-', 'f-', 'd-', 't-', 'n-', 'l-', 'g-', 'k-', 'h-', 'zh-', 'ch-', 'sh-', 'r-', 'z-', 'c-', 's-', 'Ø-'],
+    female: ['y-', 'bi-', 'pi-', 'mi-', 'di-', 'ti-', 'ji-', 'qi-', 'xi-', 'ni-', 'li-'],
+    fictional: ['w-', 'bu-', 'pu-', 'mu-', 'fu-', 'du-', 'tu-', 'nu-', 'lu-', 'zu-', 'cu-', 'su-', 'zhu-', 'chu-', 'shu-', 'ru-', 'ku-', 'hu-', 'gu-'],
+    basketball_players: ['yu-', 'nü-', 'lü-', 'ju-', 'qu-', 'xu-'],
+};
 
 interface ActorFormProps {
     onSubmit: (actor: Omit<Actor, 'id' | 'createdAt' | 'updatedAt'>) => void;
     onCancel: () => void;
     initialData?: Partial<Actor>;
+    existingActors?: Actor[];
 }
 
-export function ActorForm({ onSubmit, onCancel, initialData }: ActorFormProps) {
+export function ActorForm({ onSubmit, onCancel, initialData, existingActors = [] }: ActorFormProps) {
     const [formData, setFormData] = useState({
         name: initialData?.name || '',
         initial: initialData?.initial || '',
@@ -19,8 +28,35 @@ export function ActorForm({ onSubmit, onCancel, initialData }: ActorFormProps) {
         imageUrl: initialData?.imageUrl || '',
     });
 
+    // Get available initials for the selected category
+    const availableInitials = INITIALS_BY_CATEGORY[formData.category] || [];
+
+    // Check if the selected initial already exists (excluding the current actor being edited)
+    const isDuplicateInitial = useMemo(() => {
+        if (!formData.initial) return false;
+        const normalizedInitial = formData.initial.toLowerCase();
+        return existingActors.some(actor => {
+            // Skip if this is the actor being edited
+            if (initialData?.id && actor.id === initialData.id) return false;
+            // Check for duplicate - include Ø- (null initial) in the check
+            return actor.initial.toLowerCase() === normalizedInitial;
+        });
+    }, [formData.initial, existingActors, initialData?.id]);
+
+    // When category changes, reset initial if it's not valid for the new category
+    const handleCategoryChange = (newCategory: 'male' | 'female' | 'fictional' | 'basketball_players') => {
+        const newInitials = INITIALS_BY_CATEGORY[newCategory];
+        const currentInitialValid = newInitials.includes(formData.initial);
+        setFormData(prev => ({
+            ...prev,
+            category: newCategory,
+            initial: currentInitialValid ? prev.initial : '',
+        }));
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (isDuplicateInitial) return;
         onSubmit({
             name: formData.name,
             initial: formData.initial,
@@ -54,13 +90,13 @@ export function ActorForm({ onSubmit, onCancel, initialData }: ActorFormProps) {
                     <select
                         required
                         value={formData.category}
-                        onChange={e => setFormData(prev => ({ ...prev, category: e.target.value as 'male' | 'female' | 'fictional' | 'basketball_players' }))}
+                        onChange={e => handleCategoryChange(e.target.value as 'male' | 'female' | 'fictional' | 'basketball_players')}
                         className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
                     >
-                        <option value="male">Male (b-, p-, m-, f-, d-, t-, n-, l-, g-, k-, h-, zh-, ch-, sh-, r-, z-, c-, s-, Ø)</option>
-                        <option value="female">Female (y-, bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-)</option>
-                        <option value="fictional">Fictional (w-, bu-, pu-, mu-, fu-, du-, tu-, nu-, lu-, zu-, cu-, su-, zhu-, chu-, shu-, ru-, ku-, hu-, gu-)</option>
-                        <option value="basketball_players">Basketball Players (yu-, nü-, lü-, ju-, qu-, xu-)</option>
+                        <option value="male">Male (basic initials)</option>
+                        <option value="female">Female (i- initials)</option>
+                        <option value="fictional">Fictional (u- initials)</option>
+                        <option value="basketball_players">Basketball Players (ü- initials)</option>
                     </select>
                 </div>
             </div>
@@ -70,15 +106,32 @@ export function ActorForm({ onSubmit, onCancel, initialData }: ActorFormProps) {
                     <label className="block text-sm font-medium text-slate-300 mb-1">
                         Initial Sound *
                     </label>
-                    <input
-                        type="text"
+                    <select
                         required
                         value={formData.initial}
                         onChange={e => setFormData(prev => ({ ...prev, initial: e.target.value }))}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                        placeholder="e.g., b-, ji-, yu-"
-                    />
-                    <p className="text-xs text-slate-500 mt-1">The HMM initial this actor represents (include dash)</p>
+                        className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white ${isDuplicateInitial ? 'border-red-500' : 'border-slate-600'
+                            }`}
+                    >
+                        <option value="">Select an initial...</option>
+                        {availableInitials.map(initial => {
+                            const isUsed = existingActors.some(a =>
+                                a.initial.toLowerCase() === initial.toLowerCase() &&
+                                (!initialData?.id || a.id !== initialData.id)
+                            );
+                            return (
+                                <option key={initial} value={initial}>
+                                    {initial} {isUsed ? '(already assigned)' : ''}
+                                </option>
+                            );
+                        })}
+                    </select>
+                    {isDuplicateInitial && (
+                        <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                            <span>⚠️</span>
+                            This initial is already assigned to another actor
+                        </p>
+                    )}
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -123,7 +176,11 @@ export function ActorForm({ onSubmit, onCancel, initialData }: ActorFormProps) {
             <div className="flex gap-3 pt-4">
                 <button
                     type="submit"
-                    className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
+                    disabled={isDuplicateInitial}
+                    className={`flex-1 py-2 rounded-lg font-medium transition-colors ${isDuplicateInitial
+                            ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                            : 'bg-amber-500 text-slate-900 hover:bg-amber-400'
+                        }`}
                 >
                     Save Actor
                 </button>

@@ -149,7 +149,7 @@ export const exampleActors = [
   { name: "Jay Z", initial: "z-", emoji: "🗽", category: "male", description: "Male actor - for z- sounds like zài, zuò, zǒu" },
   { name: "Chris Rock", initial: "c-", emoji: "🪨", category: "male", description: "Male actor - for c- sounds like cóng, cái, cì" },
   { name: "iShow(Speed)", initial: "s-", emoji: "🏃🏿", category: "male", description: "Male actor - for s- sounds like sān, suǒ, sì" },
-  { name: "Elon Musk", initial: "Ø", emoji: "🤖", category: "male", description: "Male actor - for null initial (vowel-only) sounds like ài, àn, āo" },
+  { name: "Elon Musk", initial: "Ø-", emoji: "🤖", category: "male", description: "Male actor - for null initial (vowel-only) sounds like ài, àn, āo" },
 
   // FEMALE actors - initials: y-, bi-, pi-, mi-, di-, ti-, ji-, qi-, xi-, ni-, li-
   { name: "Michelle Yeoh", initial: "y-", emoji: "🐅", category: "female", description: "Female actor - for y- sounds like yī, yǒu, yào" },
@@ -205,7 +205,7 @@ export const exampleRooms = [
 
 // Example sets for HMM finals: -a, -ai, -ao, -an, -ang, -o, -ong, -ou, -e, -ei, -(e)n, -(e)ng
 export const exampleSets = [  
-  { name: "Childhood Home", final: "Ø", emoji: "🏡", description: "Null final" },
+  { name: "Childhood Home", final: "-Ø", emoji: "🏡", description: "Null final" },
   { name: "Australia", final: "-a", emoji: "🦘", description: "For -a finals (tā, nà, dà, mā)" },
   { name: "Chiang Mai", final: "-ai", emoji: "🐘", description: "For -ai finals (lái, mǎi, dài, ài)" },
   { name: "Macau", final: "-ao", emoji: "🎰", description: "For -ao finals (hǎo, dào, gāo, zǎo)" },
