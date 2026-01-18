@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Set } from '@/types';
+import defaults from '@/lib/defaults.json';
 
 // HMM finals - the 13 consolidated final sounds used in the Hanzi Movie Method
 const FINALS = [
@@ -32,7 +33,6 @@ export function SetForm({ onSubmit, onCancel, initialData, existingSets = [] }: 
         name: initialData?.name || '',
         final: initialData?.final || '',
         emoji: initialData?.emoji || '',
-        description: initialData?.description || '',
         imageUrl: initialData?.imageUrl || '',
     });
 
@@ -50,11 +50,13 @@ export function SetForm({ onSubmit, onCancel, initialData, existingSets = [] }: 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isDuplicateFinal) return;
+        // Always use default description from defaults.json
+        const description = defaults.setDescriptions[formData.final as keyof typeof defaults.setDescriptions];
         onSubmit({
             name: formData.name,
             final: formData.final,
             emoji: formData.emoji || undefined,
-            description: formData.description || undefined,
+            description: description || undefined,
             imageUrl: formData.imageUrl || undefined,
         });
     };
@@ -134,25 +136,13 @@ export function SetForm({ onSubmit, onCancel, initialData, existingSets = [] }: 
                 />
             </div>
 
-            <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Description
-                </label>
-                <textarea
-                    value={formData.description}
-                    onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white h-20"
-                    placeholder="Describe this location, memorable features..."
-                />
-            </div>
-
             <div className="flex gap-3 pt-4">
                 <button
                     type="submit"
                     disabled={isDuplicateFinal}
                     className={`flex-1 py-2 rounded-lg font-medium transition-colors ${isDuplicateFinal
-                            ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                            : 'bg-amber-500 text-slate-900 hover:bg-amber-400'
+                        ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                        : 'bg-amber-500 text-slate-900 hover:bg-amber-400'
                         }`}
                 >
                     Save Set

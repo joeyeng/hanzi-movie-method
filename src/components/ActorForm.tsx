@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { Actor } from '@/types';
+import defaults from '@/lib/defaults.json';
 
 // HMM initials grouped by category
 const INITIALS_BY_CATEGORY = {
@@ -24,7 +25,6 @@ export function ActorForm({ onSubmit, onCancel, initialData, existingActors = []
         initial: initialData?.initial || '',
         category: initialData?.category || 'male' as 'male' | 'female' | 'fictional' | 'basketball_players',
         emoji: initialData?.emoji || '',
-        description: initialData?.description || '',
         imageUrl: initialData?.imageUrl || '',
     });
 
@@ -57,12 +57,14 @@ export function ActorForm({ onSubmit, onCancel, initialData, existingActors = []
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         if (isDuplicateInitial) return;
+        // Always use default description from defaults.json
+        const description = defaults.actorDescriptions[formData.initial as keyof typeof defaults.actorDescriptions];
         onSubmit({
             name: formData.name,
             initial: formData.initial,
             category: formData.category,
             emoji: formData.emoji || undefined,
-            description: formData.description || undefined,
+            description: description || undefined,
             imageUrl: formData.imageUrl || undefined,
         });
     };
@@ -161,25 +163,13 @@ export function ActorForm({ onSubmit, onCancel, initialData, existingActors = []
                 />
             </div>
 
-            <div>
-                <label className="block text-sm font-medium text-slate-300 mb-1">
-                    Description
-                </label>
-                <textarea
-                    value={formData.description}
-                    onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white h-20"
-                    placeholder="Why you chose this actor, memorable traits..."
-                />
-            </div>
-
             <div className="flex gap-3 pt-4">
                 <button
                     type="submit"
                     disabled={isDuplicateInitial}
                     className={`flex-1 py-2 rounded-lg font-medium transition-colors ${isDuplicateInitial
-                            ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
-                            : 'bg-amber-500 text-slate-900 hover:bg-amber-400'
+                        ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                        : 'bg-amber-500 text-slate-900 hover:bg-amber-400'
                         }`}
                 >
                     Save Actor
