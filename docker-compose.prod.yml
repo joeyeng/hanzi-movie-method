@@ -1,0 +1,38 @@
+services:
+  # Next.js Frontend (Production)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - HANZIPY_SERVER_URL=http://hanzipy:5000
+      - TATOEBA_SERVER_URL=http://tatoeba:5001
+    depends_on:
+      - hanzipy
+      - tatoeba
+    restart: unless-stopped
+
+  # HanziPy Flask Server
+  hanzipy:
+    build:
+      context: ./hanzipy_server
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
+
+  # Tatoeba Example Sentences Server
+  tatoeba:
+    build:
+      context: ./tatoeba_server
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - FLASK_ENV=production
+    restart: unless-stopped
