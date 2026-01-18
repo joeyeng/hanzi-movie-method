@@ -8,6 +8,8 @@ services:
       - "4000:4000"
     environment:
       - NODE_ENV=production
+      - PORT=4000
+      - HOSTNAME=0.0.0.0
       - HANZIPY_SERVER_URL=http://hanzipy:4001
       - TATOEBA_SERVER_URL=http://tatoeba:4002
     depends_on:
