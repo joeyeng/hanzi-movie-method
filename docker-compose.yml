@@ -8,8 +8,8 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=development
-      - HANZIPY_SERVER_URL=http://hanzipy:5000
-      - TATOEBA_SERVER_URL=http://tatoeba:5001
+      - HANZIPY_SERVER_URL=http://hanzipy:3001
+      - TATOEBA_SERVER_URL=http://tatoeba:3002
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
     volumes:
@@ -27,7 +27,9 @@ services:
       context: ./hanzipy_server
       dockerfile: Dockerfile
     ports:
-      - "5000:5000"
+      - "3001:3001"
+    environment:
+      - PORT=3001
     restart: unless-stopped
 
   # Tatoeba Example Sentences Server
@@ -36,7 +38,9 @@ services:
       context: ./tatoeba_server
       dockerfile: Dockerfile
     ports:
-      - "5001:5001"
+      - "3002:3002"
+    environment:
+      - PORT=3002
     restart: unless-stopped
 
 volumes:

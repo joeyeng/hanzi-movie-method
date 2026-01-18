@@ -197,6 +197,7 @@ def random_sentence():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
+    port = int(os.environ.get('PORT', 5001))
     print(f"Database exists: {os.path.exists(DB_PATH)}")
-    print("Starting Tatoeba Example Sentences server on http://0.0.0.0:5001")
-    app.run(host='0.0.0.0', port=5001, debug=False)
+    print(f"Starting Tatoeba Example Sentences server on http://0.0.0.0:{port}")
+    app.run(host='0.0.0.0', port=port, debug=False)
