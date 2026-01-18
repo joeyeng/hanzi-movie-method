@@ -90,6 +90,7 @@ export default function SetsPage() {
                         </h2>
                         <SetForm
                             initialData={editingSet || undefined}
+                            existingSets={sets}
                             onSubmit={handleSubmit}
                             onCancel={() => {
                                 setShowForm(false);

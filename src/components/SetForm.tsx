@@ -1,15 +1,33 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Set } from '@/types';
+
+// HMM finals - the 13 consolidated final sounds used in the Hanzi Movie Method
+const FINALS = [
+    '-Ø',       // null final
+    '-a',       // tā, nà, dà, mā
+    '-ai',      // lái, mǎi, dài, ài
+    '-ao',      // hǎo, dào, gāo, zǎo
+    '-an',      // sān, nán, kàn, fàn
+    '-ang',     // shàng, cháng, dāng, fáng
+    '-o',       // wǒ, bō, pō, mō
+    '-ong',     // zhōng, dōng, tóng, gōng
+    '-ou',      // dōu, zǒu, gǒu, hòu
+    '-e',       // hé, gē, lè, dé
+    '-(e)i',    // měi, bèi, fēi, gěi
+    '-(e)n',    // rén, hěn, shén, mén (en after most, n after i/ü)
+    '-(e)ng',   // néng, shēng, míng, tīng (eng after most, ng after i)
+];
 
 interface SetFormProps {
     onSubmit: (set: Omit<Set, 'id' | 'createdAt' | 'updatedAt'>) => void;
     onCancel: () => void;
     initialData?: Partial<Set>;
+    existingSets?: Set[];
 }
 
-export function SetForm({ onSubmit, onCancel, initialData }: SetFormProps) {
+export function SetForm({ onSubmit, onCancel, initialData, existingSets = [] }: SetFormProps) {
     const [formData, setFormData] = useState({
         name: initialData?.name || '',
         final: initialData?.final || '',
@@ -18,8 +36,20 @@ export function SetForm({ onSubmit, onCancel, initialData }: SetFormProps) {
         imageUrl: initialData?.imageUrl || '',
     });
 
+    // Check if the selected final already exists (excluding the current set being edited)
+    const isDuplicateFinal = useMemo(() => {
+        if (!formData.final) return false;
+        const normalizedFinal = formData.final.toLowerCase();
+        return existingSets.some(set => {
+            // Skip if this is the set being edited
+            if (initialData?.id && set.id === initialData.id) return false;
+            return set.final.toLowerCase() === normalizedFinal;
+        });
+    }, [formData.final, existingSets, initialData?.id]);
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        if (isDuplicateFinal) return;
         onSubmit({
             name: formData.name,
             final: formData.final,
@@ -49,15 +79,32 @@ export function SetForm({ onSubmit, onCancel, initialData }: SetFormProps) {
                     <label className="block text-sm font-medium text-slate-300 mb-1">
                         Final Sound *
                     </label>
-                    <input
-                        type="text"
+                    <select
                         required
                         value={formData.final}
                         onChange={e => setFormData(prev => ({ ...prev, final: e.target.value }))}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
-                        placeholder="e.g., -i, -an, -ou, -eng"
-                    />
-                    <p className="text-slate-500 text-xs mt-1">The final sound this location represents (e.g., -i for yī, nǐ, lǐ)</p>
+                        className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white ${isDuplicateFinal ? 'border-red-500' : 'border-slate-600'
+                            }`}
+                    >
+                        <option value="">Select a final...</option>
+                        {FINALS.map(final => {
+                            const isUsed = existingSets.some(s =>
+                                s.final.toLowerCase() === final.toLowerCase() &&
+                                (!initialData?.id || s.id !== initialData.id)
+                            );
+                            return (
+                                <option key={final} value={final}>
+                                    {final} {isUsed ? '(already assigned)' : ''}
+                                </option>
+                            );
+                        })}
+                    </select>
+                    {isDuplicateFinal && (
+                        <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+                            <span>⚠️</span>
+                            This final is already assigned to another set
+                        </p>
+                    )}
                 </div>
                 <div>
                     <label className="block text-sm font-medium text-slate-300 mb-1">
@@ -102,7 +149,11 @@ export function SetForm({ onSubmit, onCancel, initialData }: SetFormProps) {
             <div className="flex gap-3 pt-4">
                 <button
                     type="submit"
-                    className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
+                    disabled={isDuplicateFinal}
+                    className={`flex-1 py-2 rounded-lg font-medium transition-colors ${isDuplicateFinal
+                            ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
+                            : 'bg-amber-500 text-slate-900 hover:bg-amber-400'
+                        }`}
                 >
                     Save Set
                 </button>
