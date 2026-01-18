@@ -12,11 +12,10 @@ services:
       - TATOEBA_SERVER_URL=http://tatoeba:5001
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
-      - CHOKIDAR_INTERVAL=1000
-      - NEXT_WEBPACK_USEPOLLING=1
     volumes:
-      - ./src:/app/src
-      - ./public:/app/public
+      - ./src:/app/src:delegated
+      - ./public:/app/public:delegated
+      - ./next.config.ts:/app/next.config.ts:delegated
     depends_on:
       - hanzipy
       - tatoeba
