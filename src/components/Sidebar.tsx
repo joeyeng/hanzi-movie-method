@@ -24,7 +24,7 @@ export function Sidebar() {
         <>
             {/* Mobile Header */}
             <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-slate-900 border-b border-slate-800 px-4 py-3 flex items-center justify-between">
-                <h1 className="text-lg font-bold text-amber-400">🏯 汉字 Movie Method</h1>
+                <Link href="/" className="text-lg font-bold text-amber-400 hover:text-amber-300 transition-colors">🏯 汉字 Movie Method</Link>
                 <button
                     onClick={() => setIsOpen(!isOpen)}
                     className="p-2 text-slate-300 hover:text-white"
@@ -59,7 +59,7 @@ export function Sidebar() {
         lg:transform-none
       `}>
                 <div className="mb-8 mt-12 lg:mt-0">
-                    <h1 className="text-xl font-bold text-amber-400">🏯 汉字 Movie Method</h1>
+                    <Link href="/" onClick={() => setIsOpen(false)} className="text-xl font-bold text-amber-400 hover:text-amber-300 transition-colors block">🏯 汉字 Movie Method</Link>
                     <p className="text-sm text-slate-400">Chinese Character Database</p>
                 </div>
                 <nav>
