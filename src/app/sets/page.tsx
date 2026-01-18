@@ -74,18 +74,29 @@ export default function SetsPage() {
             </div>
 
             {showForm && (
-                <div className="mb-6">
-                    <h2 className="text-xl font-semibold mb-4">
-                        {editingSet ? 'Edit Set' : 'Add New Set'}
-                    </h2>
-                    <SetForm
-                        initialData={editingSet || undefined}
-                        onSubmit={handleSubmit}
-                        onCancel={() => {
+                <div className="fixed inset-0 z-50 flex items-center justify-center">
+                    {/* Backdrop */}
+                    <div 
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                        onClick={() => {
                             setShowForm(false);
                             setEditingSet(null);
                         }}
                     />
+                    {/* Modal */}
+                    <div className="relative bg-slate-800 rounded-lg p-6 w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto border border-slate-700 shadow-xl">
+                        <h2 className="text-xl font-semibold mb-4">
+                            {editingSet ? 'Edit Set' : 'Add New Set'}
+                        </h2>
+                        <SetForm
+                            initialData={editingSet || undefined}
+                            onSubmit={handleSubmit}
+                            onCancel={() => {
+                                setShowForm(false);
+                                setEditingSet(null);
+                            }}
+                        />
+                    </div>
                 </div>
             )}
 

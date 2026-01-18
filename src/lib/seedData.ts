@@ -142,7 +142,7 @@ export const exampleActors = [
   { name: "George W. Bush", initial: "g-", emoji: "🛢️", category: "male", description: "Male actor - for g- sounds like gè, gěi, gāo" },
   { name: "Keanu Reeves", initial: "k-", emoji: "🔫", category: "male", description: "Male actor - for k- sounds like kě, kàn" },
   { name: "Hugh Jackman", initial: "h-", emoji: "🐺", category: "male", description: "Male actor - for h- sounds like hǎo, hái, huì" },
-  { name: "Jimmy O Yang", initial: "zh-", emoji: "😹", category: "male", description: "Male actor - for zh- sounds like zhè, zhōng, zhī" },
+  { name: "Jimmy O Yang", initial: "zh-", emoji: "🏓", category: "male", description: "Male actor - for zh- sounds like zhè, zhōng, zhī" },
   { name: "Channing Tatum", initial: "ch-", emoji: "🎩", category: "male", description: "Male actor - for ch- sounds like chī, cháng" },
   { name: "Shohei Ohtani", initial: "sh-", emoji: "⚾", category: "male", description: "Male actor - for sh- sounds like shàng, shuō, shí" },
   { name: "Robert Downey Jr", initial: "r-", emoji: "🦾", category: "male", description: "Male actor - for r- sounds like rén, rú" },
