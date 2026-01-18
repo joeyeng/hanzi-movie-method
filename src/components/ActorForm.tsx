@@ -94,7 +94,7 @@ export function ActorForm({ onSubmit, onCancel, initialData, existingActors = []
                         required
                         value={formData.category}
                         onChange={e => handleCategoryChange(e.target.value as 'male' | 'female' | 'fictional' | 'basketball_players')}
-                        className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                        className="w-full h-[42px] px-3 bg-slate-700 border border-slate-600 rounded-lg text-white"
                     >
                         <option value="male">Male (basic initials)</option>
                         <option value="female">Female (i- initials)</option>
@@ -113,7 +113,7 @@ export function ActorForm({ onSubmit, onCancel, initialData, existingActors = []
                         required
                         value={formData.initial}
                         onChange={e => setFormData(prev => ({ ...prev, initial: e.target.value }))}
-                        className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white ${isDuplicateInitial ? 'border-red-500' : 'border-slate-600'
+                        className={`w-full h-[42px] px-3 bg-slate-700 border rounded-lg text-white ${isDuplicateInitial ? 'border-red-500' : 'border-slate-600'
                             }`}
                     >
                         <option value="">Select an initial...</option>

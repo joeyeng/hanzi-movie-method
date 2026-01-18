@@ -79,7 +79,7 @@ export function RoomForm({ initialData, onSubmit, onCancel }: RoomFormProps) {
                 <select
                     value={tone}
                     onChange={e => setTone(Number(e.target.value))}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full h-[42px] bg-slate-700 border border-slate-600 rounded-lg px-4 text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
                     required
                 >
                     {[1, 2, 3, 4, 5].map(t => (

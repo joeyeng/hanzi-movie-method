@@ -86,7 +86,7 @@ export function SetForm({ onSubmit, onCancel, initialData, existingSets = [] }: 
                         required
                         value={formData.final}
                         onChange={e => setFormData(prev => ({ ...prev, final: e.target.value }))}
-                        className={`w-full px-3 py-2 bg-slate-700 border rounded-lg text-white ${isDuplicateFinal ? 'border-red-500' : 'border-slate-600'
+                        className={`w-full h-[42px] px-3 bg-slate-700 border rounded-lg text-white ${isDuplicateFinal ? 'border-red-500' : 'border-slate-600'
                             }`}
                     >
                         <option value="">Select a final...</option>
