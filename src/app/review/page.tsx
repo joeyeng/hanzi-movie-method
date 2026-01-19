@@ -963,7 +963,7 @@ export default function ReviewPage() {
                 {/* Show full answer details after incorrect */}
                 {answerState === 'incorrect' && (
                     <div className="space-y-4 mb-8">
-                        <div className="grid grid-cols-3 gap-4 text-sm">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
                             {currentCharacter.actor && (
                                 <div className="bg-slate-700/30 rounded p-3">
                                     <div className="text-blue-400">Actor</div>

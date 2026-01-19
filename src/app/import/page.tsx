@@ -644,8 +644,8 @@ export default function ImportPage() {
                             {importing ? 'Importing...' : 'Import All Characters'}
                         </button>
                     </div>
-                    <div className="max-h-96 overflow-y-auto">
-                        <table className="w-full text-sm">
+                    <div className="max-h-96 overflow-y-auto overflow-x-auto">
+                        <table className="w-full text-sm min-w-[600px]">
                             <thead className="text-slate-400 border-b border-slate-700 sticky top-0 bg-slate-800">
                                 <tr>
                                     <th className="text-left py-2 px-2">Character</th>
@@ -730,8 +730,8 @@ export default function ImportPage() {
                     <div className="flex justify-between items-center mb-4">
                         <h2 className="text-xl font-semibold">Compound Words Preview ({previewCompounds.length} words)</h2>
                     </div>
-                    <div className="max-h-64 overflow-y-auto">
-                        <table className="w-full text-sm">
+                    <div className="max-h-64 overflow-y-auto overflow-x-auto">
+                        <table className="w-full text-sm min-w-[600px]">
                             <thead className="text-slate-400 border-b border-slate-700 sticky top-0 bg-slate-800">
                                 <tr>
                                     <th className="text-left py-2 px-2">Word</th>
