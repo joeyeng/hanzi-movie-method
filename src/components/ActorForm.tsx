@@ -142,16 +142,9 @@ export function ActorForm({ onSubmit, onCancel, initialData, existingActors = []
                     </label>
                     <input
                         type="text"
-                        inputMode="none"
                         value={formData.emoji}
                         onChange={e => setFormData(prev => ({ ...prev, emoji: e.target.value }))}
-                        onFocus={e => {
-                            // Try to show native emoji picker (works on some browsers)
-                            if ('showPicker' in HTMLInputElement.prototype) {
-                                try { (e.target as HTMLInputElement & { showPicker: () => void }).showPicker(); } catch { }
-                            }
-                        }}
-                        className="w-16 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-center text-xl cursor-pointer"
+                        className="w-16 px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-center text-xl"
                         placeholder="🎬"
                         maxLength={2}
                     />
