@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
 import { CharacterWithRelations, CompoundWord } from '@/types';
+import { formatDefinition } from '@/lib/format';
 import Link from 'next/link';
 
 type ReviewMode = 'all' | 'unlearned' | 'due';
@@ -766,7 +767,7 @@ export default function ReviewPage() {
                                                 onChange={() => setSelectedCompoundDefinition(def)}
                                                 className={`w-4 h-4 ${selectedCompoundDefinition === def ? 'accent-amber-700' : 'accent-amber-500'}`}
                                             />
-                                            <span>{def}</span>
+                                            <span>{formatDefinition(def)}</span>
                                         </label>
                                     ))}
                                 </div>
@@ -943,7 +944,7 @@ export default function ReviewPage() {
                                             onChange={() => setSelectedDefinition(def)}
                                             className={`w-4 h-4 ${selectedDefinition === def ? 'accent-amber-700' : 'accent-amber-500'}`}
                                         />
-                                        <span>{def}</span>
+                                        <span>{formatDefinition(def)}</span>
                                     </label>
                                 ))}
                             </div>

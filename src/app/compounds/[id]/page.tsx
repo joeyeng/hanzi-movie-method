@@ -4,6 +4,7 @@ import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCompounds, useCharacters } from '@/hooks/useLocalStorage';
 import { fetchExampleSentences, TatoebaExample } from '@/lib/hanzipy';
+import { formatDefinition } from '@/lib/format';
 import Link from 'next/link';
 
 export default function CompoundDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -118,7 +119,7 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                         </div>
                         <div>
                             <p className="text-2xl text-white mb-1">{compound.pinyin}</p>
-                            <p className="text-lg text-slate-400">{compound.definition}</p>
+                            <p className="text-lg text-slate-400">{formatDefinition(compound.definition)}</p>
                         </div>
                     </div>
                 </div>

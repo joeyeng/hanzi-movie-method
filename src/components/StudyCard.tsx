@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { formatDefinition } from '@/lib/format';
 
 interface StudyCardProps {
     id: string;
@@ -89,13 +90,13 @@ export function StudyCard({
                 </div>
 
                 {/* Pinyin */}
-                <div className="text-center text-lg text-amber-300 mb-2">
+                <div className="text-center text-lg text-amber-300 mb-2 truncate">
                     {pinyin}
                 </div>
 
                 {/* Definition */}
-                <div className="text-center text-slate-300">
-                    {definition}
+                <div className="text-center text-slate-300 line-clamp-2">
+                    {formatDefinition(definition)}
                 </div>
 
                 {/* Notes */}

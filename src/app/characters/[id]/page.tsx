@@ -4,6 +4,7 @@ import { use, useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
 import { fetchExampleSentences, TatoebaExample } from '@/lib/hanzipy';
+import { formatDefinition } from '@/lib/format';
 import Link from 'next/link';
 
 // Build movie scene with auto-prepended template and resolved names
@@ -134,7 +135,7 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                         <span className="text-7xl font-bold text-amber-400">{character.hanzi}</span>
                         <div>
                             <p className="text-2xl text-white mb-1">{character.pinyin}</p>
-                            <p className="text-lg text-slate-400">{character.meaning}</p>
+                            <p className="text-lg text-slate-400">{formatDefinition(character.meaning)}</p>
                         </div>
                     </div>
                 </div>
@@ -157,7 +158,7 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                                     >
                                         <span className={isDefault ? 'text-amber-400' : 'text-slate-300'}>{def.pinyin}</span>
                                         <span className="text-slate-500 mx-2">—</span>
-                                        <span className={isDefault ? 'text-amber-300' : 'text-slate-400'}>{def.definition}</span>
+                                        <span className={isDefault ? 'text-amber-300' : 'text-slate-400'}>{formatDefinition(def.definition)}</span>
                                         {isDefault && <span className="ml-2 text-amber-500 text-xs">(default)</span>}
                                     </button>
                                 );

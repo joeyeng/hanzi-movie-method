@@ -1,6 +1,7 @@
 'use client';
 
 import { useCharactersWithRelations, useActors, useRooms, useSets, useComponents } from '@/hooks/useLocalStorage';
+import { formatDefinition } from '@/lib/format';
 import Link from 'next/link';
 
 export default function Home() {
@@ -88,11 +89,11 @@ export default function Home() {
               <Link
                 key={char.id}
                 href={`/characters/${char.id}`}
-                className="bg-slate-700 rounded-lg p-4 text-center hover:bg-slate-600 transition-colors"
+                className="bg-slate-700 rounded-lg p-4 text-center hover:bg-slate-600 transition-colors overflow-hidden"
               >
                 <div className="text-4xl text-amber-400 mb-2">{char.hanzi}</div>
-                <div className="text-sm text-slate-300">{char.pinyin}</div>
-                <div className="text-xs text-slate-500">{char.meaning}</div>
+                <div className="text-sm text-slate-300 truncate">{char.pinyin}</div>
+                <div className="text-xs text-slate-500 truncate">{formatDefinition(char.meaning)}</div>
               </Link>
             ))}
           </div>

@@ -6,6 +6,7 @@ import { useActors, useRooms, useSets, useProps, useCharacters, useCompounds } f
 import { exampleActors, exampleRooms, exampleSets } from '@/lib/seedData';
 import defaults from '@/lib/defaults.json';
 import { parseCharacterFileAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult } from '@/lib/hanzipy';
+import { formatDefinition } from '@/lib/format';
 import * as storage from '@/lib/storage';
 import type { Actor, Room, Set, Character } from '@/types';
 
@@ -670,7 +671,7 @@ export default function ImportPage() {
                                                 {char.pinyin || <span className="text-slate-500">—</span>}
                                             </td>
                                             <td className="py-2 px-2 text-slate-400 truncate max-w-32">
-                                                {char.definition || <span className="text-slate-500">—</span>}
+                                                {char.definition ? formatDefinition(char.definition) : <span className="text-slate-500">—</span>}
                                             </td>
                                             <td className="py-2 px-2">
                                                 {info.actor ? (
@@ -754,7 +755,7 @@ export default function ImportPage() {
                                             {compound.pinyin || <span className="text-slate-500">—</span>}
                                         </td>
                                         <td className="py-2 px-2 text-slate-400 truncate max-w-48">
-                                            {compound.definition || <span className="text-slate-500">—</span>}
+                                            {compound.definition ? formatDefinition(compound.definition) : <span className="text-slate-500">—</span>}
                                         </td>
                                         <td className="py-2 px-2">
                                             {compound.found ? (

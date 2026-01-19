@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useCharactersWithRelations, useComponents } from '@/hooks/useLocalStorage';
 import { lookupCharactersAPI, HanziDefinition } from '@/lib/hanzipy';
+import { formatDefinition } from '@/lib/format';
 
 function ComponentContent() {
     const searchParams = useSearchParams();
@@ -86,12 +87,12 @@ function ComponentContent() {
                                 {allDefinitions.map((def, index) => (
                                     <div key={index} className="border-l-2 border-slate-600 pl-3">
                                         <span className="text-slate-300 text-sm">{def.pinyin}</span>
-                                        <p className="text-slate-400">{def.definition}</p>
+                                        <p className="text-slate-400">{formatDefinition(def.definition)}</p>
                                     </div>
                                 ))}
                             </div>
                         ) : storedComponentInfo?.definition ? (
-                            <p className="text-lg text-slate-400">{storedComponentInfo.definition}</p>
+                            <p className="text-lg text-slate-400">{formatDefinition(storedComponentInfo.definition)}</p>
                         ) : (
                             <p className="text-lg text-slate-500 italic">No definition available</p>
                         )}
@@ -119,8 +120,8 @@ function ComponentContent() {
                                     </div>
                                     <div className="text-center">
                                         <p className="text-white text-sm">{char.pinyin}</p>
-                                        <p className="text-slate-400 text-xs truncate" title={char.meaning}>
-                                            {char.meaning.split(',')[0]}
+                                        <p className="text-slate-400 text-xs truncate" title={formatDefinition(char.meaning)}>
+                                            {formatDefinition(char.meaning.split(',')[0])}
                                         </p>
                                     </div>
                                 </Link>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useComponents, useCharactersWithRelations } from '@/hooks/useLocalStorage';
+import { formatDefinition } from '@/lib/format';
 import Link from 'next/link';
 
 export default function PropsPage() {
@@ -86,8 +87,8 @@ export default function PropsPage() {
                                     </div>
                                 )}
                                 {comp.definition && (
-                                    <p className="text-slate-400 text-xs text-center line-clamp-2" title={comp.definition}>
-                                        {comp.definition.split('/')[0]}
+                                    <p className="text-slate-400 text-xs text-center line-clamp-2" title={formatDefinition(comp.definition)}>
+                                        {formatDefinition(comp.definition.split('/')[0])}
                                     </p>
                                 )}
                                 <div className="text-center mt-2">
