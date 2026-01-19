@@ -16,9 +16,17 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Hanzi Movie Method",
   description: "Chinese character learning database using the Hanzi Movie Method",
+  manifest: "/manifest.json",
   icons: {
     icon: '/icon.svg',
+    apple: '/icon-192.png',
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: '汉字 HMM',
+  },
+  themeColor: '#f59e0b',
 };
 
 export default function RootLayout({
