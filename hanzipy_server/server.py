@@ -28,8 +28,19 @@ try:
 except ImportError:
     JIEBA_AVAILABLE = False
 
+# Import corpus-based pronunciation frequency data
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logging.debug("Starting to read frequency data")
+try:
+    from frequency_data import PRONUNCIATION_FREQUENCY as CORPUS_FREQUENCY
+    logging.debug("Frequency data loaded")
+except ImportError:
+    CORPUS_FREQUENCY = {}
+    logging.debug("No frequency data found")
+
 # Common multi-pronunciation characters with their most frequent readings ranked first
-# Based on modern Mandarin usage frequency
+# This fallback is used if corpus data is not available
 PRONUNCIATION_FREQUENCY = {
     # 着: zhe (aspect particle) is most common, then zháo (touch/ignite), zhuó (wear), zhāo (move in chess)
     '着': ['zhe', 'zháo', 'zhuó', 'zhāo'],
@@ -197,24 +208,39 @@ def normalize_pinyin_for_comparison(pinyin: str) -> str:
     result = pinyin.lower()
     for marked, plain in tone_map.items():
         result = result.replace(marked, plain)
+    # Also remove tone numbers
+    result = re.sub(r'[1-5]', '', result)
     return result
 
 def get_pronunciation_rank(char: str, pinyin: str) -> int:
     """
     Get the frequency rank for a character's pronunciation.
     Lower number = more common pronunciation.
+    Uses corpus-based frequency data if available, falls back to manual list.
     """
-    if char not in PRONUNCIATION_FREQUENCY:
-        return 0  # No ranking available, treat as first
+    # First check corpus data (from SUBTLEX-CH)
+    if char in CORPUS_FREQUENCY:
+        freq_list = CORPUS_FREQUENCY[char]
+        normalized = normalize_pinyin_for_comparison(pinyin)
+        
+        for i, (corpus_pinyin, _) in enumerate(freq_list):
+            if normalize_pinyin_for_comparison(corpus_pinyin) == normalized:
+                return i
+        
+        return len(freq_list)  # Unknown pronunciation, rank after known ones
     
-    freq_list = PRONUNCIATION_FREQUENCY[char]
-    normalized = normalize_pinyin_for_comparison(pinyin)
+    # Fall back to manual list
+    if char in PRONUNCIATION_FREQUENCY:
+        freq_list = PRONUNCIATION_FREQUENCY[char]
+        normalized = normalize_pinyin_for_comparison(pinyin)
+        
+        for i, common_pinyin in enumerate(freq_list):
+            if normalize_pinyin_for_comparison(common_pinyin) == normalized:
+                return i
+        
+        return len(freq_list)  # Unknown pronunciation, rank after known ones
     
-    for i, common_pinyin in enumerate(freq_list):
-        if normalize_pinyin_for_comparison(common_pinyin) == normalized:
-            return i
-    
-    return len(freq_list)  # Unknown pronunciation, rank after known ones
+    return 0  # No ranking available, treat as first
 
 
 def convert_pinyin_tone_number_to_mark(pinyin: str) -> str:

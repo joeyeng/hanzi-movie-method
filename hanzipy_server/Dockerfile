@@ -9,6 +9,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy server code
 COPY server.py .
+COPY frequency_data.py .
 
 # Port is set via PORT environment variable (default: 5000)
 EXPOSE 6001
