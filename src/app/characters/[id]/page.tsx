@@ -152,8 +152,8 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                                         key={index}
                                         onClick={() => handleSetDefaultDefinition(def.pinyin, def.definition)}
                                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${isDefault
-                                                ? 'bg-amber-500/20 border border-amber-500/50'
-                                                : 'hover:bg-slate-600/50'
+                                            ? 'bg-amber-500/20 border border-amber-500/50'
+                                            : 'hover:bg-slate-600/50'
                                             }`}
                                     >
                                         <span className={isDefault ? 'text-amber-400' : 'text-slate-300'}>{def.pinyin}</span>
