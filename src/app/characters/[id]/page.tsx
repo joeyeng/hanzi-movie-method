@@ -208,79 +208,6 @@ function HmmEditor({
 
     return (
         <div className="space-y-4">
-            {/* Actor selector */}
-            <div>
-                <label className="block text-slate-400 text-sm mb-1">Actor</label>
-                <select
-                    value={actorId}
-                    onChange={(e) => setActorId(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-400 focus:outline-none"
-                >
-                    <option value="">Select an actor...</option>
-                    {actors.map(actor => (
-                        <option key={actor.id} value={actor.id}>
-                            {actor.emoji || '👤'} {actor.name}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Room selector */}
-            <div>
-                <label className="block text-slate-400 text-sm mb-1">Room (Tone)</label>
-                <select
-                    value={roomId}
-                    onChange={(e) => setRoomId(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-400 focus:outline-none"
-                >
-                    <option value="">Select a room...</option>
-                    {rooms.map(room => (
-                        <option key={room.id} value={room.id}>
-                            {room.emoji || '🏠'} {room.name} {room.tone ? `(Tone ${room.tone})` : ''}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Set selector */}
-            <div>
-                <label className="block text-slate-400 text-sm mb-1">Set (Final)</label>
-                <select
-                    value={setId}
-                    onChange={(e) => setSetId(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-400 focus:outline-none"
-                >
-                    <option value="">Select a set...</option>
-                    {sets.map(set => (
-                        <option key={set.id} value={set.id}>
-                            {set.emoji || '📍'} {set.name} {set.final ? `(-${set.final})` : ''}
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Props multi-select */}
-            {props.length > 0 && (
-                <div>
-                    <label className="block text-slate-400 text-sm mb-1">Props</label>
-                    <div className="flex flex-wrap gap-2">
-                        {props.map(prop => (
-                            <button
-                                key={prop.id}
-                                type="button"
-                                onClick={() => toggleProp(prop.id)}
-                                className={`px-2 py-1 rounded text-sm transition-colors ${propIds.includes(prop.id)
-                                    ? 'bg-amber-500/30 text-amber-400 border border-amber-500'
-                                    : 'bg-slate-800 text-slate-400 border border-slate-600 hover:border-slate-500'
-                                    }`}
-                            >
-                                {prop.emoji || '🎭'} {prop.name}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
             {/* Movie scene textarea */}
             <div>
                 <label className="block text-slate-400 text-sm mb-1">Scene Description</label>
@@ -798,20 +725,6 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                 </div>
 
-                {/* Corpus Info */}
-                <div className="bg-slate-700/30 rounded-lg p-4 mb-6">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                            <span className="text-slate-500">Frequency Rank:</span>
-                            <span className="text-white ml-2">#{formattedRank}</span>
-                        </div>
-                        <div>
-                            <span className="text-slate-500">Corpus Count:</span>
-                            <span className="text-white ml-2">{corpusWord!.frequency.toLocaleString()}</span>
-                        </div>
-                    </div>
-                </div>
-
                 {/* HMM Movie Scene Section */}
                 <div className="bg-slate-700/30 rounded-lg p-4 mb-6">
                     <div className="flex justify-between items-center mb-4">
@@ -873,15 +786,15 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                                     <div className="text-slate-400 text-xs">Actor ({pinyinComponents.initial})</div>
                                     <div className={`font-medium ${autoActor ? 'text-white' : 'text-slate-500'}`}>{autoActor?.name || 'Not found'}</div>
                                 </div>
-                                <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoRoom ? '' : 'border border-dashed border-slate-600'}`}>
-                                    <div className="text-5xl mb-2">{autoRoom?.emoji || '🏠'}</div>
-                                    <div className="text-slate-400 text-xs">Room (Tone {pinyinComponents.tone})</div>
-                                    <div className={`font-medium ${autoRoom ? 'text-white' : 'text-slate-500'}`}>{autoRoom?.name || 'Not found'}</div>
-                                </div>
                                 <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoSet ? '' : 'border border-dashed border-slate-600'}`}>
                                     <div className="text-5xl mb-2">{autoSet?.emoji || '📍'}</div>
                                     <div className="text-slate-400 text-xs">Set ({pinyinComponents.final})</div>
                                     <div className={`font-medium ${autoSet ? 'text-white' : 'text-slate-500'}`}>{autoSet?.name || 'Not found'}</div>
+                                </div>
+                                <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoRoom ? '' : 'border border-dashed border-slate-600'}`}>
+                                    <div className="text-5xl mb-2">{autoRoom?.emoji || '🏠'}</div>
+                                    <div className="text-slate-400 text-xs">Room (Tone {pinyinComponents.tone})</div>
+                                    <div className={`font-medium ${autoRoom ? 'text-white' : 'text-slate-500'}`}>{autoRoom?.name || 'Not found'}</div>
                                 </div>
                             </div>
 
