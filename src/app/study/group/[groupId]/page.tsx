@@ -4,6 +4,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useOfflineDb, WordEntryWithPrimary } from '@/lib/offlineDb';
 import { CorpusWordCard } from '@/components/CorpusWordCard';
+import { GroupReview } from '@/components/GroupReview';
 import { CorpusWordState, getCorpusLearningData, setCorpusWordLearned, setCorpusWordReviewed } from '@/lib/storage';
 
 const WORDS_PER_GROUP = 100;
@@ -14,6 +15,10 @@ function useWordLearningState() {
 
     // Load from localStorage on mount
     useEffect(() => {
+        setLearningData(getCorpusLearningData());
+    }, []);
+
+    const refreshData = useCallback(() => {
         setLearningData(getCorpusLearningData());
     }, []);
 
@@ -45,19 +50,22 @@ function useWordLearningState() {
         });
     }, [learningData]);
 
-    return { learningData, isLearned, isReviewed, toggleLearned, toggleReviewed };
+    return { learningData, isLearned, isReviewed, toggleLearned, toggleReviewed, refreshData };
 }
 
 export default function StudyGroupPage() {
     const params = useParams();
     const router = useRouter();
     const { isReady, isLoading: dbLoading, getAllWords, getTotalWordCount } = useOfflineDb();
-    const { learningData, isLearned, isReviewed, toggleLearned, toggleReviewed } = useWordLearningState();
+    const { learningData, isLearned, isReviewed, toggleLearned, toggleReviewed, refreshData } = useWordLearningState();
 
     const groupId = parseInt(params.groupId as string, 10);
     const [totalWords, setTotalWords] = useState(0);
     const [groupWords, setGroupWords] = useState<WordEntryWithPrimary[]>([]);
     const [loadingWords, setLoadingWords] = useState(true);
+
+    // Review mode state
+    const [isReviewMode, setIsReviewMode] = useState(false);
 
     // Load total word count
     useEffect(() => {
@@ -144,6 +152,20 @@ export default function StudyGroupPage() {
         );
     }
 
+    // Review mode UI - use the GroupReview component
+    if (isReviewMode) {
+        return (
+            <GroupReview
+                groupWords={groupWords}
+                learningData={learningData}
+                onExit={() => setIsReviewMode(false)}
+                onDataChange={refreshData}
+                groupId={groupId}
+            />
+        );
+    }
+
+    // Normal group view
     return (
         <div className="max-w-6xl mx-auto px-2 sm:px-4">
             {/* Header with back button and stats - mobile responsive */}
@@ -180,6 +202,17 @@ export default function StudyGroupPage() {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            {/* Start Review button */}
+            <div className="mb-4 bg-slate-800 rounded-lg p-4">
+                <button
+                    onClick={() => setIsReviewMode(true)}
+                    disabled={groupWords.length === 0}
+                    className="w-full sm:w-auto bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                    📝 Start Review
+                </button>
             </div>
 
             {/* Words grid */}
