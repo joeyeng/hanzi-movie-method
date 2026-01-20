@@ -10,7 +10,7 @@ services:
       - NODE_ENV=production
       - PORT=6003
       - HOSTNAME=0.0.0.0
-      - HANZIPY_SERVER_URL=http://hanzipy:6001
+      - HANZIPY_SERVER_URL=http://hanzipy:6004
     depends_on:
       - hanzipy
     restart: unless-stopped
@@ -21,8 +21,8 @@ services:
       context: ./hanzipy_server
       dockerfile: Dockerfile
     ports:
-      - "6001:6001"
+      - "6004:6004"
     environment:
       - FLASK_ENV=production
-      - PORT=6001
+      - PORT=6004
     restart: unless-stopped
