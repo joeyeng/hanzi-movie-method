@@ -178,7 +178,7 @@ export default function StudyGroupPage() {
                 onDataChange={refreshData}
                 groupId={groupId}
                 initialFilter={reviewFilter}
-                autoStart={true}
+                autoStart={false}
             />
         );
     }
