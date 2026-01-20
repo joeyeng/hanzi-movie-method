@@ -383,6 +383,9 @@ export async function parseCharacterFileWithComponentsAsync(content: string): Pr
 }
 
 // Tatoeba Example Sentences API
+// Now uses offline database via offlineDb.ts
+
+import { searchExamples, batchSearchExamples, ExampleSentence } from './offlineDb';
 
 export interface TatoebaExample {
   id: number;
@@ -392,24 +395,20 @@ export interface TatoebaExample {
 }
 
 /**
- * Fetch example sentences for a Chinese word from the Tatoeba API
+ * Fetch example sentences for a Chinese word from the offline database
  */
 export async function fetchExampleSentences(
   query: string,
   limit: number = 5
 ): Promise<TatoebaExample[]> {
   try {
-    const response = await fetch(
-      `/api/examples?q=${encodeURIComponent(query)}&limit=${limit}`
-    );
-    
-    if (!response.ok) {
-      console.error('Failed to fetch example sentences:', response.statusText);
-      return [];
-    }
-    
-    const data = await response.json();
-    return data.results || [];
+    const results = await searchExamples(query, limit);
+    return results.map(r => ({
+      id: r.id,
+      simplified: r.simplified,
+      pinyin: r.pinyin,
+      english: r.english
+    }));
   } catch (error) {
     console.error('Error fetching example sentences:', error);
     return [];
@@ -428,33 +427,19 @@ export async function batchFetchExampleSentences(
   
   if (words.length === 0) return results;
   
-  // Use batch endpoint for efficiency - process in chunks to avoid too large requests
-  const chunkSize = 50;
-  for (let i = 0; i < words.length; i += chunkSize) {
-    const chunk = words.slice(i, i + chunkSize);
+  try {
+    const batchResults = await batchSearchExamples(words, limitPerWord);
     
-    try {
-      const response = await fetch('/api/examples', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ queries: chunk, limit: limitPerWord }),
-      });
-      
-      if (!response.ok) {
-        console.error('Batch fetch failed:', response.statusText);
-        continue;
-      }
-      
-      const data = await response.json();
-      // data.results is { "word1": [...], "word2": [...] }
-      if (data.results) {
-        for (const [word, examples] of Object.entries(data.results)) {
-          results.set(word, examples as TatoebaExample[]);
-        }
-      }
-    } catch (error) {
-      console.error('Error in batch fetch:', error);
+    for (const [word, examples] of batchResults) {
+      results.set(word, examples.map(r => ({
+        id: r.id,
+        simplified: r.simplified,
+        pinyin: r.pinyin,
+        english: r.english
+      })));
     }
+  } catch (error) {
+    console.error('Error in batch fetch:', error);
   }
   
   return results;

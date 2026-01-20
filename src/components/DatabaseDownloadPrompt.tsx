@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePronunciationDb, isDatabaseDownloaded } from '@/lib/pronunciationDb';
+import { useOfflineDb, isDatabaseDownloaded } from '@/lib/offlineDb';
 
 interface DatabaseDownloadPromptProps {
     children: React.ReactNode;
@@ -10,7 +10,7 @@ interface DatabaseDownloadPromptProps {
 export default function DatabaseDownloadPrompt({ children }: DatabaseDownloadPromptProps) {
     const [showPrompt, setShowPrompt] = useState(false);
     const [isClient, setIsClient] = useState(false);
-    const { isLoading, isReady, error, initialize } = usePronunciationDb();
+    const { isLoading, isReady, error, initialize } = useOfflineDb();
 
     useEffect(() => {
         setIsClient(true);
@@ -38,11 +38,11 @@ export default function DatabaseDownloadPrompt({ children }: DatabaseDownloadPro
                     <div className="text-center space-y-2">
                         <div className="text-4xl mb-2">📚</div>
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                            Download Pronunciation Data
+                            Download Offline Data
                         </h2>
                         <p className="text-gray-600 dark:text-gray-300 text-sm">
-                            This app needs a small database (~72 KB) to rank character pronunciations by frequency.
-                            This helps select the most common pronunciation for multi-reading characters.
+                            This app needs a database (~13 MB) containing pronunciation frequencies
+                            and 63,000+ example sentences for offline use.
                         </p>
                     </div>
 
@@ -92,7 +92,7 @@ export default function DatabaseDownloadPrompt({ children }: DatabaseDownloadPro
                         </button>
 
                         <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                            Data sourced from SUBTLEX-CH film subtitle corpus.
+                            Data sourced from SUBTLEX-CH corpus and Tatoeba.
                             <br />
                             The database is cached locally for offline use.
                         </p>

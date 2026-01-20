@@ -1,10 +1,13 @@
 /**
- * Client-side pronunciation database using sql.js (SQLite compiled to WebAssembly)
+ * Client-side offline database using sql.js (SQLite compiled to WebAssembly)
+ * Contains:
+ * - Pronunciation frequencies from SUBTLEX-CH corpus
+ * - Example sentences from Tatoeba
  */
 
 import { useState, useEffect, useCallback } from 'react';
 
-// Types for the pronunciation data
+// Types for the data
 export interface PronunciationEntry {
   character: string;
   pinyin: string;
@@ -12,31 +15,44 @@ export interface PronunciationEntry {
   rank: number;
 }
 
+export interface ExampleSentence {
+  id: number;
+  simplified: string;
+  traditional?: string;
+  pinyin: string;
+  english: string;
+}
+
 // Database singleton
 let dbInstance: any = null;
 let dbPromise: Promise<any> | null = null;
 
+const DB_NAME = 'hanziOfflineDb';
+const DB_FILE = '/hanzi_data.db';
+const STORAGE_KEY = 'hanziDbDownloaded';
+const DB_VERSION = 2; // Increment when database structure changes
+
 // Check if the database is downloaded
 export function isDatabaseDownloaded(): boolean {
   if (typeof window === 'undefined') return false;
-  return localStorage.getItem('pronunciationDbDownloaded') === 'true';
+  const version = localStorage.getItem(STORAGE_KEY);
+  return version === String(DB_VERSION);
 }
 
 // Mark database as downloaded
 function markDatabaseDownloaded(): void {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('pronunciationDbDownloaded', 'true');
+    localStorage.setItem(STORAGE_KEY, String(DB_VERSION));
   }
 }
 
 // Clear database cache
 export function clearDatabaseCache(): void {
   if (typeof window !== 'undefined') {
-    localStorage.removeItem('pronunciationDbDownloaded');
+    localStorage.removeItem(STORAGE_KEY);
     dbInstance = null;
     dbPromise = null;
-    // Clear IndexedDB cache
-    indexedDB.deleteDatabase('pronunciationDb');
+    indexedDB.deleteDatabase(DB_NAME);
   }
 }
 
@@ -55,17 +71,19 @@ async function initDatabase(): Promise<any> {
       locateFile: (file: string) => `https://sql.js.org/dist/${file}`
     });
     
-    // Try to load from IndexedDB cache first
-    const cachedData = await loadFromCache();
-    if (cachedData) {
-      dbInstance = new SQL.Database(cachedData);
-      return dbInstance;
+    // Try to load from IndexedDB cache first (if version matches)
+    if (isDatabaseDownloaded()) {
+      const cachedData = await loadFromCache();
+      if (cachedData) {
+        dbInstance = new SQL.Database(cachedData);
+        return dbInstance;
+      }
     }
     
     // Download the database file
-    const response = await fetch('/pronunciation.db');
+    const response = await fetch(DB_FILE);
     if (!response.ok) {
-      throw new Error('Failed to download pronunciation database');
+      throw new Error('Failed to download offline database');
     }
     
     const arrayBuffer = await response.arrayBuffer();
@@ -86,7 +104,7 @@ async function initDatabase(): Promise<any> {
 // Save database to IndexedDB cache
 async function saveToCache(data: Uint8Array): Promise<void> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('pronunciationDb', 1);
+    const request = indexedDB.open(DB_NAME, 1);
     
     request.onerror = () => reject(request.error);
     
@@ -111,7 +129,7 @@ async function saveToCache(data: Uint8Array): Promise<void> {
 // Load database from IndexedDB cache
 async function loadFromCache(): Promise<Uint8Array | null> {
   return new Promise((resolve) => {
-    const request = indexedDB.open('pronunciationDb', 1);
+    const request = indexedDB.open(DB_NAME, 1);
     
     request.onerror = () => resolve(null);
     
@@ -139,6 +157,8 @@ async function loadFromCache(): Promise<Uint8Array | null> {
     };
   });
 }
+
+// ==================== PRONUNCIATION FUNCTIONS ====================
 
 /**
  * Get pronunciations for a character, ranked by frequency
@@ -179,10 +199,82 @@ export async function hasMultiplePronunciations(character: string): Promise<bool
   return pronunciations.length > 1;
 }
 
+// ==================== EXAMPLE SENTENCE FUNCTIONS ====================
+
 /**
- * Hook to use the pronunciation database
+ * Search for example sentences containing a query string
  */
-export function usePronunciationDb() {
+export async function searchExamples(query: string, limit: number = 5): Promise<ExampleSentence[]> {
+  const db = await initDatabase();
+  
+  // Search for sentences containing the query, ordered by length (shorter = simpler)
+  const results = db.exec(
+    `SELECT id, simplified, traditional, pinyin, english 
+     FROM examples 
+     WHERE simplified LIKE ? 
+     ORDER BY LENGTH(simplified) ASC 
+     LIMIT ?`,
+    [`%${query}%`, limit * 2]  // Fetch extra for deduplication
+  );
+  
+  if (results.length === 0 || results[0].values.length === 0) {
+    return [];
+  }
+  
+  // Deduplicate by simplified text
+  const seen = new Set<string>();
+  const sentences: ExampleSentence[] = [];
+  
+  for (const row of results[0].values) {
+    const simplified = row[1] as string;
+    if (!seen.has(simplified)) {
+      seen.add(simplified);
+      sentences.push({
+        id: row[0] as number,
+        simplified,
+        traditional: row[2] as string | undefined,
+        pinyin: row[3] as string,
+        english: row[4] as string
+      });
+      if (sentences.length >= limit) break;
+    }
+  }
+  
+  return sentences;
+}
+
+/**
+ * Batch search for example sentences for multiple queries
+ */
+export async function batchSearchExamples(
+  queries: string[], 
+  limitPerQuery: number = 3
+): Promise<Map<string, ExampleSentence[]>> {
+  const results = new Map<string, ExampleSentence[]>();
+  
+  for (const query of queries) {
+    const examples = await searchExamples(query, limitPerQuery);
+    results.set(query, examples);
+  }
+  
+  return results;
+}
+
+/**
+ * Get total count of example sentences
+ */
+export async function getExampleCount(): Promise<number> {
+  const db = await initDatabase();
+  const results = db.exec('SELECT COUNT(*) FROM examples');
+  return results[0]?.values[0]?.[0] || 0;
+}
+
+// ==================== REACT HOOK ====================
+
+/**
+ * Hook to use the offline database
+ */
+export function useOfflineDb() {
   const [isLoading, setIsLoading] = useState(true);
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -218,9 +310,18 @@ export function usePronunciationDb() {
     error,
     downloadProgress,
     initialize,
+    // Pronunciation functions
     getPronunciations,
     getMostCommonPronunciation,
     hasMultiplePronunciations,
+    // Example sentence functions
+    searchExamples,
+    batchSearchExamples,
+    getExampleCount,
+    // Cache management
     clearCache: clearDatabaseCache
   };
 }
+
+// Re-export for backward compatibility
+export { isDatabaseDownloaded as isOfflineDbDownloaded };

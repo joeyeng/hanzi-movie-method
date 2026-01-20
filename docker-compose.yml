@@ -9,7 +9,6 @@ services:
     environment:
       - NODE_ENV=development
       - HANZIPY_SERVER_URL=http://hanzipy:6001
-      - TATOEBA_SERVER_URL=http://tatoeba:6002
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
     volumes:
@@ -18,10 +17,9 @@ services:
       - ./next.config.ts:/app/next.config.ts:delegated
     depends_on:
       - hanzipy
-      - tatoeba
     restart: unless-stopped
 
-  # HanziPy Flask Server
+  # HanziPy Flask Server (Character decomposition & dictionary lookup)
   hanzipy:
     build:
       context: ./hanzipy_server
@@ -30,17 +28,6 @@ services:
       - "6001:6001"
     environment:
       - PORT=6001
-    restart: unless-stopped
-
-  # Tatoeba Example Sentences Server
-  tatoeba:
-    build:
-      context: ./tatoeba_server
-      dockerfile: Dockerfile
-    ports:
-      - "6002:6002"
-    environment:
-      - PORT=6002
     restart: unless-stopped
 
 volumes:

@@ -5,19 +5,17 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "6000:6000"
+      - "6003:6003"
     environment:
       - NODE_ENV=production
-      - PORT=6000
+      - PORT=6003
       - HOSTNAME=0.0.0.0
       - HANZIPY_SERVER_URL=http://hanzipy:6001
-      - TATOEBA_SERVER_URL=http://tatoeba:6002
     depends_on:
       - hanzipy
-      - tatoeba
     restart: unless-stopped
 
-  # HanziPy Flask Server
+  # HanziPy Flask Server (Character decomposition & dictionary lookup)
   hanzipy:
     build:
       context: ./hanzipy_server
@@ -27,16 +25,4 @@ services:
     environment:
       - FLASK_ENV=production
       - PORT=6001
-    restart: unless-stopped
-
-  # Tatoeba Example Sentences Server
-  tatoeba:
-    build:
-      context: ./tatoeba_server
-      dockerfile: Dockerfile
-    ports:
-      - "6002:6002"
-    environment:
-      - FLASK_ENV=production
-      - PORT=6002
     restart: unless-stopped
