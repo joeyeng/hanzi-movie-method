@@ -270,8 +270,8 @@ function HmmEditor({
                                 type="button"
                                 onClick={() => toggleProp(prop.id)}
                                 className={`px-2 py-1 rounded text-sm transition-colors ${propIds.includes(prop.id)
-                                        ? 'bg-amber-500/30 text-amber-400 border border-amber-500'
-                                        : 'bg-slate-800 text-slate-400 border border-slate-600 hover:border-slate-500'
+                                    ? 'bg-amber-500/30 text-amber-400 border border-amber-500'
+                                    : 'bg-slate-800 text-slate-400 border border-slate-600 hover:border-slate-500'
                                     }`}
                             >
                                 {prop.emoji || '🎭'} {prop.name}
@@ -347,7 +347,7 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
     const [loadingExamples, setLoadingExamples] = useState(false);
     const [corpusWord, setCorpusWord] = useState<WordEntryWithPrimary | null>(null);
     const [corpusLoading, setCorpusLoading] = useState(!isLegacyId);
-    
+
     // HMM data state for corpus words
     const [wordHmm, setWordHmmState] = useState<WordHmmData | undefined>(undefined);
     const [isEditingHmm, setIsEditingHmm] = useState(false);
@@ -736,14 +736,14 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
 
     // Corpus-only view (no HMM data)
     const formattedRank = (corpusWord!.rank + 1).toLocaleString();
-    
+
     // Auto-detect actor/room/set from pinyin
     const autoMatches = findHmmMatches(corpusWord!.pinyin, actors, rooms, sets);
     const autoActor = actors.find(a => a.id === autoMatches.actorId);
     const autoRoom = rooms.find(r => r.id === autoMatches.roomId);
     const autoSet = sets.find(s => s.id === autoMatches.setId);
     const pinyinComponents = parseFirstSyllable(corpusWord!.pinyin);
-    
+
     // Build auto-generated scene template
     const autoActorName = autoActor?.name || '[Actor]';
     const autoRoomName = autoRoom?.name || '[Room]';

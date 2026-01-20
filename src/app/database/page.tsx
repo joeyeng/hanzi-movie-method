@@ -6,7 +6,7 @@ import { useActors, useRooms, useSets, useProps, useCharacters, useCompounds, us
 import { exampleActors, exampleRooms, exampleSets } from '@/lib/seedData';
 import defaults from '@/lib/defaults.json';
 import * as storage from '@/lib/storage';
-import { clearDatabaseCache, isDatabaseDownloaded, useOfflineDb, getCharacterWordCount, getCompoundWordCount, getExampleCount } from '@/lib/offlineDb';
+import { clearDatabaseCache, isDatabaseDownloaded, useOfflineDb } from '@/lib/offlineDb';
 import type { Character } from '@/types';
 
 // Offline Database Management Section
@@ -99,18 +99,6 @@ export default function SettingsPage() {
     const { components } = useComponents();
 
     const [importStatus, setImportStatus] = useState<string[]>([]);
-    const [dbCharCount, setDbCharCount] = useState<number | null>(null);
-    const [dbCompoundCount, setDbCompoundCount] = useState<number | null>(null);
-    const [dbExampleCount, setDbExampleCount] = useState<number | null>(null);
-
-    // Load database counts
-    useEffect(() => {
-        if (isDatabaseDownloaded()) {
-            getCharacterWordCount().then(setDbCharCount).catch(() => setDbCharCount(null));
-            getCompoundWordCount().then(setDbCompoundCount).catch(() => setDbCompoundCount(null));
-            getExampleCount().then(setDbExampleCount).catch(() => setDbExampleCount(null));
-        }
-    }, []);
 
     const importDefaultActors = () => {
         const actorsByInitial = new Map(actors.map(a => [a.initial.toLowerCase(), a]));
@@ -311,16 +299,16 @@ export default function SettingsPage() {
                 <h2 className="text-xl font-semibold mb-4">Current Database</h2>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 text-center">
                     <div>
-                        <div className="text-3xl font-bold text-amber-400">{dbCharCount !== null ? dbCharCount.toLocaleString() : '—'}</div>
+                        <div className="text-3xl font-bold text-amber-400">{characters.length}</div>
                         <div className="text-slate-400 text-sm">Characters</div>
                     </div>
                     <div>
-                        <div className="text-3xl font-bold text-cyan-400">{dbCompoundCount !== null ? dbCompoundCount.toLocaleString() : '—'}</div>
+                        <div className="text-3xl font-bold text-cyan-400">{compounds.length}</div>
                         <div className="text-slate-400 text-sm">Compounds</div>
                     </div>
                     <div>
-                        <div className="text-3xl font-bold text-green-400">{dbExampleCount !== null ? dbExampleCount.toLocaleString() : '—'}</div>
-                        <div className="text-slate-400 text-sm">Examples</div>
+                        <div className="text-3xl font-bold text-pink-400">{components.length}</div>
+                        <div className="text-slate-400 text-sm">Components</div>
                     </div>
                     <div>
                         <div className="text-3xl font-bold text-blue-400">{actors.length}</div>
@@ -408,7 +396,7 @@ export default function SettingsPage() {
                         onClick={exportBackup}
                         className="flex-1 bg-green-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-green-500 transition-colors"
                     >
-                        📤 Export Backup
+                        �� Export Backup
                     </button>
                     <label className="flex-1">
                         <input

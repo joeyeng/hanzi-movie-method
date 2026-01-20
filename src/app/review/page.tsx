@@ -111,17 +111,17 @@ interface CorpusWordWithState extends WordEntryWithPrimary {
 
 export default function ReviewPage() {
     const { isReady, isLoading: dbLoading, getCharacterWords, getCompoundWords, getAllWords } = useOfflineDb();
-    
+
     // Database and loading state
     const [isLoadingWords, setIsLoadingWords] = useState(true);
-    
+
     // All corpus words for generating choices
     const [allCharacterWords, setAllCharacterWords] = useState<WordEntryWithPrimary[]>([]);
     const [allCompoundWords, setAllCompoundWords] = useState<WordEntryWithPrimary[]>([]);
-    
+
     // Learning state from localStorage
     const [learningData, setLearningData] = useState<Map<string, CorpusWordState>>(new Map());
-    
+
     // Review state
     const [reviewType, setReviewType] = useState<ReviewType>('characters');
     const [reviewMode, setReviewMode] = useState<ReviewMode>('unlearned');
@@ -154,7 +154,7 @@ export default function ReviewPage() {
     useEffect(() => {
         async function loadWords() {
             if (!isReady) return;
-            
+
             try {
                 setIsLoadingWords(true);
                 // Load top 500 of each for generating quiz choices
@@ -174,7 +174,7 @@ export default function ReviewPage() {
     // Get reviewable words (words marked for review with 📚 button in learningData)
     const reviewableCharacters = useMemo(() => {
         const reviewable: CorpusWordWithState[] = [];
-        
+
         learningData.forEach((state, word) => {
             if (state.reviewed) {
                 const wordEntry = allCharacterWords.find(w => w.word === word);
@@ -188,13 +188,13 @@ export default function ReviewPage() {
                 }
             }
         });
-        
+
         return reviewable;
     }, [allCharacterWords, learningData]);
 
     const reviewableCompounds = useMemo(() => {
         const reviewable: CorpusWordWithState[] = [];
-        
+
         learningData.forEach((state, word) => {
             if (state.reviewed) {
                 const wordEntry = allCompoundWords.find(w => w.word === word);
@@ -208,7 +208,7 @@ export default function ReviewPage() {
                 }
             }
         });
-        
+
         return reviewable;
     }, [allCompoundWords, learningData]);
 
@@ -216,7 +216,7 @@ export default function ReviewPage() {
     const buildReviewQueue = useCallback((type: ReviewType, mode: ReviewMode) => {
         const reviewable = type === 'characters' ? reviewableCharacters : reviewableCompounds;
         let filtered: CorpusWordWithState[];
-        
+
         switch (mode) {
             case 'unlearned':
                 filtered = reviewable.filter(c => !c.learned);
@@ -238,7 +238,7 @@ export default function ReviewPage() {
             setCurrentIndex(0);
             resetQuizState();
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dbLoading, isLoadingWords, sessionStarted, reviewMode, reviewType, reviewableCharacters, reviewableCompounds]);
 
     const currentItem = reviewQueue[currentIndex];
@@ -256,7 +256,7 @@ export default function ReviewPage() {
                 generateCompoundDefinitionChoices();
             }
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [currentWord, sessionStarted, reviewType]);
 
     // Reset quiz state
