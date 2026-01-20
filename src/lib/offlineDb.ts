@@ -741,6 +741,15 @@ export async function getWordAllDefinitions(word: string): Promise<WordDefinitio
 }
 
 /**
+ * Get total count of all words
+ */
+export async function getTotalWordCount(): Promise<number> {
+  const db = await initDatabase();
+  const results = db.exec('SELECT COUNT(*) FROM words');
+  return results[0]?.values[0]?.[0] || 0;
+}
+
+/**
  * Get count of single character words
  */
 export async function getCharacterWordCount(): Promise<number> {
@@ -812,6 +821,7 @@ export function useOfflineDb() {
     getWordAllDefinitions,
     getCharacterWordCount,
     getCompoundWordCount,
+    getTotalWordCount,
     // Example sentence functions
     searchExamples,
     batchSearchExamples,
