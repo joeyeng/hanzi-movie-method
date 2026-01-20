@@ -98,7 +98,7 @@ function generateToneVariations(correctPinyin: string, count: number): string[] 
     return Array.from(variations);
 }
 
-type ReviewMode = 'all' | 'unlearned' | 'due';
+type ReviewMode = 'reviewed' | 'all' | 'due';
 type AnswerState = 'answering' | 'correct' | 'incorrect';
 
 interface WordWithState extends WordEntryWithPrimary {
@@ -116,7 +116,7 @@ interface GroupReviewProps {
 }
 
 export function GroupReview({ groupWords, learningData, onExit, onDataChange, groupId }: GroupReviewProps) {
-    const [reviewFilter, setReviewFilter] = useState<ReviewMode>('all');
+    const [reviewFilter, setReviewFilter] = useState<ReviewMode>('reviewed');
     const [reviewQueue, setReviewQueue] = useState<WordWithState[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [sessionStarted, setSessionStarted] = useState(false);
@@ -147,8 +147,8 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
 
         let filtered: WordWithState[];
         switch (reviewFilter) {
-            case 'unlearned':
-                filtered = wordsWithState.filter(w => !w.learned);
+            case 'reviewed':
+                filtered = wordsWithState.filter(w => w.reviewed);
                 break;
             case 'due':
                 const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -167,6 +167,7 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
             const state = learningData.get(word.word);
             return {
                 learned: state?.learned ?? false,
+                reviewed: state?.reviewed ?? false,
                 lastReviewed: state?.lastReviewed,
             };
         });
@@ -175,7 +176,7 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
 
         return {
             all: groupWords.length,
-            unlearned: wordsWithState.filter(w => !w.learned).length,
+            reviewed: wordsWithState.filter(w => w.reviewed).length,
             due: wordsWithState.filter(w => !w.lastReviewed || new Date(w.lastReviewed) < oneDayAgo).length,
         };
     }, [groupWords, learningData]);
@@ -336,13 +337,13 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
                             <input
                                 type="radio"
                                 name="reviewFilter"
-                                checked={reviewFilter === 'all'}
-                                onChange={() => setReviewFilter('all')}
+                                checked={reviewFilter === 'reviewed'}
+                                onChange={() => setReviewFilter('reviewed')}
                                 className="w-4 h-4 accent-amber-500"
                             />
                             <div className="flex-1">
-                                <div className="font-medium">All Words</div>
-                                <div className="text-sm text-slate-400">{filterCounts.all} words</div>
+                                <div className="font-medium">Reviewed Words</div>
+                                <div className="text-sm text-slate-400">{filterCounts.reviewed} words marked for review</div>
                             </div>
                         </label>
 
@@ -350,13 +351,13 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
                             <input
                                 type="radio"
                                 name="reviewFilter"
-                                checked={reviewFilter === 'unlearned'}
-                                onChange={() => setReviewFilter('unlearned')}
+                                checked={reviewFilter === 'all'}
+                                onChange={() => setReviewFilter('all')}
                                 className="w-4 h-4 accent-amber-500"
                             />
                             <div className="flex-1">
-                                <div className="font-medium">Unlearned Only</div>
-                                <div className="text-sm text-slate-400">{filterCounts.unlearned} words</div>
+                                <div className="font-medium">All Words</div>
+                                <div className="text-sm text-slate-400">{filterCounts.all} words</div>
                             </div>
                         </label>
 
@@ -378,8 +379,8 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
                     <button
                         onClick={startReview}
                         disabled={
+                            (reviewFilter === 'reviewed' && filterCounts.reviewed === 0) ||
                             (reviewFilter === 'all' && filterCounts.all === 0) ||
-                            (reviewFilter === 'unlearned' && filterCounts.unlearned === 0) ||
                             (reviewFilter === 'due' && filterCounts.due === 0)
                         }
                         className="w-full bg-amber-500 text-slate-900 py-3 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
