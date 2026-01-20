@@ -117,7 +117,7 @@ interface GroupReviewProps {
     autoStart?: boolean;
 }
 
-export function GroupReview({ groupWords, learningData, onExit, onDataChange, groupId, initialFilter = 'reviewed', autoStart = false }: GroupReviewProps) {
+export function GroupReview({ groupWords, learningData, onExit, onDataChange, groupId, initialFilter = 'unlearned', autoStart = false }: GroupReviewProps) {
     const [reviewFilter, setReviewFilter] = useState<ReviewMode>(initialFilter);
     const [reviewQueue, setReviewQueue] = useState<WordWithState[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -313,7 +313,8 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
         if (currentIndex < reviewQueue.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
-            setSessionStarted(false);
+            // Review complete - go back to group
+            onExit();
         }
     };
 
@@ -450,7 +451,7 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <button
-                    onClick={() => setSessionStarted(false)}
+                    onClick={onExit}
                     className="text-slate-400 hover:text-amber-400 transition-colors"
                 >
                     ← End Session
@@ -603,7 +604,7 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
                         Skip →
                     </button>
                     <button
-                        onClick={() => setSessionStarted(false)}
+                        onClick={onExit}
                         className="px-4 py-2 bg-slate-700 text-slate-300 rounded-lg text-sm hover:bg-slate-600 transition-colors"
                     >
                         End Session
