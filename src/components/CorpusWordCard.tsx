@@ -52,8 +52,8 @@ export const CorpusWordCard = memo(function CorpusWordCard({
                             <button
                                 onClick={handleToggleReviewed}
                                 className={`p-1.5 rounded transition-colors ${reviewed
-                                        ? 'bg-blue-500/20 text-blue-400'
-                                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                                    ? 'bg-blue-500/20 text-blue-400'
+                                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                                     }`}
                                 title={reviewed ? 'Remove from review' : 'Add to review'}
                             >
@@ -64,8 +64,8 @@ export const CorpusWordCard = memo(function CorpusWordCard({
                             <button
                                 onClick={handleToggleLearned}
                                 className={`p-1.5 rounded transition-colors ${learned
-                                        ? 'bg-green-500/20 text-green-400'
-                                        : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                                    ? 'bg-green-500/20 text-green-400'
+                                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                                     }`}
                                 title={learned ? 'Mark as not learned' : 'Mark as learned'}
                             >
@@ -83,14 +83,14 @@ export const CorpusWordCard = memo(function CorpusWordCard({
             )}
 
             <div className="mt-2 flex items-center gap-2 text-xs">
-                <span 
-                    title="Frequency rank" 
+                <span
+                    title="Frequency rank"
                     className="bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full"
                 >
                     #{formattedRank}
                 </span>
-                <span 
-                    title="Corpus frequency" 
+                <span
+                    title="Corpus frequency"
                     className="bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full"
                 >
                     📊 {word.frequency.toLocaleString()}
@@ -100,8 +100,8 @@ export const CorpusWordCard = memo(function CorpusWordCard({
     );
 
     const cardClassName = `block bg-slate-800 rounded-lg p-2 sm:p-4 border transition-all ${learned
-            ? 'border-green-500/50 bg-green-900/10'
-            : 'border-slate-700 hover:border-amber-500/50'
+        ? 'border-green-500/50 bg-green-900/10'
+        : 'border-slate-700 hover:border-amber-500/50'
         }`;
 
     if (detailUrl) {
