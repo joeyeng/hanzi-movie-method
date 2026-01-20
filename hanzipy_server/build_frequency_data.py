@@ -7,6 +7,59 @@ import os
 import re
 from collections import defaultdict
 
+def tone_number_to_diacritic(pinyin: str) -> str:
+    """
+    Convert pinyin with tone numbers to tone diacritics.
+    e.g., 'wo3' -> 'wǒ', 'lv4' -> 'lǜ'
+    Returns original string if conversion fails.
+    """
+    if not pinyin or not re.match(r'^[a-züA-ZÜ]+[1-5]?$', pinyin, re.IGNORECASE):
+        return pinyin
+    
+    tone_marks = {
+        'a': ['ā', 'á', 'ǎ', 'à', 'a'],
+        'e': ['ē', 'é', 'ě', 'è', 'e'],
+        'i': ['ī', 'í', 'ǐ', 'ì', 'i'],
+        'o': ['ō', 'ó', 'ǒ', 'ò', 'o'],
+        'u': ['ū', 'ú', 'ǔ', 'ù', 'u'],
+        'ü': ['ǖ', 'ǘ', 'ǚ', 'ǜ', 'ü'],
+    }
+    
+    # Handle 'v' as 'ü'
+    pinyin = pinyin.replace('v', 'ü')
+    
+    # Extract tone number
+    match = re.match(r'^([a-züA-ZÜ]+)([1-5])?$', pinyin, re.IGNORECASE)
+    if not match:
+        return pinyin
+    
+    base = match.group(1).lower()
+    tone = int(match.group(2)) - 1 if match.group(2) else 4  # Default to neutral (5)
+    
+    # Find which vowel gets the tone mark
+    # Rules: 
+    # 1. 'a' or 'e' always get the mark
+    # 2. In 'ou', 'o' gets the mark
+    # 3. Otherwise, the last vowel gets the mark
+    if 'a' in base:
+        idx = base.index('a')
+        return base[:idx] + tone_marks['a'][tone] + base[idx+1:]
+    elif 'e' in base:
+        idx = base.index('e')
+        return base[:idx] + tone_marks['e'][tone] + base[idx+1:]
+    elif 'ou' in base:
+        idx = base.index('o')
+        return base[:idx] + tone_marks['o'][tone] + base[idx+1:]
+    else:
+        # Find last vowel
+        vowels = 'aeiouü'
+        for i in range(len(base) - 1, -1, -1):
+            if base[i] in vowels:
+                char = base[i]
+                return base[:i] + tone_marks[char][tone] + base[i+1:]
+    
+    return base
+
 def normalize_pinyin(pinyin: str) -> str:
     """Normalize pinyin for comparison (lowercase, strip tone numbers)"""
     # Remove tone numbers
@@ -123,7 +176,8 @@ def generate_python_dict(rankings: dict, output_file: str, min_freq_ratio: float
         
         for char in sorted(multi_pron_chars.keys()):
             pinyins = multi_pron_chars[char]
-            pinyin_list = ', '.join(f'("{p}", {freq})' for p, freq in pinyins)
+            # Convert tone numbers to diacritics
+            pinyin_list = ', '.join(f'("{tone_number_to_diacritic(p)}", {freq})' for p, freq in pinyins)
             f.write(f'    "{char}": [{pinyin_list}],\n')
         
         f.write('}\n')

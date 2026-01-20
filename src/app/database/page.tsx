@@ -8,6 +8,7 @@ import defaults from '@/lib/defaults.json';
 import { parseCharacterFileWithComponentsAsync, extractCharactersFromText, checkHanziPyServer, extractCompoundWords, lookupCompoundWordsAPI, CompoundWordResult, HanziComponent } from '@/lib/hanzipy';
 import { formatDefinition } from '@/lib/format';
 import * as storage from '@/lib/storage';
+import { clearDatabaseCache, isDatabaseDownloaded, useOfflineDb } from '@/lib/offlineDb';
 import type { Actor, Room, Set, Character } from '@/types';
 
 // Preview data type
@@ -291,6 +292,86 @@ function findSetForFinal(final: string, sets: Set[]): Set | undefined {
 // Generate movie scene description (template is auto-prepended in CharacterCard)
 function generateMovieScene(hanzi: string, meaning: string): string {
     return `They see a ${meaning.split(',')[0].trim()} (${hanzi}) and interact with it memorably.`;
+}
+
+// Offline Database Management Section
+function OfflineDbSection() {
+    const [isClient, setIsClient] = useState(false);
+    const [dbDownloaded, setDbDownloaded] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const { isReady, isLoading, initialize } = useOfflineDb();
+
+    useEffect(() => {
+        setIsClient(true);
+        setDbDownloaded(isDatabaseDownloaded());
+    }, [isReady]);
+
+    const handleDelete = async () => {
+        if (confirm('Are you sure you want to delete the offline database? You will need to re-download it to use the characters and compounds pages.')) {
+            setIsDeleting(true);
+            clearDatabaseCache();
+            setDbDownloaded(false);
+            setIsDeleting(false);
+        }
+    };
+
+    const handleDownload = async () => {
+        await initialize();
+        setDbDownloaded(isDatabaseDownloaded());
+    };
+
+    if (!isClient) {
+        return null;
+    }
+
+    return (
+        <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <h2 className="text-xl font-semibold text-amber-400 mb-2">Offline Database</h2>
+            <p className="text-slate-400 text-sm mb-4">
+                The offline database contains word frequencies from SUBTLEX-CH corpus, definitions from CC-CEDICT,
+                and 63,000+ example sentences. It&apos;s cached locally for offline use.
+            </p>
+
+            <div className="flex items-center gap-3 mb-4">
+                <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm ${dbDownloaded
+                        ? 'bg-green-500/20 text-green-400'
+                        : 'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                    {dbDownloaded ? '✓ Downloaded' : '○ Not Downloaded'}
+                </span>
+                {isReady && <span className="text-slate-500 text-sm">~26 MB</span>}
+            </div>
+
+            <div className="flex gap-3">
+                {!dbDownloaded ? (
+                    <button
+                        onClick={handleDownload}
+                        disabled={isLoading}
+                        className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-blue-500 transition-colors disabled:opacity-50"
+                    >
+                        {isLoading ? 'Downloading...' : '📥 Download Database'}
+                    </button>
+                ) : (
+                    <>
+                        <button
+                            onClick={handleDownload}
+                            disabled={isLoading}
+                            className="flex-1 bg-slate-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-slate-500 transition-colors disabled:opacity-50"
+                        >
+                            {isLoading ? 'Downloading...' : '🔄 Re-download'}
+                        </button>
+                        <button
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-500 transition-colors disabled:opacity-50"
+                        >
+                            {isDeleting ? 'Deleting...' : '🗑️ Delete'}
+                        </button>
+                    </>
+                )}
+            </div>
+        </div>
+    );
 }
 
 export default function DatabasePage() {
@@ -1198,6 +1279,9 @@ export default function DatabasePage() {
                     </label>
                 </div>
             </div>
+
+            {/* Offline Database Management */}
+            <OfflineDbSection />
 
             {/* Clear Data */}
             <div className="bg-slate-800 rounded-lg p-6 border border-red-500/30">

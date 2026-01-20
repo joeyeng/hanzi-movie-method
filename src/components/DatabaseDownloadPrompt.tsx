@@ -22,7 +22,8 @@ export default function DatabaseDownloadPrompt({ children }: DatabaseDownloadPro
 
     const handleDownload = async () => {
         await initialize();
-        setShowPrompt(false);
+        // Reload the page to pick up the new database state
+        window.location.reload();
     };
 
     // Server-side or initial render - show nothing special

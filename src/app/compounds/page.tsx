@@ -1,13 +1,19 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useCompounds, useCharacters } from '@/hooks/useLocalStorage';
-import { CompoundWord } from '@/types';
-import Link from 'next/link';
+import { useState, useEffect, Suspense, useCallback, useRef, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { CompoundCard } from '@/components/CompoundCard';
+import { useOfflineDb, WordEntryWithPrimary, isDatabaseDownloaded } from '@/lib/offlineDb';
+import { CorpusWordCard } from '@/components/CorpusWordCard';
+import DatabaseDownloadPrompt from '@/components/DatabaseDownloadPrompt';
 
 const COMPOUNDS_PER_PAGE = 100;
+const SCROLL_STORAGE_KEY = 'compounds-scroll-position';
+const PAGE_STORAGE_KEY = 'compounds-page';
+const FILTER_STORAGE_KEY = 'compounds-filter';
+
+// Storage key for user learning state
+const LEARNED_COMPOUNDS_KEY = 'hmm-learned-compounds';
+const REVIEWED_COMPOUNDS_KEY = 'hmm-reviewed-compounds';
 
 // Normalize pinyin by removing tone marks for search comparison
 function normalizePinyin(pinyin: string): string {
@@ -22,16 +28,143 @@ function normalizePinyin(pinyin: string): string {
     return pinyin.toLowerCase().split('').map(c => toneMap[c] || c).join('');
 }
 
+// Custom hook for managing learned/reviewed state
+function useWordLearningState() {
+    const [learnedWords, setLearnedWords] = useState<Set<string>>(new Set());
+    const [reviewedWords, setReviewedWords] = useState<Set<string>>(new Set());
+
+    // Load from localStorage on mount
+    useEffect(() => {
+        const savedLearned = localStorage.getItem(LEARNED_COMPOUNDS_KEY);
+        const savedReviewed = localStorage.getItem(REVIEWED_COMPOUNDS_KEY);
+
+        if (savedLearned) {
+            try {
+                setLearnedWords(new Set(JSON.parse(savedLearned)));
+            } catch (e) {
+                console.error('Failed to parse learned compounds:', e);
+            }
+        }
+        if (savedReviewed) {
+            try {
+                setReviewedWords(new Set(JSON.parse(savedReviewed)));
+            } catch (e) {
+                console.error('Failed to parse reviewed compounds:', e);
+            }
+        }
+    }, []);
+
+    const toggleLearned = useCallback((word: string) => {
+        setLearnedWords(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(word)) {
+                newSet.delete(word);
+            } else {
+                newSet.add(word);
+            }
+            localStorage.setItem(LEARNED_COMPOUNDS_KEY, JSON.stringify([...newSet]));
+            return newSet;
+        });
+    }, []);
+
+    const toggleReviewed = useCallback((word: string) => {
+        setReviewedWords(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(word)) {
+                newSet.delete(word);
+            } else {
+                newSet.add(word);
+            }
+            localStorage.setItem(REVIEWED_COMPOUNDS_KEY, JSON.stringify([...newSet]));
+            return newSet;
+        });
+    }, []);
+
+    return {
+        learnedWords,
+        reviewedWords,
+        toggleLearned,
+        toggleReviewed,
+        isLearned: (word: string) => learnedWords.has(word),
+        isReviewed: (word: string) => reviewedWords.has(word),
+        learnedCount: learnedWords.size,
+        reviewedCount: reviewedWords.size
+    };
+}
+
 function CompoundsContent() {
-    const { compounds, loading, add, update, remove, toggleLearned, toggleReviewed } = useCompounds();
-    const { characters } = useCharacters();
+    const { isReady, isLoading: dbLoading, getCompoundWords, getCompoundWordCount, searchWords } = useOfflineDb();
+    const { isLearned, isReviewed, toggleLearned, toggleReviewed, learnedCount } = useWordLearningState();
     const searchParams = useSearchParams();
-    const [showForm, setShowForm] = useState(false);
-    const [editingCompound, setEditingCompound] = useState<CompoundWord | null>(null);
+
+    const [compounds, setCompounds] = useState<WordEntryWithPrimary[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
+    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [filterLearned, setFilterLearned] = useState<'all' | 'learned' | 'unlearned'>('all');
-    const [filterReviewed, setFilterReviewed] = useState<'all' | 'reviewed' | 'not-reviewed'>('all');
     const [currentPage, setCurrentPage] = useState(1);
+    const [isRestored, setIsRestored] = useState(false);
+    const [showDbPrompt, setShowDbPrompt] = useState(false);
+    const [isPending, startTransition] = useTransition();
+
+    // Cache for loaded pages to avoid re-fetching
+    const pageCache = useRef<Map<number, WordEntryWithPrimary[]>>(new Map());
+
+    // Check if database is downloaded
+    useEffect(() => {
+        if (typeof window !== 'undefined' && !isDatabaseDownloaded()) {
+            setShowDbPrompt(true);
+        }
+    }, []);
+
+    // Restore page and filter from sessionStorage on mount
+    useEffect(() => {
+        const savedPage = sessionStorage.getItem(PAGE_STORAGE_KEY);
+        const savedFilter = sessionStorage.getItem(FILTER_STORAGE_KEY);
+
+        if (savedPage) {
+            setCurrentPage(parseInt(savedPage, 10));
+        }
+        if (savedFilter) {
+            setFilterLearned(savedFilter as 'all' | 'learned' | 'unlearned');
+        }
+        setIsRestored(true);
+    }, []);
+
+    // Restore scroll position after content is loaded and page is restored
+    useEffect(() => {
+        if (!loading && isRestored) {
+            const savedScroll = sessionStorage.getItem(SCROLL_STORAGE_KEY);
+            if (savedScroll) {
+                requestAnimationFrame(() => {
+                    window.scrollTo(0, parseInt(savedScroll, 10));
+                });
+            }
+        }
+    }, [loading, isRestored]);
+
+    // Save scroll position on scroll
+    useEffect(() => {
+        const handleScroll = () => {
+            sessionStorage.setItem(SCROLL_STORAGE_KEY, window.scrollY.toString());
+        };
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, []);
+
+    // Save page to sessionStorage when it changes
+    useEffect(() => {
+        if (isRestored) {
+            sessionStorage.setItem(PAGE_STORAGE_KEY, currentPage.toString());
+        }
+    }, [currentPage, isRestored]);
+
+    // Save filter to sessionStorage when it changes
+    useEffect(() => {
+        if (isRestored) {
+            sessionStorage.setItem(FILTER_STORAGE_KEY, filterLearned);
+        }
+    }, [filterLearned, isRestored]);
 
     // Initialize search from URL param
     useEffect(() => {
@@ -41,113 +174,109 @@ function CompoundsContent() {
         }
     }, [searchParams]);
 
-    // Form state
-    const [formWord, setFormWord] = useState('');
-    const [formPinyin, setFormPinyin] = useState('');
-    const [formDefinition, setFormDefinition] = useState('');
-    const [formNotes, setFormNotes] = useState('');
+    // Clear cache when search changes
+    useEffect(() => {
+        pageCache.current.clear();
+    }, [searchQuery]);
 
+    // Load total count once
+    useEffect(() => {
+        if (!isReady) return;
+        getCompoundWordCount().then(setTotalCount);
+    }, [isReady, getCompoundWordCount]);
+
+    // Load compounds for current page using SQL LIMIT/OFFSET
+    useEffect(() => {
+        let cancelled = false;
+
+        async function loadPage() {
+            if (!isReady) return;
+
+            if (searchQuery) {
+                // Search mode - load matching results
+                setLoading(true);
+                try {
+                    const results = await searchWords(searchQuery, 500);
+                    if (cancelled) return;
+                    const compoundWords = results.filter(w => w.length > 1);
+                    setCompounds(compoundWords);
+                } finally {
+                    if (!cancelled) setLoading(false);
+                }
+            } else {
+                // Check cache first
+                const cached = pageCache.current.get(currentPage);
+                if (cached) {
+                    setCompounds(cached);
+                    setLoading(false);
+                    return;
+                }
+
+                // Load from database with SQL pagination
+                setLoading(true);
+                try {
+                    const offset = (currentPage - 1) * COMPOUNDS_PER_PAGE;
+                    const words = await getCompoundWords(offset, COMPOUNDS_PER_PAGE);
+                    if (cancelled) return;
+
+                    // Cache the result
+                    pageCache.current.set(currentPage, words);
+                    setCompounds(words);
+                } finally {
+                    if (!cancelled) setLoading(false);
+                }
+            }
+        }
+
+        loadPage();
+
+        return () => { cancelled = true; };
+    }, [isReady, currentPage, searchQuery, getCompoundWords, searchWords]);
+
+    // Apply learned filter (client-side since it's based on localStorage)
     const filteredCompounds = compounds.filter(compound => {
-        const searchLower = searchQuery.toLowerCase();
-        const searchNormalized = normalizePinyin(searchQuery);
-        const matchesSearch =
-            compound.word.includes(searchQuery) ||
-            compound.pinyin.toLowerCase().includes(searchLower) ||
-            normalizePinyin(compound.pinyin).includes(searchNormalized) ||
-            compound.definition.toLowerCase().includes(searchLower);
-
-        const matchesLearned =
-            filterLearned === 'all' ||
-            (filterLearned === 'learned' && compound.learned) ||
-            (filterLearned === 'unlearned' && !compound.learned);
-
-        const matchesReviewed =
-            filterReviewed === 'all' ||
-            (filterReviewed === 'reviewed' && compound.reviewed) ||
-            (filterReviewed === 'not-reviewed' && !compound.reviewed);
-
-        return matchesSearch && matchesLearned && matchesReviewed;
+        if (filterLearned === 'learned' && !isLearned(compound.word)) return false;
+        if (filterLearned === 'unlearned' && isLearned(compound.word)) return false;
+        return true;
     });
 
-    // Pagination
-    const totalPages = Math.ceil(filteredCompounds.length / COMPOUNDS_PER_PAGE);
-    const startIndex = (currentPage - 1) * COMPOUNDS_PER_PAGE;
-    const paginatedCompounds = filteredCompounds.slice(startIndex, startIndex + COMPOUNDS_PER_PAGE);
+    // For search mode, paginate client-side; for normal mode, already paginated by SQL
+    const totalPages = searchQuery
+        ? Math.ceil(filteredCompounds.length / COMPOUNDS_PER_PAGE)
+        : Math.ceil(totalCount / COMPOUNDS_PER_PAGE);
+
+    const displayCompounds = searchQuery
+        ? filteredCompounds.slice((currentPage - 1) * COMPOUNDS_PER_PAGE, currentPage * COMPOUNDS_PER_PAGE)
+        : filteredCompounds;
 
     // Reset to page 1 when search changes
     const handleSearchChange = (value: string) => {
         setSearchQuery(value);
         setCurrentPage(1);
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
     };
 
     const handleFilterChange = (value: 'all' | 'learned' | 'unlearned') => {
         setFilterLearned(value);
         setCurrentPage(1);
+        sessionStorage.removeItem(SCROLL_STORAGE_KEY);
     };
 
-    const handleReviewedFilterChange = (value: 'all' | 'reviewed' | 'not-reviewed') => {
-        setFilterReviewed(value);
-        setCurrentPage(1);
-    };
+    // Show database download prompt if not downloaded
+    if (showDbPrompt && !isReady) {
+        return (
+            <DatabaseDownloadPrompt>
+                <div className="flex items-center justify-center h-64">
+                    <div className="text-slate-400">Loading database...</div>
+                </div>
+            </DatabaseDownloadPrompt>
+        );
+    }
 
-    const resetForm = () => {
-        setFormWord('');
-        setFormPinyin('');
-        setFormDefinition('');
-        setFormNotes('');
-        setEditingCompound(null);
-    };
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        const chars = Array.from(formWord);
-
-        if (editingCompound) {
-            update(editingCompound.id, {
-                word: formWord,
-                characters: chars,
-                pinyin: formPinyin,
-                definition: formDefinition,
-                notes: formNotes || undefined,
-            });
-        } else {
-            add({
-                word: formWord,
-                characters: chars,
-                pinyin: formPinyin,
-                definition: formDefinition,
-                notes: formNotes || undefined,
-            });
-        }
-        setShowForm(false);
-        resetForm();
-    };
-
-    const handleEdit = (compound: CompoundWord) => {
-        setEditingCompound(compound);
-        setFormWord(compound.word);
-        setFormPinyin(compound.pinyin);
-        setFormDefinition(compound.definition);
-        setFormNotes(compound.notes || '');
-        setShowForm(true);
-    };
-
-    const handleDelete = (id: string) => {
-        if (confirm('Are you sure you want to delete this compound word?')) {
-            remove(id);
-        }
-    };
-
-    // Find character by hanzi to get its ID for linking
-    const findCharacterId = (hanzi: string): string | null => {
-        const char = characters.find(c => c.hanzi === hanzi);
-        return char ? char.id : null;
-    };
-
-    if (loading) {
+    if (dbLoading || loading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <div className="text-slate-400">Loading...</div>
+                <div className="text-slate-400">Loading compounds...</div>
             </div>
         );
     }
@@ -157,30 +286,26 @@ function CompoundsContent() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-amber-400 mb-1 sm:mb-2">Compound Words</h1>
-                    <p className="text-slate-400 text-sm sm:text-base">Multi-character words and phrases</p>
+                    <p className="text-slate-400 text-sm sm:text-base">
+                        {totalCount.toLocaleString()} compound words from SUBTLEX corpus
+                        {learnedCount > 0 && (
+                            <span className="text-green-400 ml-2">• {learnedCount} learned</span>
+                        )}
+                    </p>
                 </div>
-                <button
-                    onClick={() => {
-                        resetForm();
-                        setShowForm(true);
-                    }}
-                    className="w-full sm:w-auto bg-amber-500 text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
-                >
-                    Add Compound Word
-                </button>
             </div>
 
             {/* Search and Filters */}
             <div className="flex flex-col gap-3 mb-6">
                 <input
                     type="text"
-                    placeholder="Search compounds..."
+                    placeholder="Search compounds by word, pinyin, or meaning..."
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className="w-full sm:max-w-md px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
+                    className="w-full px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-amber-500"
                 />
                 <div className="flex flex-wrap gap-2">
-                    <span className="text-slate-400 text-sm self-center mr-2">Learned:</span>
+                    <span className="text-slate-400 text-sm self-center mr-2">Filter:</span>
                     <button
                         onClick={() => handleFilterChange('all')}
                         className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterLearned === 'all'
@@ -197,7 +322,7 @@ function CompoundsContent() {
                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             }`}
                     >
-                        ✓ Learned
+                        ✓ Learned ({learnedCount})
                     </button>
                     <button
                         onClick={() => handleFilterChange('unlearned')}
@@ -208,138 +333,35 @@ function CompoundsContent() {
                     >
                         Not Learned
                     </button>
-                    <span className="text-slate-600 mx-2">|</span>
-                    <span className="text-slate-400 text-sm self-center mr-2">Review:</span>
-                    <button
-                        onClick={() => handleReviewedFilterChange('all')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterReviewed === 'all'
-                            ? 'bg-amber-500 text-slate-900'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                            }`}
-                    >
-                        All
-                    </button>
-                    <button
-                        onClick={() => handleReviewedFilterChange('reviewed')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterReviewed === 'reviewed'
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                            }`}
-                    >
-                        📚 In Review
-                    </button>
-                    <button
-                        onClick={() => handleReviewedFilterChange('not-reviewed')}
-                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterReviewed === 'not-reviewed'
-                            ? 'bg-slate-500 text-white'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                            }`}
-                    >
-                        Not in Review
-                    </button>
                 </div>
             </div>
 
-            {/* Form Modal */}
-            {showForm && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md mx-4">
-                        <h2 className="text-xl font-bold text-amber-400 mb-4">
-                            {editingCompound ? 'Edit Compound Word' : 'Add Compound Word'}
-                        </h2>
-                        <form onSubmit={handleSubmit} className="space-y-4">
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">
-                                    Word (Chinese)
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formWord}
-                                    onChange={(e) => setFormWord(e.target.value)}
-                                    required
-                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:border-amber-500"
-                                    placeholder="你好"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">
-                                    Pinyin
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formPinyin}
-                                    onChange={(e) => setFormPinyin(e.target.value)}
-                                    required
-                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:border-amber-500"
-                                    placeholder="nǐ hǎo"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">
-                                    Definition
-                                </label>
-                                <input
-                                    type="text"
-                                    value={formDefinition}
-                                    onChange={(e) => setFormDefinition(e.target.value)}
-                                    required
-                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:border-amber-500"
-                                    placeholder="hello"
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-slate-300 mb-1">
-                                    Notes (optional)
-                                </label>
-                                <textarea
-                                    value={formNotes}
-                                    onChange={(e) => setFormNotes(e.target.value)}
-                                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-slate-100 focus:outline-none focus:border-amber-500"
-                                    rows={2}
-                                />
-                            </div>
-                            <div className="flex gap-3 pt-2">
-                                <button
-                                    type="submit"
-                                    className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
-                                >
-                                    {editingCompound ? 'Update' : 'Add'}
-                                </button>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setShowForm(false);
-                                        resetForm();
-                                    }}
-                                    className="flex-1 bg-slate-700 text-slate-300 py-2 rounded-lg font-medium hover:bg-slate-600 transition-colors"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            )}
-
             {/* Compound Cards */}
             {filteredCompounds.length === 0 ? (
-                <div className="text-center py-12">
-                    <p className="text-slate-400">
-                        {searchQuery ? 'No compound words match your search.' : 'No compound words yet. Add some or import from the Import page.'}
-                    </p>
+                <div className="text-center py-12 text-slate-500">
+                    {searchQuery || filterLearned !== 'all'
+                        ? 'No compounds match your search or filter.'
+                        : 'No compounds available. Please download the offline database.'}
                 </div>
             ) : (
                 <>
                     <div className="text-sm text-slate-400 mb-4">
-                        Showing {startIndex + 1}-{Math.min(startIndex + COMPOUNDS_PER_PAGE, filteredCompounds.length)} of {filteredCompounds.length} compound words
+                        {searchQuery ? (
+                            <>Showing {((currentPage - 1) * COMPOUNDS_PER_PAGE) + 1}-{Math.min(currentPage * COMPOUNDS_PER_PAGE, filteredCompounds.length)} of {filteredCompounds.length.toLocaleString()} compound words matching &quot;{searchQuery}&quot;</>
+                        ) : (
+                            <>Showing {((currentPage - 1) * COMPOUNDS_PER_PAGE) + 1}-{Math.min(currentPage * COMPOUNDS_PER_PAGE, totalCount)} of {totalCount.toLocaleString()} compound words</>
+                        )}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {paginatedCompounds.map((compound) => (
-                            <CompoundCard
-                                key={compound.id}
-                                compound={compound}
-                                onToggleLearned={() => toggleLearned(compound.id)}
-                                onToggleReviewed={() => toggleReviewed(compound.id)}
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-4">
+                        {displayCompounds.map((word) => (
+                            <CorpusWordCard
+                                key={word.id}
+                                word={word}
+                                learned={isLearned(word.word)}
+                                reviewed={isReviewed(word.word)}
+                                onToggleLearned={toggleLearned}
+                                onToggleReviewed={toggleReviewed}
+                                detailUrl={`/compounds/${encodeURIComponent(word.word)}`}
                             />
                         ))}
                     </div>
