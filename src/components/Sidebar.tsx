@@ -13,7 +13,6 @@ const navItems = [
     { href: '/rooms', label: 'Rooms', icon: '🚪' },
     { href: '/sets', label: 'Sets', icon: '🎬' },
     { href: '/props', label: 'Props', icon: '🎪' },
-    { href: '/review', label: 'Review', icon: '📖' },
     { href: '/settings', label: 'Settings', icon: '⚙️' },
 ];
 
