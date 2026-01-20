@@ -69,14 +69,14 @@ function useWordLearningState() {
 
 function CompoundsContent() {
     const { isReady, isLoading: dbLoading, getCompoundWords, getCompoundWordCount, searchWords } = useOfflineDb();
-    const { isLearned, isReviewed, toggleLearned, toggleReviewed, learnedCount } = useWordLearningState();
+    const { isLearned, isReviewed, toggleLearned, toggleReviewed, learnedCount, reviewedCount } = useWordLearningState();
     const searchParams = useSearchParams();
 
     const [compounds, setCompounds] = useState<WordEntryWithPrimary[]>([]);
     const [totalCount, setTotalCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterLearned, setFilterLearned] = useState<'all' | 'learned' | 'unlearned'>('all');
+    const [filterLearned, setFilterLearned] = useState<'all' | 'learned' | 'unlearned' | 'reviewed'>('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [isRestored, setIsRestored] = useState(false);
     const [isPending, startTransition] = useTransition();
@@ -93,7 +93,7 @@ function CompoundsContent() {
             setCurrentPage(parseInt(savedPage, 10));
         }
         if (savedFilter) {
-            setFilterLearned(savedFilter as 'all' | 'learned' | 'unlearned');
+            setFilterLearned(savedFilter as 'all' | 'learned' | 'unlearned' | 'reviewed');
         }
         setIsRestored(true);
     }, []);
@@ -200,10 +200,11 @@ function CompoundsContent() {
         return () => { cancelled = true; };
     }, [isReady, currentPage, searchQuery, getCompoundWords, searchWords]);
 
-    // Apply learned filter (client-side since it's based on localStorage)
+    // Apply learned/reviewed filter (client-side since it's based on localStorage)
     const filteredCompounds = compounds.filter(compound => {
         if (filterLearned === 'learned' && !isLearned(compound.word)) return false;
         if (filterLearned === 'unlearned' && isLearned(compound.word)) return false;
+        if (filterLearned === 'reviewed' && !isReviewed(compound.word)) return false;
         return true;
     });
 
@@ -223,7 +224,7 @@ function CompoundsContent() {
         sessionStorage.removeItem(SCROLL_STORAGE_KEY);
     };
 
-    const handleFilterChange = (value: 'all' | 'learned' | 'unlearned') => {
+    const handleFilterChange = (value: 'all' | 'learned' | 'unlearned' | 'reviewed') => {
         setFilterLearned(value);
         setCurrentPage(1);
         sessionStorage.removeItem(SCROLL_STORAGE_KEY);
@@ -288,6 +289,15 @@ function CompoundsContent() {
                             }`}
                     >
                         Not Learned
+                    </button>
+                    <button
+                        onClick={() => handleFilterChange('reviewed')}
+                        className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${filterLearned === 'reviewed'
+                            ? 'bg-blue-500 text-white'
+                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            }`}
+                    >
+                        📚 In Review ({reviewedCount})
                     </button>
                 </div>
             </div>
