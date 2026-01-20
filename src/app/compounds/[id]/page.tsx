@@ -173,7 +173,7 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                                     return charData ? (
                                         <Link
                                             key={index}
-                                            href={`/characters/${charData.id}`}
+                                            href={`/words/${encodeURIComponent(char)}`}
                                             className="text-6xl font-bold text-amber-400 hover:text-amber-300 transition-colors"
                                             title={`View character: ${char}`}
                                         >
@@ -206,7 +206,7 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                                 return (
                                     <div key={index} className="bg-slate-700/50 rounded-lg p-3 text-center">
                                         {charData ? (
-                                            <Link href={`/characters/${charData.id}`} className="block hover:bg-slate-700 rounded transition-colors">
+                                            <Link href={`/words/${encodeURIComponent(char)}`} className="block hover:bg-slate-700 rounded transition-colors">
                                                 <span className="text-3xl text-amber-400">{char}</span>
                                                 <p className="text-sm text-slate-300 mt-1">{charData.pinyin}</p>
                                                 <p className="text-xs text-slate-500">{charData.meaning?.split(',')[0]}</p>
@@ -341,7 +341,7 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                             {wordChars.map((char, index) => (
                                 <Link
                                     key={index}
-                                    href={`/characters/${encodeURIComponent(char)}`}
+                                    href={`/words/${encodeURIComponent(char)}`}
                                     className="text-6xl font-bold text-amber-400 hover:text-amber-300 transition-colors"
                                     title={`View character: ${char}`}
                                 >
@@ -378,7 +378,7 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                             const charData = findCharacter(char);
                             return (
                                 <div key={index} className="bg-slate-700/50 rounded-lg p-3 text-center">
-                                    <Link href={`/characters/${encodeURIComponent(char)}`} className="block hover:bg-slate-700 rounded transition-colors">
+                                    <Link href={`/words/${encodeURIComponent(char)}`} className="block hover:bg-slate-700 rounded transition-colors">
                                         <span className="text-3xl text-amber-400">{char}</span>
                                         {charData && (
                                             <>

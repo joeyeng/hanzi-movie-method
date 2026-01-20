@@ -343,7 +343,7 @@ function CharactersContent() {
                                 reviewed={isReviewed(word.word)}
                                 onToggleLearned={toggleLearned}
                                 onToggleReviewed={toggleReviewed}
-                                detailUrl={`/characters/${encodeURIComponent(word.word)}`}
+                                detailUrl={`/words/${encodeURIComponent(word.word)}`}
                             />
                         ))}
                     </div>

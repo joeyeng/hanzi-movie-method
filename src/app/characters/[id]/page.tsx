@@ -587,7 +587,7 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                                 {relatedCompounds.map(compound => (
                                     <Link
                                         key={compound.id}
-                                        href={`/compounds/${compound.id}`}
+                                        href={`/words/${encodeURIComponent(compound.word)}`}
                                         className="bg-amber-500/20 hover:bg-amber-500/30 rounded px-3 py-1 text-amber-300 transition-colors"
                                     >
                                         {compound.word} <span className="text-slate-400">({compound.pinyin})</span>

@@ -88,7 +88,7 @@ export default function Home() {
             {recentCharacters.map(char => (
               <Link
                 key={char.id}
-                href={`/characters/${char.id}`}
+                href={`/words/${encodeURIComponent(char.hanzi)}`}
                 className="bg-slate-700 rounded-lg p-4 text-center hover:bg-slate-600 transition-colors overflow-hidden"
               >
                 <div className="text-4xl text-amber-400 mb-2">{char.hanzi}</div>

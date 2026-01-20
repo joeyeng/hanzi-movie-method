@@ -327,7 +327,7 @@ function CompoundsContent() {
                                 reviewed={isReviewed(word.word)}
                                 onToggleLearned={toggleLearned}
                                 onToggleReviewed={toggleReviewed}
-                                detailUrl={`/compounds/${encodeURIComponent(word.word)}`}
+                                detailUrl={`/words/${encodeURIComponent(word.word)}`}
                             />
                         ))}
                     </div>

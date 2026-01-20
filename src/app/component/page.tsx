@@ -112,7 +112,7 @@ function ComponentContent() {
                             {charactersWithComponent.map(char => (
                                 <Link
                                     key={char.id}
-                                    href={`/characters/${char.id}`}
+                                    href={`/words/${encodeURIComponent(char.hanzi)}`}
                                     className="bg-slate-700/50 rounded-lg p-4 hover:bg-slate-700 transition-colors group"
                                 >
                                     <div className="text-4xl text-center text-amber-400 group-hover:text-amber-300 mb-2">
