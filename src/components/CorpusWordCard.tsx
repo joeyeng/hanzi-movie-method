@@ -81,33 +81,33 @@ export const CorpusWordCard = memo(function CorpusWordCard({
 
             {/* Footer with toggle buttons */}
             {showActions && (
-                <div className="flex justify-center gap-2 mt-3 pt-3 border-t border-slate-700 bg-slate-900/50 -mx-2 sm:-mx-4 -mb-2 sm:-mb-4 px-2 sm:px-4 pb-2 sm:pb-4 rounded-b-lg">
+                <div className="flex flex-row justify-center gap-2 mt-3 pt-3 border-t border-slate-700 bg-slate-900/50 -mx-2 -mb-2 px-2 pb-2 rounded-b-lg">
                     <button
                         onClick={handleToggleLearned}
-                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${learned
+                        className={`px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${learned
                             ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                             : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                             }`}
                         title={learned ? 'Mark as not learned' : 'Mark as learned'}
                     >
-                        {learned ? '✓ Learned' : 'Mark Learned'}
+                        {learned ? '✓ Learned' : '✗ Learned'}
                     </button>
                     <button
                         onClick={handleToggleReviewed}
-                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${reviewed
+                        className={`px-2 py-1 rounded text-xs font-medium transition-colors whitespace-nowrap ${reviewed
                             ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
                             : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                             }`}
                         title={reviewed ? 'Remove from review' : 'Add to review'}
                     >
-                        {reviewed ? '📚 In Review' : 'Add to Review'}
+                        {reviewed ? '📚 Reviewed' : 'Not Reviewed'}
                     </button>
                 </div>
             )}
         </>
     );
 
-    const cardClassName = `block relative bg-slate-800 rounded-lg p-2 sm:p-4 border transition-all ${learned
+    const cardClassName = `block relative bg-slate-800 rounded-lg p-2 border transition-all ${learned
         ? 'border-green-500/50 bg-green-900/10'
         : 'border-slate-700 hover:border-amber-500/50'
         }`;
