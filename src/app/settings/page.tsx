@@ -224,7 +224,7 @@ export default function SettingsPage() {
         const chars = storage.getCharacters();
         const learnedCount = chars.filter(c => c.learned).length;
         const unlearnedCount = chars.filter(c => !c.learned).length;
-        
+
         // Get corpus learning data and convert Map to Object for JSON serialization
         const corpusLearningMap = storage.getCorpusLearningData();
         const corpusLearningObj = Object.fromEntries(corpusLearningMap);
@@ -287,7 +287,7 @@ export default function SettingsPage() {
                     if (backupCharacters) storage.saveCharacters(backupCharacters);
                     if (backupCompounds) storage.saveCompounds(backupCompounds);
                     if (backupComponents) storage.saveComponents(backupComponents);
-                    
+
                     // Convert corpusLearning object back to Map for storage
                     if (backupCorpusLearning) {
                         const corpusMap = new Map(Object.entries(backupCorpusLearning)) as Map<string, storage.CorpusWordState>;
@@ -309,11 +309,11 @@ export default function SettingsPage() {
                         `Restored ${backupCompounds?.length || 0} compounds`,
                         `Restored ${backupComponents?.length || 0} components`,
                     ];
-                    
+
                     if (corpusLearnedCount > 0 || corpusReviewedCount > 0) {
                         messages.push(`Restored study progress: ${corpusLearnedCount} learned, ${corpusReviewedCount} in review`);
                     }
-                    
+
                     setImportStatus(messages);
 
                     setTimeout(() => window.location.reload(), 1500);
