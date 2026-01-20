@@ -481,13 +481,9 @@ export function getWordsWithHmmData(): string[] {
 // This is separate from the Character type which is for manually imported characters
 
 export interface CorpusWordState {
-  word: string;
   learned: boolean;
   reviewed: boolean;        // Whether it's in the review queue
-  reviewCount: number;
-  lastReviewed?: Date;
-  createdAt: Date;
-  updatedAt: Date;
+  lastReviewed?: string;    // ISO timestamp of last review
 }
 
 const CORPUS_LEARNING_KEY = 'hmm-corpus-learning';
@@ -518,15 +514,10 @@ export function getCorpusWordState(word: string): CorpusWordState | undefined {
 export function setCorpusWordLearned(word: string, learned: boolean): CorpusWordState {
   const data = getCorpusLearningData();
   const existing = data.get(word);
-  const now = new Date();
   const updated: CorpusWordState = {
-    word,
     learned,
     reviewed: existing?.reviewed ?? false,
-    reviewCount: existing?.reviewCount ?? 0,
     lastReviewed: existing?.lastReviewed,
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
   };
   data.set(word, updated);
   saveCorpusLearningData(data);
@@ -536,15 +527,10 @@ export function setCorpusWordLearned(word: string, learned: boolean): CorpusWord
 export function setCorpusWordReviewed(word: string, reviewed: boolean): CorpusWordState {
   const data = getCorpusLearningData();
   const existing = data.get(word);
-  const now = new Date();
   const updated: CorpusWordState = {
-    word,
     learned: existing?.learned ?? false,
     reviewed,
-    reviewCount: existing?.reviewCount ?? 0,
     lastReviewed: existing?.lastReviewed,
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
   };
   data.set(word, updated);
   saveCorpusLearningData(data);
@@ -554,27 +540,26 @@ export function setCorpusWordReviewed(word: string, reviewed: boolean): CorpusWo
 export function markCorpusWordReviewed(word: string): CorpusWordState {
   const data = getCorpusLearningData();
   const existing = data.get(word);
-  const now = new Date();
   const updated: CorpusWordState = {
-    word,
     learned: existing?.learned ?? false,
     reviewed: existing?.reviewed ?? false,
-    reviewCount: (existing?.reviewCount ?? 0) + 1,
-    lastReviewed: now,
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
+    lastReviewed: new Date().toISOString(),
   };
   data.set(word, updated);
   saveCorpusLearningData(data);
   return updated;
 }
 
-export function getCorpusWordsForReview(): CorpusWordState[] {
+export function getCorpusWordsForReview(): string[] {
   const data = getCorpusLearningData();
-  return Array.from(data.values()).filter(w => w.reviewed);
+  return Array.from(data.entries())
+    .filter(([, state]) => state.reviewed)
+    .map(([word]) => word);
 }
 
-export function getLearnedCorpusWords(): CorpusWordState[] {
+export function getLearnedCorpusWords(): string[] {
   const data = getCorpusLearningData();
-  return Array.from(data.values()).filter(w => w.learned);
+  return Array.from(data.entries())
+    .filter(([, state]) => state.learned)
+    .map(([word]) => word);
 }

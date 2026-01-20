@@ -224,6 +224,12 @@ export default function SettingsPage() {
         const chars = storage.getCharacters();
         const learnedCount = chars.filter(c => c.learned).length;
         const unlearnedCount = chars.filter(c => !c.learned).length;
+        
+        // Get corpus learning data and convert Map to Object for JSON serialization
+        const corpusLearningMap = storage.getCorpusLearningData();
+        const corpusLearningObj = Object.fromEntries(corpusLearningMap);
+        const corpusLearnedCount = Array.from(corpusLearningMap.values()).filter(s => s.learned).length;
+        const corpusReviewedCount = Array.from(corpusLearningMap.values()).filter(s => s.reviewed).length;
 
         const backup = {
             version: 2,
@@ -236,7 +242,7 @@ export default function SettingsPage() {
                 characters: chars,
                 compounds: storage.getCompounds(),
                 components: storage.getComponents(),
-                corpusLearning: storage.getCorpusLearningData(),
+                corpusLearning: corpusLearningObj,
             }
         };
 
@@ -250,7 +256,14 @@ export default function SettingsPage() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        setImportStatus(prev => [...prev, `Backup exported successfully! (${learnedCount} learned, ${unlearnedCount} unlearned characters)`]);
+        const messages = [`Backup exported successfully!`];
+        if (learnedCount > 0 || unlearnedCount > 0) {
+            messages.push(`Legacy characters: ${learnedCount} learned, ${unlearnedCount} unlearned`);
+        }
+        if (corpusLearnedCount > 0 || corpusReviewedCount > 0) {
+            messages.push(`Study progress: ${corpusLearnedCount} learned, ${corpusReviewedCount} in review`);
+        }
+        setImportStatus(prev => [...prev, messages.join(' | ')]);
     };
 
     const importBackup = (file: File) => {
@@ -274,12 +287,19 @@ export default function SettingsPage() {
                     if (backupCharacters) storage.saveCharacters(backupCharacters);
                     if (backupCompounds) storage.saveCompounds(backupCompounds);
                     if (backupComponents) storage.saveComponents(backupComponents);
-                    if (backupCorpusLearning) storage.saveCorpusLearningData(backupCorpusLearning);
+                    
+                    // Convert corpusLearning object back to Map for storage
+                    if (backupCorpusLearning) {
+                        const corpusMap = new Map(Object.entries(backupCorpusLearning)) as Map<string, storage.CorpusWordState>;
+                        storage.saveCorpusLearningData(corpusMap);
+                    }
 
                     const learnedCount = backupCharacters?.filter((c: Character) => c.learned).length || 0;
                     const unlearnedCount = backupCharacters?.filter((c: Character) => !c.learned).length || 0;
+                    const corpusLearnedCount = backupCorpusLearning ? Object.values(backupCorpusLearning).filter((s: any) => s.learned).length : 0;
+                    const corpusReviewedCount = backupCorpusLearning ? Object.values(backupCorpusLearning).filter((s: any) => s.reviewed).length : 0;
 
-                    setImportStatus([
+                    const messages = [
                         'Backup restored successfully!',
                         `Restored ${backupActors?.length || 0} actors`,
                         `Restored ${backupRooms?.length || 0} rooms`,
@@ -288,7 +308,13 @@ export default function SettingsPage() {
                         `Restored ${backupCharacters?.length || 0} characters (${learnedCount} learned, ${unlearnedCount} unlearned)`,
                         `Restored ${backupCompounds?.length || 0} compounds`,
                         `Restored ${backupComponents?.length || 0} components`,
-                    ]);
+                    ];
+                    
+                    if (corpusLearnedCount > 0 || corpusReviewedCount > 0) {
+                        messages.push(`Restored study progress: ${corpusLearnedCount} learned, ${corpusReviewedCount} in review`);
+                    }
+                    
+                    setImportStatus(messages);
 
                     setTimeout(() => window.location.reload(), 1500);
                 }

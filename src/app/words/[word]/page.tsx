@@ -20,14 +20,12 @@ function isUUID(str: string): boolean {
 function useCorpusLearningState(word: string) {
     const [isLearned, setIsLearned] = useState(false);
     const [isReviewed, setIsReviewed] = useState(false);
-    const [reviewCount, setReviewCount] = useState(0);
 
     useEffect(() => {
         const state = getCorpusWordState(word);
         if (state) {
             setIsLearned(state.learned);
             setIsReviewed(state.reviewed);
-            setReviewCount(state.reviewCount);
         }
     }, [word]);
 
@@ -41,7 +39,7 @@ function useCorpusLearningState(word: string) {
         setIsReviewed(newState.reviewed);
     }, [word, isReviewed]);
 
-    return { isLearned, isReviewed, reviewCount, toggleLearned, toggleReviewed };
+    return { isLearned, isReviewed, toggleLearned, toggleReviewed };
 }
 
 export default function WordDetailPage({ params }: { params: Promise<{ word: string }> }) {

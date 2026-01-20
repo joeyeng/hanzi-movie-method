@@ -6,7 +6,7 @@ import { useCharactersWithRelations, useCompounds, useActors, useRooms, useSets,
 import { fetchExampleSentences, TatoebaExample } from '@/lib/hanzipy';
 import { formatDefinition } from '@/lib/format';
 import { useOfflineDb, WordEntryWithPrimary } from '@/lib/offlineDb';
-import { getWordHmm, setWordHmm, WordHmmData, getCorpusWordState, setCorpusWordLearned, setCorpusWordReviewed, markCorpusWordReviewed } from '@/lib/storage';
+import { getWordHmm, setWordHmm, WordHmmData, getCorpusWordState, setCorpusWordLearned, setCorpusWordReviewed } from '@/lib/storage';
 import { findHmmMatches, parseFirstSyllable } from '@/lib/pinyinParser';
 import type { Actor, Room, Set, Prop } from '@/types';
 import Link from 'next/link';
@@ -40,14 +40,12 @@ function resolveMovieScene(
 function useCorpusLearningState(word: string) {
     const [isLearned, setIsLearned] = useState(false);
     const [isReviewed, setIsReviewed] = useState(false);
-    const [reviewCount, setReviewCount] = useState(0);
 
     useEffect(() => {
         const state = getCorpusWordState(word);
         if (state) {
             setIsLearned(state.learned);
             setIsReviewed(state.reviewed);
-            setReviewCount(state.reviewCount);
         }
     }, [word]);
 
@@ -61,7 +59,7 @@ function useCorpusLearningState(word: string) {
         setIsReviewed(newState.reviewed);
     }, [word, isReviewed]);
 
-    return { isLearned, isReviewed, reviewCount, toggleLearned, toggleReviewed };
+    return { isLearned, isReviewed, toggleLearned, toggleReviewed };
 }
 
 // HMM Display component for showing saved scene data

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useOfflineDb, WordEntryWithPrimary } from '@/lib/offlineDb';
-import { getCorpusLearningData, markCorpusWordReviewed, setCorpusWordLearned, type CorpusWordState } from '@/lib/storage';
+import { getCorpusLearningData, setCorpusWordLearned, markCorpusWordReviewed, type CorpusWordState } from '@/lib/storage';
 import { formatDefinition } from '@/lib/format';
 import Link from 'next/link';
 
@@ -106,7 +106,7 @@ function generateToneVariations(correctPinyin: string, count: number): string[] 
 interface CorpusWordWithState extends WordEntryWithPrimary {
     learned: boolean;
     reviewed: boolean;
-    lastReviewed?: Date;
+    lastReviewed?: string;
 }
 
 export default function ReviewPage() {
