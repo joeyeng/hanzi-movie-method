@@ -117,7 +117,7 @@ interface GroupReviewProps {
     autoStart?: boolean;
 }
 
-export function GroupReview({ groupWords, learningData, onExit, onDataChange, groupId, initialFilter = 'unlearned', autoStart = false }: GroupReviewProps) {
+export function GroupReview({ groupWords, learningData, onExit, onDataChange, groupId, initialFilter = 'all', autoStart = false }: GroupReviewProps) {
     const [reviewFilter, setReviewFilter] = useState<ReviewMode>(initialFilter);
     const [reviewQueue, setReviewQueue] = useState<WordWithState[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -359,20 +359,6 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
                             <input
                                 type="radio"
                                 name="reviewFilter"
-                                checked={reviewFilter === 'reviewed'}
-                                onChange={() => setReviewFilter('reviewed')}
-                                className="w-4 h-4 accent-amber-500"
-                            />
-                            <div className="flex-1">
-                                <div className="font-medium">Reviewed Words</div>
-                                <div className="text-sm text-slate-400">{filterCounts.reviewed} words marked for review</div>
-                            </div>
-                        </label>
-
-                        <label className="flex items-center gap-3 p-3 bg-slate-700 rounded-lg cursor-pointer hover:bg-slate-600 transition-colors">
-                            <input
-                                type="radio"
-                                name="reviewFilter"
                                 checked={reviewFilter === 'all'}
                                 onChange={() => setReviewFilter('all')}
                                 className="w-4 h-4 accent-amber-500"
@@ -380,6 +366,20 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
                             <div className="flex-1">
                                 <div className="font-medium">All Words</div>
                                 <div className="text-sm text-slate-400">{filterCounts.all} words</div>
+                            </div>
+                        </label>
+
+                        <label className="flex items-center gap-3 p-3 bg-slate-700 rounded-lg cursor-pointer hover:bg-slate-600 transition-colors">
+                            <input
+                                type="radio"
+                                name="reviewFilter"
+                                checked={reviewFilter === 'reviewed'}
+                                onChange={() => setReviewFilter('reviewed')}
+                                className="w-4 h-4 accent-amber-500"
+                            />
+                            <div className="flex-1">
+                                <div className="font-medium">Reviewed Words</div>
+                                <div className="text-sm text-slate-400">{filterCounts.reviewed} words marked for review</div>
                             </div>
                         </label>
 

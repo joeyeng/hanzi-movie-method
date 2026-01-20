@@ -90,7 +90,7 @@ export const CorpusWordCard = memo(function CorpusWordCard({
                             }`}
                         title={learned ? 'Mark as not learned' : 'Mark as learned'}
                     >
-                        {learned ? '✓ Learned' : '✗ Learned'}
+                        {learned ? '✓ Learned' : '✗ Not Learned'}
                     </button>
                     <button
                         onClick={handleToggleReviewed}
