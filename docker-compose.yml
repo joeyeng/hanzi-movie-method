@@ -28,6 +28,9 @@ services:
       - "6004:6004"
     environment:
       - PORT=6004
+    volumes:
+      - ./public:/app/../public:delegated
+      - ./hanzipy_server:/app:delegated
     restart: unless-stopped
 
 volumes:

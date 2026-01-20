@@ -1,34 +1,14 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
-import { CharacterWithRelations, CompoundWord } from '@/types';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useOfflineDb, WordEntryWithPrimary } from '@/lib/offlineDb';
+import { getCorpusLearningData, markCorpusWordReviewed, setCorpusWordLearned, type CorpusWordState } from '@/lib/storage';
 import { formatDefinition } from '@/lib/format';
 import Link from 'next/link';
 
 type ReviewMode = 'all' | 'unlearned' | 'due';
 type ReviewType = 'characters' | 'compounds';
 type AnswerState = 'answering' | 'correct' | 'incorrect';
-
-// Resolve placeholders in movie scene with actual actor/room/set names
-function resolveMovieScene(
-    scene: string,
-    actor?: { name: string },
-    room?: { name: string },
-    set?: { name: string }
-): string {
-    const actorName = actor?.name || '[Actor]';
-    const roomName = room?.name || '[Room]';
-    const setName = set?.name || '[Set]';
-
-    // Strip any existing template prefix from the scene (for backwards compatibility)
-    const cleanScene = scene.replace(/^\{\{ACTOR\}\} is at \{\{SET\}\} in the \{\{ROOM\}\}\.\s*/i, '');
-
-    // Build the full scene with template prepended
-    const template = `${actorName} is at ${setName} in the ${roomName}.`;
-
-    return cleanScene ? `${template} ${cleanScene}` : template;
-}
 
 // Normalize pinyin for comparison (remove tones marks, spaces, lowercase)
 function normalizePinyin(pinyin: string): string {
@@ -46,20 +26,6 @@ function normalizePinyin(pinyin: string): string {
         .map(c => toneMap[c] || c)
         .join('')
         .replace(/\s+/g, '');
-}
-
-// Extract tone from pinyin with tone marks
-function extractTone(pinyin: string): number {
-    const tone1 = /[āēīōūǖ]/;
-    const tone2 = /[áéíóúǘ]/;
-    const tone3 = /[ǎěǐǒǔǚ]/;
-    const tone4 = /[àèìòùǜ]/;
-
-    if (tone1.test(pinyin)) return 1;
-    if (tone2.test(pinyin)) return 2;
-    if (tone3.test(pinyin)) return 3;
-    if (tone4.test(pinyin)) return 4;
-    return 5; // neutral tone
 }
 
 // Shuffle array helper
@@ -91,26 +57,20 @@ function applyToneToVowel(vowel: string, tone: number): string {
 
 // Generate random tone variations of a pinyin string (same letters, different tones)
 function generateToneVariations(correctPinyin: string, count: number): string[] {
-    // Split pinyin into syllables (space-separated)
     const syllables = correctPinyin.split(' ');
     const variations: Set<string> = new Set();
-    variations.add(correctPinyin); // Always include the correct one
+    variations.add(correctPinyin);
 
-    // Find vowels that can have tones in each syllable
     const vowelPattern = /[aeiouü]/gi;
 
-    // Generate random variations
     let attempts = 0;
     while (variations.size < count && attempts < 100) {
         attempts++;
         const newSyllables = syllables.map(syllable => {
-            // First normalize to base letters
             let normalized = normalizePinyin(syllable);
-            // Find the main vowel to apply tone to (follows standard pinyin rules: a/e first, then ou, then last vowel)
             let result = normalized;
             const vowels = normalized.match(vowelPattern);
             if (vowels && vowels.length > 0) {
-                // Determine which vowel gets the tone mark
                 let toneVowelIndex = -1;
                 if (normalized.includes('a')) {
                     toneVowelIndex = normalized.indexOf('a');
@@ -119,7 +79,6 @@ function generateToneVariations(correctPinyin: string, count: number): string[] 
                 } else if (normalized.includes('ou')) {
                     toneVowelIndex = normalized.indexOf('o');
                 } else {
-                    // Find the last vowel
                     for (let i = normalized.length - 1; i >= 0; i--) {
                         if ('aeiouü'.includes(normalized[i])) {
                             toneVowelIndex = i;
@@ -129,7 +88,7 @@ function generateToneVariations(correctPinyin: string, count: number): string[] 
                 }
 
                 if (toneVowelIndex >= 0) {
-                    const randomTone = Math.floor(Math.random() * 4) + 1; // Tones 1-4
+                    const randomTone = Math.floor(Math.random() * 4) + 1;
                     const chars = result.split('');
                     chars[toneVowelIndex] = applyToneToVowel(chars[toneVowelIndex], randomTone);
                     result = chars.join('');
@@ -143,25 +102,41 @@ function generateToneVariations(correctPinyin: string, count: number): string[] 
     return Array.from(variations);
 }
 
+// Corpus word with its learning state
+interface CorpusWordWithState extends WordEntryWithPrimary {
+    learned: boolean;
+    reviewed: boolean;
+    lastReviewed?: Date;
+}
+
 export default function ReviewPage() {
-    const { characters, loading, markReviewed, toggleLearned } = useCharactersWithRelations();
-    const { compounds, loading: loadingCompounds, markReviewed: markCompoundReviewed, toggleLearned: toggleCompoundLearned } = useCompounds();
+    const { isReady, isLoading: dbLoading, getCharacterWords, getCompoundWords, getAllWords } = useOfflineDb();
+    
+    // Database and loading state
+    const [isLoadingWords, setIsLoadingWords] = useState(true);
+    
+    // All corpus words for generating choices
+    const [allCharacterWords, setAllCharacterWords] = useState<WordEntryWithPrimary[]>([]);
+    const [allCompoundWords, setAllCompoundWords] = useState<WordEntryWithPrimary[]>([]);
+    
+    // Learning state from localStorage
+    const [learningData, setLearningData] = useState<Map<string, CorpusWordState>>(new Map());
+    
+    // Review state
     const [reviewType, setReviewType] = useState<ReviewType>('characters');
     const [reviewMode, setReviewMode] = useState<ReviewMode>('unlearned');
-    const [reviewQueue, setReviewQueue] = useState<CharacterWithRelations[]>([]);
-    const [compoundQueue, setCompoundQueue] = useState<CompoundWord[]>([]);
+    const [reviewQueue, setReviewQueue] = useState<CorpusWordWithState[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [sessionStarted, setSessionStarted] = useState(false);
 
-    // Quiz state
+    // Quiz state for characters (single char)
     const [selectedPinyin, setSelectedPinyin] = useState<string | null>(null);
-    const [selectedTone, setSelectedTone] = useState<number | null>(null);
     const [selectedDefinition, setSelectedDefinition] = useState<string | null>(null);
     const [answerState, setAnswerState] = useState<AnswerState>('answering');
     const [pinyinChoices, setPinyinChoices] = useState<string[]>([]);
     const [definitionChoices, setDefinitionChoices] = useState<string[]>([]);
 
-    // Compound quiz state
+    // Quiz state for compounds
     const [compoundPinyinChoices, setCompoundPinyinChoices] = useState<string[]>([]);
     const [compoundToneChoices, setCompoundToneChoices] = useState<string[]>([]);
     const [compoundDefinitionChoices, setCompoundDefinitionChoices] = useState<string[]>([]);
@@ -170,96 +145,127 @@ export default function ReviewPage() {
     const [selectedCompoundDefinition, setSelectedCompoundDefinition] = useState<string | null>(null);
     const [compoundAnswerState, setCompoundAnswerState] = useState<AnswerState>('answering');
 
-    // Only include characters marked as "reviewed" (ready for review)
-    const reviewableCharacters = characters.filter(c => c.reviewed);
-    const reviewableCompounds = compounds.filter(c => c.reviewed);
-
-    // Build review queue only when mode changes or session starts, not on every character update
-    const buildReviewQueue = () => {
-        let filtered: CharacterWithRelations[];
-        switch (reviewMode) {
-            case 'unlearned':
-                filtered = reviewableCharacters.filter(c => !c.learned);
-                break;
-            case 'due':
-                // Characters not reviewed in the last 24 hours
-                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-                filtered = reviewableCharacters.filter(c => !c.lastReviewed || new Date(c.lastReviewed) < oneDayAgo);
-                break;
-            default:
-                filtered = [...reviewableCharacters];
-        }
-        // Shuffle the array
-        return filtered.sort(() => Math.random() - 0.5);
-    };
-
-    // Build compound queue
-    const buildCompoundQueue = () => {
-        let filtered: CompoundWord[];
-        switch (reviewMode) {
-            case 'unlearned':
-                filtered = reviewableCompounds.filter(c => !c.learned);
-                break;
-            case 'due':
-                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-                filtered = reviewableCompounds.filter(c => !c.lastReviewed || new Date(c.lastReviewed) < oneDayAgo);
-                break;
-            default:
-                filtered = [...reviewableCompounds];
-        }
-        return filtered.sort(() => Math.random() - 0.5);
-    };
-
-    // Only rebuild queue when loading finishes initially
+    // Load learning data from localStorage
     useEffect(() => {
-        if (!loading && !loadingCompounds && !sessionStarted) {
-            setReviewQueue(buildReviewQueue());
-            setCompoundQueue(buildCompoundQueue());
+        setLearningData(getCorpusLearningData());
+    }, []);
+
+    // Load words from database
+    useEffect(() => {
+        async function loadWords() {
+            if (!isReady) return;
+            
+            try {
+                setIsLoadingWords(true);
+                // Load top 500 of each for generating quiz choices
+                const chars = await getCharacterWords(0, 500);
+                const compounds = await getCompoundWords(0, 500);
+                setAllCharacterWords(chars);
+                setAllCompoundWords(compounds);
+            } catch (error) {
+                console.error('Failed to load words:', error);
+            } finally {
+                setIsLoadingWords(false);
+            }
+        }
+        loadWords();
+    }, [isReady, getCharacterWords, getCompoundWords]);
+
+    // Get reviewable words (words marked for review with 📚 button in learningData)
+    const reviewableCharacters = useMemo(() => {
+        const reviewable: CorpusWordWithState[] = [];
+        
+        learningData.forEach((state, word) => {
+            if (state.reviewed) {
+                const wordEntry = allCharacterWords.find(w => w.word === word);
+                if (wordEntry && wordEntry.word.length === 1) {
+                    reviewable.push({
+                        ...wordEntry,
+                        learned: state.learned,
+                        reviewed: state.reviewed,
+                        lastReviewed: state.lastReviewed
+                    });
+                }
+            }
+        });
+        
+        return reviewable;
+    }, [allCharacterWords, learningData]);
+
+    const reviewableCompounds = useMemo(() => {
+        const reviewable: CorpusWordWithState[] = [];
+        
+        learningData.forEach((state, word) => {
+            if (state.reviewed) {
+                const wordEntry = allCompoundWords.find(w => w.word === word);
+                if (wordEntry && wordEntry.word.length > 1) {
+                    reviewable.push({
+                        ...wordEntry,
+                        learned: state.learned,
+                        reviewed: state.reviewed,
+                        lastReviewed: state.lastReviewed
+                    });
+                }
+            }
+        });
+        
+        return reviewable;
+    }, [allCompoundWords, learningData]);
+
+    // Build review queue
+    const buildReviewQueue = useCallback((type: ReviewType, mode: ReviewMode) => {
+        const reviewable = type === 'characters' ? reviewableCharacters : reviewableCompounds;
+        let filtered: CorpusWordWithState[];
+        
+        switch (mode) {
+            case 'unlearned':
+                filtered = reviewable.filter(c => !c.learned);
+                break;
+            case 'due':
+                const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+                filtered = reviewable.filter(c => !c.lastReviewed || new Date(c.lastReviewed) < oneDayAgo);
+                break;
+            default:
+                filtered = [...reviewable];
+        }
+        return shuffleArray(filtered);
+    }, [reviewableCharacters, reviewableCompounds]);
+
+    // Rebuild queue when mode/type changes (only when not in session)
+    useEffect(() => {
+        if (!dbLoading && !isLoadingWords && !sessionStarted) {
+            setReviewQueue(buildReviewQueue(reviewType, reviewMode));
             setCurrentIndex(0);
             resetQuizState();
         }
-    }, [loading, loadingCompounds, sessionStarted]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dbLoading, isLoadingWords, sessionStarted, reviewMode, reviewType, reviewableCharacters, reviewableCompounds]);
 
-    // Rebuild queue when review mode or type changes (only when not in active session)
+    const currentItem = reviewQueue[currentIndex];
+    const currentWord = currentItem?.word; // Stable string identifier
+    const progress = reviewQueue.length > 0 ? ((currentIndex + 1) / reviewQueue.length) * 100 : 0;
+
+    // Generate choices when current item changes
     useEffect(() => {
-        if (!loading && !loadingCompounds && !sessionStarted) {
-            setReviewQueue(buildReviewQueue());
-            setCompoundQueue(buildCompoundQueue());
-            setCurrentIndex(0);
-            resetQuizState();
+        if (currentWord && sessionStarted) {
+            if (reviewType === 'characters') {
+                generatePinyinChoices();
+                generateDefinitionChoices();
+            } else {
+                generateCompoundPinyinChoices();
+                generateCompoundDefinitionChoices();
+            }
         }
-    }, [reviewMode, reviewType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentWord, sessionStarted, reviewType]);
 
-    const currentCharacter = reviewQueue[currentIndex];
-    const currentCompound = compoundQueue[currentIndex];
-    const currentQueue = reviewType === 'characters' ? reviewQueue : compoundQueue;
-    const progress = currentQueue.length > 0 ? ((currentIndex + 1) / currentQueue.length) * 100 : 0;
-
-    // Generate definition choices when current character changes
-    useEffect(() => {
-        if (currentCharacter && sessionStarted && reviewType === 'characters') {
-            generatePinyinChoices();
-            generateDefinitionChoices();
-        }
-    }, [currentIndex, sessionStarted, reviewType]);
-
-    // Generate compound choices when current compound changes
-    useEffect(() => {
-        if (currentCompound && sessionStarted && reviewType === 'compounds') {
-            generateCompoundPinyinChoices();
-            generateCompoundDefinitionChoices();
-        }
-    }, [currentIndex, sessionStarted, reviewType]);
-
-    // Reset quiz state for new question
+    // Reset quiz state
     const resetQuizState = () => {
         setSelectedPinyin(null);
-        setSelectedTone(null);
         setSelectedDefinition(null);
         setAnswerState('answering');
         setPinyinChoices([]);
         setDefinitionChoices([]);
-        // Reset compound state too
         setSelectedCompoundPinyin(null);
         setSelectedCompoundTone(null);
         setSelectedCompoundDefinition(null);
@@ -269,192 +275,139 @@ export default function ReviewPage() {
         setCompoundDefinitionChoices([]);
     };
 
-    // Generate multiple choice options for pinyin
+    // Generate pinyin choices for single characters
     const generatePinyinChoices = () => {
-        if (!currentCharacter) return;
+        if (!currentItem) return;
 
-        // Get correct answer - first pinyin syllable without tone
-        const correctPinyin = normalizePinyin(currentCharacter.pinyin.split(',')[0].split(' ')[0]);
-
-        // Get random wrong pinyins from other characters
-        const otherPinyins = characters
-            .filter(c => c.id !== currentCharacter.id && c.pinyin)
-            .map(c => normalizePinyin(c.pinyin.split(',')[0].split(' ')[0]))
+        const correctPinyin = normalizePinyin(currentItem.pinyin.split(' ')[0]);
+        const otherPinyins = allCharacterWords
+            .filter(c => c.word !== currentItem.word && c.pinyin)
+            .map(c => normalizePinyin(c.pinyin.split(' ')[0]))
             .filter(p => p && p !== correctPinyin);
 
-        // Get unique wrong answers
         const uniqueWrongPinyins = [...new Set(otherPinyins)];
-
-        // Shuffle and pick 3 wrong answers
         const wrongAnswers = shuffleArray(uniqueWrongPinyins).slice(0, 3);
-
-        // Combine and shuffle all options
         const allChoices = shuffleArray([correctPinyin, ...wrongAnswers]);
         setPinyinChoices(allChoices);
     };
 
-    // Generate multiple choice options for definitions
+    // Generate definition choices for single characters
     const generateDefinitionChoices = () => {
-        if (!currentCharacter) return;
+        if (!currentItem) return;
 
-        // Get correct answer - use the default meaning (user can change this on detail page)
-        const correctDef = currentCharacter.meaning;
-
-        // Get random wrong definitions from other characters
-        const otherDefinitions = characters
-            .filter(c => c.id !== currentCharacter.id)
-            .flatMap(c => {
-                // Use their default meaning
-                return [c.meaning];
-            })
+        const correctDef = currentItem.definition || 'No definition';
+        const otherDefinitions = allCharacterWords
+            .filter(c => c.word !== currentItem.word && c.definition)
+            .map(c => c.definition)
             .filter(d => d && d !== correctDef);
 
-        // Shuffle and pick 3 wrong answers
         const wrongAnswers = shuffleArray(otherDefinitions).slice(0, 3);
-
-        // Combine and shuffle all options
         const allChoices = shuffleArray([correctDef, ...wrongAnswers]);
         setDefinitionChoices(allChoices);
     };
 
-    // Generate multiple choice options for compound pinyin (without tones)
+    // Generate compound pinyin choices (normalized/toneless)
     const generateCompoundPinyinChoices = () => {
-        if (!currentCompound) return;
+        if (!currentItem) return;
 
-        const correctPinyin = normalizePinyin(currentCompound.pinyin);
-        const charCount = currentCompound.characters.length;
+        const correctPinyin = normalizePinyin(currentItem.pinyin);
+        const charCount = currentItem.word.length;
 
-        // Get wrong pinyins from compounds with the same number of characters (normalized/toneless)
-        const otherPinyins = compounds
-            .filter(c => c.id !== currentCompound.id && c.characters.length === charCount)
+        const otherPinyins = allCompoundWords
+            .filter(c => c.word !== currentItem.word && c.word.length === charCount)
             .map(c => normalizePinyin(c.pinyin))
             .filter(p => p && p !== correctPinyin);
 
-        // Get unique wrong answers
         const uniqueWrongPinyins = [...new Set(otherPinyins)];
-
-        // Shuffle and pick 3 wrong answers
         const wrongAnswers = shuffleArray(uniqueWrongPinyins).slice(0, 3);
-
-        // Combine and shuffle all options
         const allChoices = shuffleArray([correctPinyin, ...wrongAnswers]);
         setCompoundPinyinChoices(allChoices);
     };
 
     // Generate tone choices after pinyin is selected
     const generateCompoundToneChoices = (selectedPinyinBase: string) => {
-        if (!currentCompound) return;
+        if (!currentItem) return;
 
-        const correctPinyinWithTones = currentCompound.pinyin;
+        const correctPinyinWithTones = currentItem.pinyin;
         const correctPinyinNormalized = normalizePinyin(correctPinyinWithTones);
 
-        // Check if the user selected the correct base pinyin
         if (selectedPinyinBase === correctPinyinNormalized) {
-            // Generate 4 variations of the correct pinyin with different tones
             const variations = generateToneVariations(correctPinyinWithTones, 4);
-            const allChoices = shuffleArray(variations);
-            setCompoundToneChoices(allChoices);
+            setCompoundToneChoices(shuffleArray(variations));
         } else {
-            // User selected wrong pinyin - generate variations based on their selection
-            // Find a compound that matches the selected pinyin to get a base with tones
-            const matchingCompound = compounds.find(c =>
-                normalizePinyin(c.pinyin) === selectedPinyinBase && c.id !== currentCompound.id
+            const matchingWord = allCompoundWords.find(c =>
+                normalizePinyin(c.pinyin) === selectedPinyinBase && c.word !== currentItem.word
             );
 
-            if (matchingCompound) {
-                const variations = generateToneVariations(matchingCompound.pinyin, 4);
-                const allChoices = shuffleArray(variations);
-                setCompoundToneChoices(allChoices);
+            if (matchingWord) {
+                const variations = generateToneVariations(matchingWord.pinyin, 4);
+                setCompoundToneChoices(shuffleArray(variations));
             } else {
-                // Fallback: just show the selected pinyin without tone options
                 setCompoundToneChoices([selectedPinyinBase]);
             }
         }
     };
 
-    // Generate multiple choice options for compound definitions
+    // Generate compound definition choices
     const generateCompoundDefinitionChoices = () => {
-        if (!currentCompound) return;
+        if (!currentItem) return;
 
-        const correctDef = currentCompound.definition;
-
-        // Get wrong definitions from other compounds
-        const otherDefinitions = compounds
-            .filter(c => c.id !== currentCompound.id)
+        const correctDef = currentItem.definition || 'No definition';
+        const otherDefinitions = allCompoundWords
+            .filter(c => c.word !== currentItem.word && c.definition)
             .map(c => c.definition)
             .filter(d => d && d !== correctDef);
 
-        // Get unique wrong answers
         const uniqueWrongDefs = [...new Set(otherDefinitions)];
-
-        // Shuffle and pick 3 wrong answers
         const wrongAnswers = shuffleArray(uniqueWrongDefs).slice(0, 3);
-
-        // Combine and shuffle all options
         const allChoices = shuffleArray([correctDef, ...wrongAnswers]);
         setCompoundDefinitionChoices(allChoices);
     };
 
-    // Check if the user's compound answer is correct
-    const checkCompoundAnswer = () => {
-        if (!currentCompound) return;
+    // Check character answer
+    const checkAnswer = () => {
+        if (!currentItem) return;
 
-        const correctPinyinWithTones = currentCompound.pinyin;
-        const correctDef = currentCompound.definition;
+        const correctPinyin = normalizePinyin(currentItem.pinyin.split(' ')[0]);
+        const correctDef = currentItem.definition || 'No definition';
+
+        const pinyinCorrect = selectedPinyin === correctPinyin;
+        const definitionCorrect = selectedDefinition === correctDef;
+
+        if (pinyinCorrect && definitionCorrect) {
+            setAnswerState('correct');
+            // Mark as reviewed
+            markCorpusWordReviewed(currentItem.word);
+            setLearningData(getCorpusLearningData());
+            setTimeout(() => handleNext(), 1500);
+        } else {
+            setAnswerState('incorrect');
+        }
+    };
+
+    // Check compound answer
+    const checkCompoundAnswer = () => {
+        if (!currentItem) return;
+
+        const correctPinyinWithTones = currentItem.pinyin;
+        const correctDef = currentItem.definition || 'No definition';
 
         const toneCorrect = selectedCompoundTone === correctPinyinWithTones;
         const definitionCorrect = selectedCompoundDefinition === correctDef;
 
         if (toneCorrect && definitionCorrect) {
             setCompoundAnswerState('correct');
-            // Mark as learned when answered correctly
-            if (!currentCompound.learned) {
-                toggleCompoundLearned(currentCompound.id);
-            }
-            // Auto advance after short delay
-            setTimeout(() => {
-                handleNext();
-            }, 1500);
+            markCorpusWordReviewed(currentItem.word);
+            setLearningData(getCorpusLearningData());
+            setTimeout(() => handleNext(), 1500);
         } else {
             setCompoundAnswerState('incorrect');
         }
     };
 
-    // Check if the user's answer is correct
-    const checkAnswer = () => {
-        if (!currentCharacter) return;
-
-        const correctPinyin = normalizePinyin(currentCharacter.pinyin.split(',')[0].split(' ')[0]);
-        const correctTone = extractTone(currentCharacter.pinyin);
-        const correctDef = currentCharacter.meaning;
-
-        const pinyinCorrect = selectedPinyin === correctPinyin;
-        const toneCorrect = selectedTone === correctTone;
-        const definitionCorrect = selectedDefinition === correctDef;
-
-        if (pinyinCorrect && toneCorrect && definitionCorrect) {
-            setAnswerState('correct');
-            // Mark as learned when answered correctly
-            if (!currentCharacter.learned) {
-                toggleLearned(currentCharacter.id);
-            }
-            // Auto advance after short delay
-            setTimeout(() => {
-                handleNext();
-            }, 1500);
-        } else {
-            setAnswerState('incorrect');
-        }
-    };
-
     const handleNext = () => {
-        if (reviewType === 'characters' && currentCharacter) {
-            markReviewed(currentCharacter.id);
-        } else if (reviewType === 'compounds' && currentCompound) {
-            markCompoundReviewed(currentCompound.id);
-        }
         resetQuizState();
-        if (currentIndex < currentQueue.length - 1) {
+        if (currentIndex < reviewQueue.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
             setSessionStarted(false);
@@ -462,9 +415,8 @@ export default function ReviewPage() {
     };
 
     const handleSkip = () => {
-        // Skip without marking as reviewed
         resetQuizState();
-        if (currentIndex < currentQueue.length - 1) {
+        if (currentIndex < reviewQueue.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
             setSessionStarted(false);
@@ -472,19 +424,16 @@ export default function ReviewPage() {
     };
 
     const handleMarkLearned = () => {
-        if (reviewType === 'characters' && currentCharacter) {
-            toggleLearned(currentCharacter.id);
-        } else if (reviewType === 'compounds' && currentCompound) {
-            toggleCompoundLearned(currentCompound.id);
-        }
+        if (!currentItem) return;
+        const newState = setCorpusWordLearned(currentItem.word, !currentItem.learned);
+        setLearningData(getCorpusLearningData());
     };
 
-    // Get correct answers for display
-    const correctPinyin = currentCharacter?.pinyin.split(',')[0].split(' ')[0] || '';
-    const correctTone = currentCharacter ? extractTone(currentCharacter.pinyin) : 5;
-    const correctDefinition = currentCharacter?.meaning || '';
+    // Correct answers for display
+    const correctPinyin = currentItem?.pinyin.split(' ')[0] || '';
+    const correctDefinition = currentItem?.definition || 'No definition';
 
-    if (loading || loadingCompounds) {
+    if (dbLoading || isLoadingWords) {
         return (
             <div className="flex items-center justify-center h-64">
                 <div className="text-slate-400">Loading...</div>
@@ -494,7 +443,6 @@ export default function ReviewPage() {
 
     if (!sessionStarted) {
         const currentReviewable = reviewType === 'characters' ? reviewableCharacters : reviewableCompounds;
-        const currentItems = reviewType === 'characters' ? characters : compounds;
         const itemName = reviewType === 'characters' ? 'character' : 'compound';
         const itemNamePlural = reviewType === 'characters' ? 'characters' : 'compounds';
         const linkHref = reviewType === 'characters' ? '/characters' : '/compounds';
@@ -529,15 +477,16 @@ export default function ReviewPage() {
                 {currentReviewable.length === 0 ? (
                     <div className="bg-slate-800 rounded-lg p-8 text-center">
                         <p className="text-slate-400 mb-4">
-                            {currentItems.length === 0
-                                ? `No ${itemNamePlural} to review yet.`
-                                : `No ${itemNamePlural} marked for review. Add ${itemNamePlural} to your review list from the ${reviewType === 'characters' ? 'Characters' : 'Compounds'} page.`}
+                            No {itemNamePlural} marked for review yet.
+                        </p>
+                        <p className="text-slate-500 text-sm mb-4">
+                            Click the 📚 button on {itemNamePlural} from the {reviewType === 'characters' ? 'Characters' : 'Compounds'} page to add them to your review queue.
                         </p>
                         <Link
                             href={linkHref}
                             className="inline-block bg-amber-500 text-slate-900 px-6 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
                         >
-                            {currentItems.length === 0 ? `Add Your First ${itemName.charAt(0).toUpperCase() + itemName.slice(1)}` : `Go to ${reviewType === 'characters' ? 'Characters' : 'Compounds'}`}
+                            Go to {reviewType === 'characters' ? 'Characters' : 'Compounds'}
                         </Link>
                     </div>
                 ) : (
@@ -554,9 +503,9 @@ export default function ReviewPage() {
                                     className="w-4 h-4 accent-amber-500"
                                 />
                                 <div>
-                                    <div className="font-medium">Unlearned Only</div>
+                                    <div className="font-medium">Not Yet Reviewed</div>
                                     <div className="text-sm text-slate-400">
-                                        {currentReviewable.filter(c => !c.learned).length} {itemNamePlural}
+                                        {currentReviewable.filter(c => !c.reviewed).length} {itemNamePlural}
                                     </div>
                                 </div>
                             </label>
@@ -594,10 +543,10 @@ export default function ReviewPage() {
 
                         <button
                             onClick={() => setSessionStarted(true)}
-                            disabled={currentQueue.length === 0}
+                            disabled={reviewQueue.length === 0}
                             className="w-full bg-amber-500 text-slate-900 py-3 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Start Review ({currentQueue.length} {itemNamePlural})
+                            Start Review ({reviewQueue.length} {itemNamePlural})
                         </button>
                     </div>
                 )}
@@ -605,8 +554,8 @@ export default function ReviewPage() {
         );
     }
 
-    // Review session UI
-    if (currentIndex >= currentQueue.length) {
+    // Session complete
+    if (currentIndex >= reviewQueue.length) {
         const itemNamePlural = reviewType === 'characters' ? 'characters' : 'compound words';
         return (
             <div className="max-w-2xl mx-auto text-center">
@@ -614,7 +563,7 @@ export default function ReviewPage() {
                     <div className="text-6xl mb-4">🎉</div>
                     <h2 className="text-2xl font-bold text-amber-400 mb-2">Session Complete!</h2>
                     <p className="text-slate-400 mb-6">
-                        You reviewed {currentQueue.length} {currentQueue.length !== 1 ? itemNamePlural : (reviewType === 'characters' ? 'character' : 'compound word')}.
+                        You reviewed {reviewQueue.length} {reviewQueue.length !== 1 ? itemNamePlural : (reviewType === 'characters' ? 'character' : 'compound word')}.
                     </p>
                     <button
                         onClick={() => setSessionStarted(false)}
@@ -627,10 +576,10 @@ export default function ReviewPage() {
         );
     }
 
-    // Compound Review Session UI
-    if (reviewType === 'compounds' && currentCompound) {
-        const correctCompoundPinyin = currentCompound.pinyin;
-        const correctCompoundDefinition = currentCompound.definition;
+    // Compound Review UI
+    if (reviewType === 'compounds' && currentItem) {
+        const correctCompoundPinyin = currentItem.pinyin;
+        const correctCompoundDefinition = currentItem.definition || 'No definition';
 
         return (
             <div className="max-w-2xl mx-auto">
@@ -638,7 +587,7 @@ export default function ReviewPage() {
                 <div className="mb-6">
                     <div className="flex justify-between text-sm text-slate-400 mb-2">
                         <span>Progress</span>
-                        <span>{currentIndex + 1} / {compoundQueue.length}</span>
+                        <span>{currentIndex + 1} / {reviewQueue.length}</span>
                     </div>
                     <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                         <div
@@ -650,25 +599,20 @@ export default function ReviewPage() {
 
                 {/* Compound Quiz Card */}
                 <div className="bg-slate-800 rounded-lg p-8">
-                    {/* Question - Compound Word */}
                     <div className="text-center mb-8">
-                        <div className="flex justify-center gap-2 mb-4">
-                            {currentCompound.characters.map((char, index) => (
-                                <span key={index} className="text-6xl font-bold text-amber-400">
-                                    {char}
-                                </span>
-                            ))}
+                        <div className="text-6xl font-bold text-amber-400 mb-4">
+                            {currentItem.word}
                         </div>
                     </div>
 
-                    {/* Correct Answer Feedback */}
+                    {/* Correct Feedback */}
                     {compoundAnswerState === 'correct' && (
                         <div className="bg-green-500/20 border border-green-500 rounded-lg p-4 mb-6 text-center">
                             <div className="text-green-400 text-xl font-bold">✓ Correct!</div>
                         </div>
                     )}
 
-                    {/* Incorrect Answer Feedback */}
+                    {/* Incorrect Feedback */}
                     {compoundAnswerState === 'incorrect' && (
                         <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-6">
                             <div className="text-red-400 text-xl font-bold text-center mb-4">✗ Incorrect</div>
@@ -688,7 +632,7 @@ export default function ReviewPage() {
                     {/* Quiz Form */}
                     {compoundAnswerState === 'answering' && (
                         <div className="space-y-6 mb-8">
-                            {/* Step 1: Pinyin Multiple Choice (without tones) */}
+                            {/* Step 1: Pinyin (toneless) */}
                             <div>
                                 <label className="block text-slate-400 text-sm mb-2">
                                     Step 1: Select Pinyin (without tones)
@@ -719,7 +663,7 @@ export default function ReviewPage() {
                                 </div>
                             </div>
 
-                            {/* Step 2: Tone Selection (shown after pinyin is selected) */}
+                            {/* Step 2: Tones */}
                             {selectedCompoundPinyin && compoundToneChoices.length > 0 && (
                                 <div>
                                     <label className="block text-slate-400 text-sm mb-2">
@@ -748,7 +692,7 @@ export default function ReviewPage() {
                                 </div>
                             )}
 
-                            {/* Definition Multiple Choice */}
+                            {/* Step 3: Definition */}
                             <div>
                                 <label className="block text-slate-400 text-sm mb-2">Step 3: Select Definition</label>
                                 <div className="space-y-2">
@@ -773,7 +717,6 @@ export default function ReviewPage() {
                                 </div>
                             </div>
 
-                            {/* Check Answer Button */}
                             <button
                                 onClick={checkCompoundAnswer}
                                 disabled={!selectedCompoundPinyin || !selectedCompoundTone || !selectedCompoundDefinition}
@@ -786,15 +729,6 @@ export default function ReviewPage() {
 
                     {/* Actions */}
                     <div className="flex gap-3 pt-4 border-t border-slate-700">
-                        <button
-                            onClick={handleMarkLearned}
-                            className={`px-4 py-2 rounded-lg text-sm transition-colors ${currentCompound.learned
-                                ? 'bg-green-500/20 text-green-400'
-                                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                                }`}
-                        >
-                            {currentCompound.learned ? '✓ Learned' : 'Mark Learned'}
-                        </button>
                         <button
                             onClick={handleSkip}
                             className="px-4 py-2 bg-slate-600 text-slate-300 rounded-lg text-sm hover:bg-slate-500 transition-colors"
@@ -812,7 +746,7 @@ export default function ReviewPage() {
                                 onClick={handleNext}
                                 className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
                             >
-                                {currentIndex < compoundQueue.length - 1 ? 'Next Compound →' : 'Finish Review'}
+                                {currentIndex < reviewQueue.length - 1 ? 'Next Compound →' : 'Finish Review'}
                             </button>
                         )}
                     </div>
@@ -821,14 +755,14 @@ export default function ReviewPage() {
         );
     }
 
-    // Character Review Session UI
+    // Character Review UI
     return (
         <div className="max-w-2xl mx-auto">
             {/* Progress Bar */}
             <div className="mb-6">
                 <div className="flex justify-between text-sm text-slate-400 mb-2">
                     <span>Progress</span>
-                    <span>{currentIndex + 1} / {currentQueue.length}</span>
+                    <span>{currentIndex + 1} / {reviewQueue.length}</span>
                 </div>
                 <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
                     <div
@@ -840,21 +774,20 @@ export default function ReviewPage() {
 
             {/* Character Card */}
             <div className="bg-slate-800 rounded-lg p-8">
-                {/* Question - Character */}
                 <div className="text-center mb-8">
                     <div className="text-8xl font-bold text-amber-400 mb-4">
-                        {currentCharacter.hanzi}
+                        {currentItem?.word}
                     </div>
                 </div>
 
-                {/* Correct Answer Feedback */}
+                {/* Correct Feedback */}
                 {answerState === 'correct' && (
                     <div className="bg-green-500/20 border border-green-500 rounded-lg p-4 mb-6 text-center">
                         <div className="text-green-400 text-xl font-bold">✓ Correct!</div>
                     </div>
                 )}
 
-                {/* Incorrect Answer Feedback */}
+                {/* Incorrect Feedback */}
                 {answerState === 'incorrect' && (
                     <div className="bg-red-500/20 border border-red-500 rounded-lg p-4 mb-6">
                         <div className="text-red-400 text-xl font-bold text-center mb-4">✗ Incorrect</div>
@@ -862,10 +795,6 @@ export default function ReviewPage() {
                             <div>
                                 <span className="text-slate-400">Correct Pinyin:</span>
                                 <span className="text-white ml-2 font-medium">{correctPinyin}</span>
-                            </div>
-                            <div>
-                                <span className="text-slate-400">Correct Tone:</span>
-                                <span className="text-white ml-2 font-medium">Tone {correctTone}</span>
                             </div>
                             <div>
                                 <span className="text-slate-400">Correct Definition:</span>
@@ -878,7 +807,7 @@ export default function ReviewPage() {
                 {/* Quiz Form */}
                 {answerState === 'answering' && (
                     <div className="space-y-6 mb-8">
-                        {/* Pinyin Multiple Choice */}
+                        {/* Pinyin */}
                         <div>
                             <label className="block text-slate-400 text-sm mb-2">Select Pinyin</label>
                             <div className="grid grid-cols-2 gap-2">
@@ -903,29 +832,7 @@ export default function ReviewPage() {
                             </div>
                         </div>
 
-                        {/* Tone Selection */}
-                        <div>
-                            <label className="block text-slate-400 text-sm mb-2">Select Tone</label>
-                            <div className="flex gap-2">
-                                {[1, 2, 3, 4, 5].map(tone => (
-                                    <button
-                                        key={tone}
-                                        onClick={() => setSelectedTone(tone)}
-                                        className={`flex-1 py-4 rounded-lg font-medium transition-colors ${selectedTone === tone
-                                            ? 'bg-amber-500 text-slate-900'
-                                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                                            }`}
-                                    >
-                                        <div className="text-3xl">
-                                            {tone === 1 ? 'ā' : tone === 2 ? 'á' : tone === 3 ? 'ǎ' : tone === 4 ? 'à' : '·'}
-                                        </div>
-                                        <div className="text-xs opacity-75 mt-1">Tone {tone}</div>
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Definition Multiple Choice */}
+                        {/* Definition */}
                         <div>
                             <label className="block text-slate-400 text-sm mb-2">Select Definition</label>
                             <div className="space-y-2">
@@ -950,10 +857,9 @@ export default function ReviewPage() {
                             </div>
                         </div>
 
-                        {/* Check Answer Button */}
                         <button
                             onClick={checkAnswer}
-                            disabled={!selectedPinyin || selectedTone === null || !selectedDefinition}
+                            disabled={!selectedPinyin || !selectedDefinition}
                             className="w-full bg-amber-500 text-slate-900 py-3 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             Check Answer
@@ -961,48 +867,8 @@ export default function ReviewPage() {
                     </div>
                 )}
 
-                {/* Show full answer details after incorrect */}
-                {answerState === 'incorrect' && (
-                    <div className="space-y-4 mb-8">
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                            {currentCharacter.actor && (
-                                <div className="bg-slate-700/30 rounded p-3">
-                                    <div className="text-blue-400">Actor</div>
-                                    <div className="text-white">{currentCharacter.actor.name} ({currentCharacter.actor.initial})</div>
-                                </div>
-                            )}
-                            {currentCharacter.set && (
-                                <div className="bg-slate-700/30 rounded p-3">
-                                    <div className="text-purple-400">Set</div>
-                                    <div className="text-white">{currentCharacter.set.name} ({currentCharacter.set.final})</div>
-                                </div>
-                            )}
-                            {currentCharacter.room && (
-                                <div className="bg-slate-700/30 rounded p-3">
-                                    <div className="text-orange-400">Room</div>
-                                    <div className="text-white">{currentCharacter.room.name} (T{currentCharacter.room.tone})</div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="bg-slate-700/30 rounded p-4">
-                            <div className="text-slate-400 text-sm mb-2">Movie Scene</div>
-                            <p className="text-slate-200 italic">&quot;{resolveMovieScene(currentCharacter.movieScene, currentCharacter.actor, currentCharacter.room, currentCharacter.set)}&quot;</p>
-                        </div>
-                    </div>
-                )}
-
                 {/* Actions */}
                 <div className="flex gap-3">
-                    <button
-                        onClick={handleMarkLearned}
-                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${currentCharacter.learned
-                            ? 'bg-green-500/20 text-green-400'
-                            : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-                            }`}
-                    >
-                        {currentCharacter.learned ? '✓ Learned' : 'Mark Learned'}
-                    </button>
                     <button
                         onClick={handleSkip}
                         className="px-4 py-2 bg-slate-600 text-slate-300 rounded-lg text-sm hover:bg-slate-500 transition-colors"
@@ -1020,7 +886,7 @@ export default function ReviewPage() {
                             onClick={handleNext}
                             className="flex-1 bg-amber-500 text-slate-900 py-2 rounded-lg font-medium hover:bg-amber-400 transition-colors"
                         >
-                            {currentIndex < currentQueue.length - 1 ? 'Next Character →' : 'Finish Review'}
+                            {currentIndex < reviewQueue.length - 1 ? 'Next Character →' : 'Finish Review'}
                         </button>
                     )}
                 </div>

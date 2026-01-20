@@ -2,7 +2,7 @@
 Build unified offline database for Hanzi Movie Method.
 Combines:
 1. Pronunciation frequency data from SUBTLEX-CH corpus
-2. Word definitions from HanziPy (CC-CEDICT)
+2. Word definitions from CC-CEDICT (downloaded directly)
 3. Example sentences from Tatoeba/Chinese Example Sentences
 
 Output: public/hanzi_data.db (for client-side use via sql.js)
@@ -13,17 +13,61 @@ import re
 import csv
 import urllib.request
 import tempfile
+import gzip
 
-# Try to import hanzipy for dictionary lookups
+# CC-CEDICT download URL
+CEDICT_URL = 'https://www.mdbg.net/chinese/export/cedict/cedict_1_0_ts_utf-8_mdbg.txt.gz'
+
+# Global dictionary loaded from CC-CEDICT
+CEDICT_DICT = {}
+
+def download_cedict():
+    """Download and parse CC-CEDICT dictionary."""
+    global CEDICT_DICT
+    
+    print("Downloading CC-CEDICT from MDBG...")
+    try:
+        response = urllib.request.urlopen(CEDICT_URL)
+        data = gzip.decompress(response.read()).decode('utf-8')
+        lines = [l for l in data.split('\n') if l and not l.startswith('#')]
+        
+        # Parse entries: Traditional Simplified [pinyin] /definition1/definition2/
+        pattern = re.compile(r'^(\S+)\s+(\S+)\s+\[([^\]]+)\]\s+(.+)$')
+        for line in lines:
+            m = pattern.match(line)
+            if m:
+                trad, simp, pinyin, definition = m.groups()
+                # Clean up definition (remove leading/trailing slashes)
+                definition = definition.strip('/')
+                
+                # Add to dictionary (keyed by simplified)
+                if simp not in CEDICT_DICT:
+                    CEDICT_DICT[simp] = []
+                CEDICT_DICT[simp].append({
+                    'traditional': trad,
+                    'pinyin': pinyin,
+                    'definition': definition
+                })
+        
+        print(f"  Loaded {len(CEDICT_DICT)} simplified word entries from CC-CEDICT")
+        return True
+    except Exception as e:
+        print(f"  Error downloading CC-CEDICT: {e}")
+        return False
+
+# Download CC-CEDICT on import
+CEDICT_AVAILABLE = download_cedict()
+
+# Try to import hanzipy for dictionary lookups (fallback)
 try:
     from hanzipy.dictionary import HanziDictionary
     dictionary = HanziDictionary()
     HANZIPY_AVAILABLE = True
-    print("HanziPy dictionary available")
+    print("HanziPy dictionary available (fallback)")
 except ImportError:
     HANZIPY_AVAILABLE = False
     dictionary = None
-    print("Warning: HanziPy not available, definitions will be limited")
+    print("Warning: HanziPy not available, using CC-CEDICT only")
 
 # Import frequency data for ranking
 try:
@@ -165,17 +209,88 @@ def convert_pinyin_tone_number_to_mark(pinyin: str) -> str:
     return ' '.join(converted)
 
 
+def get_cedict_definitions(word: str) -> list:
+    """
+    Get definitions from CC-CEDICT dictionary.
+    Returns list of (pinyin, definition, rank) tuples.
+    For single characters, uses frequency_data.py for pronunciation ordering.
+    """
+    if not CEDICT_AVAILABLE or word not in CEDICT_DICT:
+        return []
+    
+    entries = CEDICT_DICT[word]
+    
+    # Build a map of pinyin -> definition from CC-CEDICT
+    pinyin_to_definition = {}
+    for entry in entries:
+        pinyin_raw = entry.get('pinyin', '')
+        # Convert space-separated tone numbers to diacritics
+        # CC-CEDICT format: "shuo1" -> "shuō"
+        pinyin = convert_pinyin_tone_number_to_mark(pinyin_raw)
+        definition = entry.get('definition', '')
+        
+        # If we already have this pinyin, combine definitions
+        if pinyin in pinyin_to_definition:
+            pinyin_to_definition[pinyin] += '/' + definition
+        else:
+            pinyin_to_definition[pinyin] = definition
+    
+    result = []
+    
+    # For single characters, use frequency_data.py ordering
+    if len(word) == 1 and word in CORPUS_FREQUENCY:
+        freq_list = CORPUS_FREQUENCY[word]  # Already sorted by frequency
+        used_pinyins = set()
+        
+        for freq_pinyin, _ in freq_list:
+            # Normalize for matching
+            freq_normalized = normalize_pinyin_for_comparison(freq_pinyin)
+            
+            # Find matching definition from CC-CEDICT
+            for cedict_pinyin, definition in pinyin_to_definition.items():
+                if normalize_pinyin_for_comparison(cedict_pinyin) == freq_normalized:
+                    if cedict_pinyin not in used_pinyins:
+                        # Use the frequency_data pinyin (has correct tone marks)
+                        result.append((freq_pinyin, definition, len(result)))
+                        used_pinyins.add(cedict_pinyin)
+                    break
+        
+        # Add any CC-CEDICT entries not in frequency data
+        for cedict_pinyin, definition in pinyin_to_definition.items():
+            if cedict_pinyin not in used_pinyins:
+                result.append((cedict_pinyin, definition, len(result)))
+    else:
+        # For compounds, just use CC-CEDICT order
+        for pinyin, definition in pinyin_to_definition.items():
+            result.append((pinyin, definition, len(result)))
+    
+    return result
+
+
 def get_hanzipy_definitions(word: str) -> list:
     """
-    Get all definitions for a word from HanziPy, sorted by frequency.
+    Get all definitions for a word, prioritizing CC-CEDICT over HanziPy.
     Returns list of (pinyin, definition, rank) tuples.
+    For compounds not in dictionary, builds a fallback from character definitions.
     """
+    # First try CC-CEDICT (more reliable for compounds)
+    cedict_result = get_cedict_definitions(word)
+    if cedict_result:
+        return cedict_result
+    
+    # Fallback to HanziPy for anything not in CC-CEDICT
     if not HANZIPY_AVAILABLE or not dictionary:
+        # For compounds, try building from characters
+        if len(word) > 1:
+            return build_fallback_definition(word)
         return []
     
     try:
         definitions = dictionary.definition_lookup(word)
         if not definitions:
+            # For compounds not in dictionary, try to build from characters
+            if len(word) > 1:
+                return build_fallback_definition(word)
             return []
         
         # For single characters, use frequency ranking
@@ -218,7 +333,77 @@ def get_hanzipy_definitions(word: str) -> list:
         
         return result
     except Exception as e:
+        # For compounds, try fallback
+        if len(word) > 1:
+            return build_fallback_definition(word)
         return []
+
+
+def build_fallback_definition(word: str) -> list:
+    """
+    Build a fallback definition for a compound word by combining
+    the primary definitions of its individual characters.
+    Tries CC-CEDICT first, then HanziPy.
+    """
+    char_pinyins = []
+    char_meanings = []
+    
+    for char in word:
+        found = False
+        
+        # Try CC-CEDICT first
+        if CEDICT_AVAILABLE and char in CEDICT_DICT:
+            entries = CEDICT_DICT[char]
+            if entries:
+                entry = entries[0]
+                py = entry.get('pinyin', '')
+                py = convert_pinyin_tone_number_to_mark(py)
+                char_pinyins.append(py)
+                
+                meaning = entry.get('definition', '')
+                if '/' in meaning:
+                    meaning = meaning.split('/')[0].strip()
+                if ',' in meaning:
+                    meaning = meaning.split(',')[0].strip()
+                if len(meaning) > 30:
+                    meaning = meaning[:30] + '...'
+                char_meanings.append(meaning)
+                found = True
+        
+        # Fallback to HanziPy
+        if not found and HANZIPY_AVAILABLE and dictionary:
+            try:
+                defs = dictionary.definition_lookup(char)
+                if defs:
+                    d = defs[0]
+                    py = d.get('pinyin', '')
+                    if isinstance(py, list):
+                        py = py[0] if py else ''
+                    py = convert_pinyin_tone_number_to_mark(py)
+                    char_pinyins.append(py)
+                    
+                    meaning = d.get('definition', '')
+                    if '/' in meaning:
+                        meaning = meaning.split('/')[0].strip()
+                    if ',' in meaning:
+                        meaning = meaning.split(',')[0].strip()
+                    if len(meaning) > 30:
+                        meaning = meaning[:30] + '...'
+                    char_meanings.append(meaning)
+                    found = True
+            except:
+                pass
+        
+        if not found:
+            char_pinyins.append('?')
+            char_meanings.append('?')
+    
+    if all(p != '?' for p in char_pinyins):
+        combined_pinyin = ' '.join(char_pinyins)
+        combined_meaning = ' + '.join(char_meanings)
+        return [(combined_pinyin, f"[compound] {combined_meaning}", 0)]
+    
+    return []
 
 
 def parse_subtlex_file():

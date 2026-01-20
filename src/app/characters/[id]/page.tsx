@@ -1,17 +1,15 @@
 'use client';
 
-import { use, useState, useEffect, useCallback } from 'react';
+import { use, useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCharactersWithRelations, useCompounds } from '@/hooks/useLocalStorage';
+import { useCharactersWithRelations, useCompounds, useActors, useRooms, useSets, useProps } from '@/hooks/useLocalStorage';
 import { fetchExampleSentences, TatoebaExample } from '@/lib/hanzipy';
 import { formatDefinition } from '@/lib/format';
-import { useOfflineDb, WordEntryWithPrimary, isDatabaseDownloaded } from '@/lib/offlineDb';
-import DatabaseDownloadPrompt from '@/components/DatabaseDownloadPrompt';
+import { useOfflineDb, WordEntryWithPrimary } from '@/lib/offlineDb';
+import { getWordHmm, setWordHmm, WordHmmData, getCorpusWordState, setCorpusWordLearned, setCorpusWordReviewed, markCorpusWordReviewed } from '@/lib/storage';
+import { findHmmMatches, parseFirstSyllable } from '@/lib/pinyinParser';
+import type { Actor, Room, Set, Prop } from '@/types';
 import Link from 'next/link';
-
-// Storage keys for learning state (matching the list page)
-const LEARNED_CHARS_KEY = 'hmm-learned-characters';
-const REVIEWED_CHARS_KEY = 'hmm-reviewed-characters';
 
 // Check if string looks like a UUID
 function isUUID(str: string): boolean {
@@ -38,55 +36,295 @@ function resolveMovieScene(
     return cleanScene ? `${template} ${cleanScene}` : template;
 }
 
-// Hook for corpus word learning state
+// Hook for corpus word learning state - uses the unified storage system
 function useCorpusLearningState(word: string) {
     const [isLearned, setIsLearned] = useState(false);
     const [isReviewed, setIsReviewed] = useState(false);
+    const [reviewCount, setReviewCount] = useState(0);
 
     useEffect(() => {
-        const learned = localStorage.getItem(LEARNED_CHARS_KEY);
-        const reviewed = localStorage.getItem(REVIEWED_CHARS_KEY);
-        if (learned) {
-            try {
-                const set = new Set(JSON.parse(learned));
-                setIsLearned(set.has(word));
-            } catch { }
-        }
-        if (reviewed) {
-            try {
-                const set = new Set(JSON.parse(reviewed));
-                setIsReviewed(set.has(word));
-            } catch { }
+        const state = getCorpusWordState(word);
+        if (state) {
+            setIsLearned(state.learned);
+            setIsReviewed(state.reviewed);
+            setReviewCount(state.reviewCount);
         }
     }, [word]);
 
     const toggleLearned = useCallback(() => {
-        const saved = localStorage.getItem(LEARNED_CHARS_KEY);
-        const set = new Set(saved ? JSON.parse(saved) : []);
-        if (set.has(word)) {
-            set.delete(word);
-            setIsLearned(false);
-        } else {
-            set.add(word);
-            setIsLearned(true);
-        }
-        localStorage.setItem(LEARNED_CHARS_KEY, JSON.stringify([...set]));
-    }, [word]);
+        const newState = setCorpusWordLearned(word, !isLearned);
+        setIsLearned(newState.learned);
+    }, [word, isLearned]);
 
     const toggleReviewed = useCallback(() => {
-        const saved = localStorage.getItem(REVIEWED_CHARS_KEY);
-        const set = new Set(saved ? JSON.parse(saved) : []);
-        if (set.has(word)) {
-            set.delete(word);
-            setIsReviewed(false);
-        } else {
-            set.add(word);
-            setIsReviewed(true);
-        }
-        localStorage.setItem(REVIEWED_CHARS_KEY, JSON.stringify([...set]));
-    }, [word]);
+        const newState = setCorpusWordReviewed(word, !isReviewed);
+        setIsReviewed(newState.reviewed);
+    }, [word, isReviewed]);
 
-    return { isLearned, isReviewed, toggleLearned, toggleReviewed };
+    return { isLearned, isReviewed, reviewCount, toggleLearned, toggleReviewed };
+}
+
+// HMM Display component for showing saved scene data
+function HmmDisplay({
+    wordHmm,
+    actors,
+    rooms,
+    sets,
+    props,
+}: {
+    wordHmm: WordHmmData;
+    actors: Actor[];
+    rooms: Room[];
+    sets: Set[];
+    props: Prop[];
+}) {
+    const actor = actors.find(a => a.id === wordHmm.actorId);
+    const room = rooms.find(r => r.id === wordHmm.roomId);
+    const set = sets.find(s => s.id === wordHmm.setId);
+    const selectedProps = props.filter(p => wordHmm.propIds?.includes(p.id));
+
+    // Build scene description
+    const actorName = actor?.name || '[No Actor]';
+    const roomName = room?.name || '[No Room]';
+    const setName = set?.name || '[No Set]';
+    const template = `${actorName} is at ${setName} in the ${roomName}.`;
+    const fullScene = wordHmm.movieScene ? `${template} ${wordHmm.movieScene}` : template;
+
+    return (
+        <div className="space-y-4">
+            {/* Scene description */}
+            <div className="bg-slate-800/50 rounded-lg p-4">
+                <p className="text-white italic">{fullScene}</p>
+            </div>
+
+            {/* Actor, Room, Set grid */}
+            <div className="grid grid-cols-3 gap-3 text-sm">
+                <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+                    <div className="text-5xl mb-2">{actor?.emoji || '👤'}</div>
+                    <div className="text-slate-400 text-xs">Actor</div>
+                    <div className="text-white font-medium">{actor?.name || 'Not set'}</div>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+                    <div className="text-5xl mb-2">{room?.emoji || '🏠'}</div>
+                    <div className="text-slate-400 text-xs">Room</div>
+                    <div className="text-white font-medium">{room?.name || 'Not set'}</div>
+                </div>
+                <div className="bg-slate-800/50 rounded-lg p-4 text-center">
+                    <div className="text-5xl mb-2">{set?.emoji || '📍'}</div>
+                    <div className="text-slate-400 text-xs">Set</div>
+                    <div className="text-white font-medium">{set?.name || 'Not set'}</div>
+                </div>
+            </div>
+
+            {/* Props */}
+            {selectedProps.length > 0 && (
+                <div>
+                    <div className="text-slate-400 text-xs mb-2">Props</div>
+                    <div className="flex flex-wrap gap-2">
+                        {selectedProps.map(prop => (
+                            <span key={prop.id} className="bg-slate-800/50 px-2 py-1 rounded text-sm">
+                                {prop.emoji || '🎭'} {prop.name}
+                            </span>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Notes */}
+            {wordHmm.notes && (
+                <div>
+                    <div className="text-slate-400 text-xs mb-1">Notes</div>
+                    <p className="text-slate-300 text-sm">{wordHmm.notes}</p>
+                </div>
+            )}
+        </div>
+    );
+}
+
+// HMM Editor component for editing scene data
+function HmmEditor({
+    word,
+    pinyin,
+    wordHmm,
+    actors,
+    rooms,
+    sets,
+    props,
+    onSave,
+    onCancel,
+}: {
+    word: string;
+    pinyin?: string;
+    wordHmm?: WordHmmData;
+    actors: Actor[];
+    rooms: Room[];
+    sets: Set[];
+    props: Prop[];
+    onSave: (updated: WordHmmData) => void;
+    onCancel: () => void;
+}) {
+    // Auto-detect matches from pinyin
+    const autoMatches = useMemo(() => {
+        if (!pinyin) return { actorId: undefined, roomId: undefined, setId: undefined };
+        return findHmmMatches(pinyin, actors, rooms, sets);
+    }, [pinyin, actors, rooms, sets]);
+
+    // Use saved values, falling back to auto-detected
+    const [actorId, setActorId] = useState(wordHmm?.actorId || autoMatches.actorId || '');
+    const [roomId, setRoomId] = useState(wordHmm?.roomId || autoMatches.roomId || '');
+    const [setId, setSetId] = useState(wordHmm?.setId || autoMatches.setId || '');
+    const [propIds, setPropIds] = useState<string[]>(wordHmm?.propIds || []);
+    const [movieScene, setMovieScene] = useState(wordHmm?.movieScene || '');
+    const [notes, setNotes] = useState(wordHmm?.notes || '');
+
+    // Update state when auto-matches change (if no existing wordHmm)
+    useEffect(() => {
+        if (!wordHmm) {
+            if (autoMatches.actorId && !actorId) setActorId(autoMatches.actorId);
+            if (autoMatches.roomId && !roomId) setRoomId(autoMatches.roomId);
+            if (autoMatches.setId && !setId) setSetId(autoMatches.setId);
+        }
+    }, [autoMatches, wordHmm, actorId, roomId, setId]);
+
+    const handleSave = () => {
+        const updated = setWordHmm(word, {
+            actorId: actorId || undefined,
+            roomId: roomId || undefined,
+            setId: setId || undefined,
+            propIds: propIds.length > 0 ? propIds : undefined,
+            movieScene: movieScene || undefined,
+            notes: notes || undefined,
+        });
+        onSave(updated);
+    };
+
+    const toggleProp = (propId: string) => {
+        setPropIds(prev =>
+            prev.includes(propId)
+                ? prev.filter(id => id !== propId)
+                : [...prev, propId]
+        );
+    };
+
+    return (
+        <div className="space-y-4">
+            {/* Actor selector */}
+            <div>
+                <label className="block text-slate-400 text-sm mb-1">Actor</label>
+                <select
+                    value={actorId}
+                    onChange={(e) => setActorId(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-400 focus:outline-none"
+                >
+                    <option value="">Select an actor...</option>
+                    {actors.map(actor => (
+                        <option key={actor.id} value={actor.id}>
+                            {actor.emoji || '👤'} {actor.name}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Room selector */}
+            <div>
+                <label className="block text-slate-400 text-sm mb-1">Room (Tone)</label>
+                <select
+                    value={roomId}
+                    onChange={(e) => setRoomId(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-400 focus:outline-none"
+                >
+                    <option value="">Select a room...</option>
+                    {rooms.map(room => (
+                        <option key={room.id} value={room.id}>
+                            {room.emoji || '🏠'} {room.name} {room.tone ? `(Tone ${room.tone})` : ''}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Set selector */}
+            <div>
+                <label className="block text-slate-400 text-sm mb-1">Set (Final)</label>
+                <select
+                    value={setId}
+                    onChange={(e) => setSetId(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-400 focus:outline-none"
+                >
+                    <option value="">Select a set...</option>
+                    {sets.map(set => (
+                        <option key={set.id} value={set.id}>
+                            {set.emoji || '📍'} {set.name} {set.final ? `(-${set.final})` : ''}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            {/* Props multi-select */}
+            {props.length > 0 && (
+                <div>
+                    <label className="block text-slate-400 text-sm mb-1">Props</label>
+                    <div className="flex flex-wrap gap-2">
+                        {props.map(prop => (
+                            <button
+                                key={prop.id}
+                                type="button"
+                                onClick={() => toggleProp(prop.id)}
+                                className={`px-2 py-1 rounded text-sm transition-colors ${propIds.includes(prop.id)
+                                        ? 'bg-amber-500/30 text-amber-400 border border-amber-500'
+                                        : 'bg-slate-800 text-slate-400 border border-slate-600 hover:border-slate-500'
+                                    }`}
+                            >
+                                {prop.emoji || '🎭'} {prop.name}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Movie scene textarea */}
+            <div>
+                <label className="block text-slate-400 text-sm mb-1">Scene Description</label>
+                <textarea
+                    value={movieScene}
+                    onChange={(e) => setMovieScene(e.target.value)}
+                    placeholder="Describe what happens in the scene..."
+                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-400 focus:outline-none min-h-[100px] resize-y"
+                />
+                <p className="text-slate-500 text-xs mt-1">
+                    The scene will be prepended with: &quot;[Actor] is at [Set] in the [Room].&quot;
+                </p>
+            </div>
+
+            {/* Notes */}
+            <div>
+                <label className="block text-slate-400 text-sm mb-1">Notes (optional)</label>
+                <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Any additional notes..."
+                    className="w-full bg-slate-800 border border-slate-600 rounded px-3 py-2 text-white focus:border-amber-400 focus:outline-none min-h-[60px] resize-y"
+                />
+            </div>
+
+            {/* Buttons */}
+            <div className="flex justify-end gap-2 pt-2">
+                <button
+                    type="button"
+                    onClick={onCancel}
+                    className="px-4 py-2 text-slate-400 hover:text-white transition-colors"
+                >
+                    Cancel
+                </button>
+                <button
+                    type="button"
+                    onClick={handleSave}
+                    className="px-4 py-2 bg-amber-500 text-slate-900 rounded font-medium hover:bg-amber-400 transition-colors"
+                >
+                    Save Scene
+                </button>
+            </div>
+        </div>
+    );
 }
 
 export default function CharacterDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -97,6 +335,10 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
     const router = useRouter();
     const { characters, loading, update, toggleLearned, toggleReviewed } = useCharactersWithRelations();
     const { compounds } = useCompounds();
+    const { actors } = useActors();
+    const { rooms } = useRooms();
+    const { sets } = useSets();
+    const { props } = useProps();
     const { isReady: dbReady, getWord } = useOfflineDb();
 
     const [isEditingScene, setIsEditingScene] = useState(false);
@@ -105,7 +347,10 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
     const [loadingExamples, setLoadingExamples] = useState(false);
     const [corpusWord, setCorpusWord] = useState<WordEntryWithPrimary | null>(null);
     const [corpusLoading, setCorpusLoading] = useState(!isLegacyId);
-    const [showDbPrompt, setShowDbPrompt] = useState(false);
+    
+    // HMM data state for corpus words
+    const [wordHmm, setWordHmmState] = useState<WordHmmData | undefined>(undefined);
+    const [isEditingHmm, setIsEditingHmm] = useState(false);
 
     // For corpus words, use the learning state hook
     const corpusLearning = useCorpusLearningState(decodedId);
@@ -114,6 +359,14 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
     const character = isLegacyId
         ? characters.find(c => c.id === decodedId)
         : characters.find(c => c.hanzi === decodedId);
+
+    // Load HMM data for corpus words
+    useEffect(() => {
+        if (!isLegacyId && corpusWord) {
+            const hmm = getWordHmm(corpusWord.word);
+            setWordHmmState(hmm);
+        }
+    }, [isLegacyId, corpusWord]);
 
     // Load corpus word from offline db
     useEffect(() => {
@@ -134,13 +387,6 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
         loadCorpusWord();
     }, [decodedId, isLegacyId, dbReady, getWord]);
 
-    // Check if db needs download for corpus words
-    useEffect(() => {
-        if (!isLegacyId && typeof window !== 'undefined' && !isDatabaseDownloaded()) {
-            setShowDbPrompt(true);
-        }
-    }, [isLegacyId]);
-
     // Get the hanzi to use for fetching examples
     const hanzi = character?.hanzi || corpusWord?.word || decodedId;
 
@@ -153,17 +399,6 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                 .finally(() => setLoadingExamples(false));
         }
     }, [hanzi]);
-
-    // Show database download prompt if needed
-    if (showDbPrompt) {
-        return (
-            <DatabaseDownloadPrompt>
-                <div className="flex items-center justify-center h-64">
-                    <div className="text-slate-400">Loading database...</div>
-                </div>
-            </DatabaseDownloadPrompt>
-        );
-    }
 
     if (loading || corpusLoading) {
         return (
@@ -501,6 +736,19 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
 
     // Corpus-only view (no HMM data)
     const formattedRank = (corpusWord!.rank + 1).toLocaleString();
+    
+    // Auto-detect actor/room/set from pinyin
+    const autoMatches = findHmmMatches(corpusWord!.pinyin, actors, rooms, sets);
+    const autoActor = actors.find(a => a.id === autoMatches.actorId);
+    const autoRoom = rooms.find(r => r.id === autoMatches.roomId);
+    const autoSet = sets.find(s => s.id === autoMatches.setId);
+    const pinyinComponents = parseFirstSyllable(corpusWord!.pinyin);
+    
+    // Build auto-generated scene template
+    const autoActorName = autoActor?.name || '[Actor]';
+    const autoRoomName = autoRoom?.name || '[Room]';
+    const autoSetName = autoSet?.name || '[Set]';
+    const autoTemplate = `${autoActorName} is at ${autoSetName} in the ${autoRoomName}.`;
 
     return (
         <div className="max-w-4xl mx-auto">
@@ -562,6 +810,86 @@ export default function CharacterDetailPage({ params }: { params: Promise<{ id: 
                             <span className="text-white ml-2">{corpusWord!.frequency.toLocaleString()}</span>
                         </div>
                     </div>
+                </div>
+
+                {/* HMM Movie Scene Section */}
+                <div className="bg-slate-700/30 rounded-lg p-4 mb-6">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-amber-400 font-medium">🎬 Movie Scene</h3>
+                        <button
+                            onClick={() => setIsEditingHmm(!isEditingHmm)}
+                            className="text-sm text-slate-400 hover:text-amber-400 transition-colors"
+                        >
+                            {isEditingHmm ? 'Cancel' : (wordHmm ? 'Edit' : 'Create Scene')}
+                        </button>
+                    </div>
+
+                    {/* Pinyin breakdown info */}
+                    <div className="text-xs text-slate-500 mb-3 flex gap-4">
+                        <span>Initial: <span className="text-amber-400">{pinyinComponents.initial}</span></span>
+                        <span>Final: <span className="text-amber-400">{pinyinComponents.final}</span></span>
+                        <span>Tone: <span className="text-amber-400">{pinyinComponents.tone}</span></span>
+                    </div>
+
+                    {isEditingHmm ? (
+                        <HmmEditor
+                            word={corpusWord!.word}
+                            pinyin={corpusWord!.pinyin}
+                            wordHmm={wordHmm}
+                            actors={actors}
+                            rooms={rooms}
+                            sets={sets}
+                            props={props}
+                            onSave={(updated) => {
+                                setWordHmmState(updated);
+                                setIsEditingHmm(false);
+                            }}
+                            onCancel={() => setIsEditingHmm(false)}
+                        />
+                    ) : wordHmm ? (
+                        <HmmDisplay
+                            wordHmm={wordHmm}
+                            actors={actors}
+                            rooms={rooms}
+                            sets={sets}
+                            props={props}
+                        />
+                    ) : (
+                        <div className="space-y-4">
+                            {/* Auto-generated template display */}
+                            <div className="bg-slate-800/50 rounded-lg p-4">
+                                <p className="text-white italic">{autoTemplate}</p>
+                                {(!autoActor || !autoRoom || !autoSet) && (
+                                    <p className="text-amber-500/70 text-xs mt-2">
+                                        ⚠️ Some matches not found. Add actors/rooms/sets in the settings to complete.
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Auto-detected Actor, Room, Set cards */}
+                            <div className="grid grid-cols-3 gap-3 text-sm">
+                                <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoActor ? '' : 'border border-dashed border-slate-600'}`}>
+                                    <div className="text-5xl mb-2">{autoActor?.emoji || '👤'}</div>
+                                    <div className="text-slate-400 text-xs">Actor ({pinyinComponents.initial})</div>
+                                    <div className={`font-medium ${autoActor ? 'text-white' : 'text-slate-500'}`}>{autoActor?.name || 'Not found'}</div>
+                                </div>
+                                <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoRoom ? '' : 'border border-dashed border-slate-600'}`}>
+                                    <div className="text-5xl mb-2">{autoRoom?.emoji || '🏠'}</div>
+                                    <div className="text-slate-400 text-xs">Room (Tone {pinyinComponents.tone})</div>
+                                    <div className={`font-medium ${autoRoom ? 'text-white' : 'text-slate-500'}`}>{autoRoom?.name || 'Not found'}</div>
+                                </div>
+                                <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoSet ? '' : 'border border-dashed border-slate-600'}`}>
+                                    <div className="text-5xl mb-2">{autoSet?.emoji || '📍'}</div>
+                                    <div className="text-slate-400 text-xs">Set ({pinyinComponents.final})</div>
+                                    <div className={`font-medium ${autoSet ? 'text-white' : 'text-slate-500'}`}>{autoSet?.name || 'Not found'}</div>
+                                </div>
+                            </div>
+
+                            <p className="text-slate-500 text-sm text-center">
+                                Click &quot;Create Scene&quot; to customize and add a scene description.
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 {/* Example Sentences */}

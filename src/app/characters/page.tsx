@@ -2,18 +2,14 @@
 
 import React, { useState, useEffect, Suspense, useCallback, useRef, useTransition } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useOfflineDb, WordEntryWithPrimary, isDatabaseDownloaded } from '@/lib/offlineDb';
+import { useOfflineDb, WordEntryWithPrimary } from '@/lib/offlineDb';
 import { CorpusWordCard } from '@/components/CorpusWordCard';
-import DatabaseDownloadPrompt from '@/components/DatabaseDownloadPrompt';
+import { getCorpusLearningData, setCorpusWordLearned, setCorpusWordReviewed, CorpusWordState } from '@/lib/storage';
 
 const CHARS_PER_PAGE = 50;
 const SCROLL_STORAGE_KEY = 'characters-scroll-position';
 const PAGE_STORAGE_KEY = 'characters-page';
 const FILTER_STORAGE_KEY = 'characters-filter';
-
-// Storage key for user learning state
-const LEARNED_CHARS_KEY = 'hmm-learned-characters';
-const REVIEWED_CHARS_KEY = 'hmm-reviewed-characters';
 
 // Normalize pinyin by removing tone marks for search comparison
 function normalizePinyin(pinyin: string): string {
@@ -28,67 +24,46 @@ function normalizePinyin(pinyin: string): string {
     return pinyin.toLowerCase().split('').map(c => toneMap[c] || c).join('');
 }
 
-// Custom hook for managing learned/reviewed state
+// Custom hook for managing learned/reviewed state using unified storage
 function useWordLearningState() {
-    const [learnedChars, setLearnedChars] = useState<Set<string>>(new Set());
-    const [reviewedChars, setReviewedChars] = useState<Set<string>>(new Set());
+    const [learningData, setLearningData] = useState<Map<string, CorpusWordState>>(new Map());
 
     // Load from localStorage on mount
     useEffect(() => {
-        const savedLearned = localStorage.getItem(LEARNED_CHARS_KEY);
-        const savedReviewed = localStorage.getItem(REVIEWED_CHARS_KEY);
-
-        if (savedLearned) {
-            try {
-                setLearnedChars(new Set(JSON.parse(savedLearned)));
-            } catch (e) {
-                console.error('Failed to parse learned chars:', e);
-            }
-        }
-        if (savedReviewed) {
-            try {
-                setReviewedChars(new Set(JSON.parse(savedReviewed)));
-            } catch (e) {
-                console.error('Failed to parse reviewed chars:', e);
-            }
-        }
+        setLearningData(getCorpusLearningData());
     }, []);
 
     const toggleLearned = useCallback((word: string) => {
-        setLearnedChars(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(word)) {
-                newSet.delete(word);
-            } else {
-                newSet.add(word);
-            }
-            localStorage.setItem(LEARNED_CHARS_KEY, JSON.stringify([...newSet]));
-            return newSet;
+        const current = learningData.get(word);
+        const newState = setCorpusWordLearned(word, !(current?.learned ?? false));
+        setLearningData(prev => {
+            const newMap = new Map(prev);
+            newMap.set(word, newState);
+            return newMap;
         });
-    }, []);
+    }, [learningData]);
 
     const toggleReviewed = useCallback((word: string) => {
-        setReviewedChars(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(word)) {
-                newSet.delete(word);
-            } else {
-                newSet.add(word);
-            }
-            localStorage.setItem(REVIEWED_CHARS_KEY, JSON.stringify([...newSet]));
-            return newSet;
+        const current = learningData.get(word);
+        const newState = setCorpusWordReviewed(word, !(current?.reviewed ?? false));
+        setLearningData(prev => {
+            const newMap = new Map(prev);
+            newMap.set(word, newState);
+            return newMap;
         });
-    }, []);
+    }, [learningData]);
+
+    const learnedCount = Array.from(learningData.values()).filter(s => s.learned).length;
+    const reviewedCount = Array.from(learningData.values()).filter(s => s.reviewed).length;
 
     return {
-        learnedChars,
-        reviewedChars,
+        learningData,
         toggleLearned,
         toggleReviewed,
-        isLearned: (word: string) => learnedChars.has(word),
-        isReviewed: (word: string) => reviewedChars.has(word),
-        learnedCount: learnedChars.size,
-        reviewedCount: reviewedChars.size
+        isLearned: (word: string) => learningData.get(word)?.learned ?? false,
+        isReviewed: (word: string) => learningData.get(word)?.reviewed ?? false,
+        learnedCount,
+        reviewedCount
     };
 }
 
@@ -104,18 +79,10 @@ function CharactersContent() {
     const [filterLearned, setFilterLearned] = useState<'all' | 'learned' | 'unlearned'>('all');
     const [currentPage, setCurrentPage] = useState(1);
     const [isRestored, setIsRestored] = useState(false);
-    const [showDbPrompt, setShowDbPrompt] = useState(false);
     const [isPending, startTransition] = useTransition();
 
     // Cache for loaded pages to avoid re-fetching
     const pageCache = useRef<Map<number, WordEntryWithPrimary[]>>(new Map());
-
-    // Check if database is downloaded
-    useEffect(() => {
-        if (typeof window !== 'undefined' && !isDatabaseDownloaded()) {
-            setShowDbPrompt(true);
-        }
-    }, []);
 
     // Restore page and filter from sessionStorage on mount
     useEffect(() => {
@@ -277,17 +244,6 @@ function CharactersContent() {
         setCurrentPage(1);
         sessionStorage.removeItem(SCROLL_STORAGE_KEY);
     };
-
-    // Show database download prompt if not downloaded
-    if (showDbPrompt && !isReady) {
-        return (
-            <DatabaseDownloadPrompt>
-                <div className="flex items-center justify-center h-64">
-                    <div className="text-slate-400">Loading database...</div>
-                </div>
-            </DatabaseDownloadPrompt>
-        );
-    }
 
     if (dbLoading || loading) {
         return (

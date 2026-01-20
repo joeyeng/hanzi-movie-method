@@ -38,6 +38,7 @@ export interface Prop {
   id: string;
   name: string;
   component: string; // The character component this prop represents
+  emoji?: string; // Optional emoji to represent this prop
   imageUrl?: string;
   description?: string;
   createdAt: Date;

@@ -404,3 +404,177 @@ export function deleteComponent(id: string): boolean {
   saveComponents(filtered);
   return true;
 }
+
+// ==================== HMM WORD ASSOCIATIONS ====================
+// These link corpus words to HMM data (actors, rooms, sets, movie scenes)
+// Stored separately from the old Character type to work with the offline database
+
+export interface WordHmmData {
+  word: string;           // The Chinese word (key)
+  actorId?: string;       // Reference to actor
+  roomId?: string;        // Reference to room  
+  setId?: string;         // Reference to set
+  propIds?: string[];     // Reference to props
+  movieScene?: string;    // Custom movie scene description
+  notes?: string;         // User notes
+  updatedAt: Date;
+}
+
+const WORD_HMM_KEY = 'hmm-word-associations';
+
+export function getWordHmmData(): Map<string, WordHmmData> {
+  if (typeof window === 'undefined') return new Map();
+  const data = localStorage.getItem(WORD_HMM_KEY);
+  if (!data) return new Map();
+  try {
+    const parsed = JSON.parse(data);
+    return new Map(Object.entries(parsed));
+  } catch {
+    return new Map();
+  }
+}
+
+export function saveWordHmmData(data: Map<string, WordHmmData>): void {
+  if (typeof window === 'undefined') return;
+  const obj = Object.fromEntries(data);
+  localStorage.setItem(WORD_HMM_KEY, JSON.stringify(obj));
+}
+
+export function getWordHmm(word: string): WordHmmData | undefined {
+  const data = getWordHmmData();
+  return data.get(word);
+}
+
+export function setWordHmm(word: string, hmm: Partial<Omit<WordHmmData, 'word' | 'updatedAt'>>): WordHmmData {
+  const data = getWordHmmData();
+  const existing = data.get(word);
+  const updated: WordHmmData = {
+    word,
+    actorId: hmm.actorId ?? existing?.actorId,
+    roomId: hmm.roomId ?? existing?.roomId,
+    setId: hmm.setId ?? existing?.setId,
+    propIds: hmm.propIds ?? existing?.propIds,
+    movieScene: hmm.movieScene ?? existing?.movieScene,
+    notes: hmm.notes ?? existing?.notes,
+    updatedAt: new Date(),
+  };
+  data.set(word, updated);
+  saveWordHmmData(data);
+  return updated;
+}
+
+export function deleteWordHmm(word: string): boolean {
+  const data = getWordHmmData();
+  if (!data.has(word)) return false;
+  data.delete(word);
+  saveWordHmmData(data);
+  return true;
+}
+
+export function getWordsWithHmmData(): string[] {
+  const data = getWordHmmData();
+  return Array.from(data.keys());
+}
+
+// ==================== CORPUS WORD LEARNING STATE ====================
+// Tracks learned/reviewed status for words from the offline database (corpus)
+// This is separate from the Character type which is for manually imported characters
+
+export interface CorpusWordState {
+  word: string;
+  learned: boolean;
+  reviewed: boolean;        // Whether it's in the review queue
+  reviewCount: number;
+  lastReviewed?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const CORPUS_LEARNING_KEY = 'hmm-corpus-learning';
+
+export function getCorpusLearningData(): Map<string, CorpusWordState> {
+  if (typeof window === 'undefined') return new Map();
+  const data = localStorage.getItem(CORPUS_LEARNING_KEY);
+  if (!data) return new Map();
+  try {
+    const parsed = JSON.parse(data);
+    return new Map(Object.entries(parsed));
+  } catch {
+    return new Map();
+  }
+}
+
+export function saveCorpusLearningData(data: Map<string, CorpusWordState>): void {
+  if (typeof window === 'undefined') return;
+  const obj = Object.fromEntries(data);
+  localStorage.setItem(CORPUS_LEARNING_KEY, JSON.stringify(obj));
+}
+
+export function getCorpusWordState(word: string): CorpusWordState | undefined {
+  const data = getCorpusLearningData();
+  return data.get(word);
+}
+
+export function setCorpusWordLearned(word: string, learned: boolean): CorpusWordState {
+  const data = getCorpusLearningData();
+  const existing = data.get(word);
+  const now = new Date();
+  const updated: CorpusWordState = {
+    word,
+    learned,
+    reviewed: existing?.reviewed ?? false,
+    reviewCount: existing?.reviewCount ?? 0,
+    lastReviewed: existing?.lastReviewed,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  data.set(word, updated);
+  saveCorpusLearningData(data);
+  return updated;
+}
+
+export function setCorpusWordReviewed(word: string, reviewed: boolean): CorpusWordState {
+  const data = getCorpusLearningData();
+  const existing = data.get(word);
+  const now = new Date();
+  const updated: CorpusWordState = {
+    word,
+    learned: existing?.learned ?? false,
+    reviewed,
+    reviewCount: existing?.reviewCount ?? 0,
+    lastReviewed: existing?.lastReviewed,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  data.set(word, updated);
+  saveCorpusLearningData(data);
+  return updated;
+}
+
+export function markCorpusWordReviewed(word: string): CorpusWordState {
+  const data = getCorpusLearningData();
+  const existing = data.get(word);
+  const now = new Date();
+  const updated: CorpusWordState = {
+    word,
+    learned: existing?.learned ?? false,
+    reviewed: existing?.reviewed ?? false,
+    reviewCount: (existing?.reviewCount ?? 0) + 1,
+    lastReviewed: now,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  data.set(word, updated);
+  saveCorpusLearningData(data);
+  return updated;
+}
+
+export function getCorpusWordsForReview(): CorpusWordState[] {
+  const data = getCorpusLearningData();
+  return Array.from(data.values()).filter(w => w.reviewed);
+}
+
+export function getLearnedCorpusWords(): CorpusWordState[] {
+  const data = getCorpusLearningData();
+  return Array.from(data.values()).filter(w => w.learned);
+}

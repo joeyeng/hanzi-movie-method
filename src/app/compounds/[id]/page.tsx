@@ -5,68 +5,41 @@ import { useRouter } from 'next/navigation';
 import { useCompounds, useCharacters } from '@/hooks/useLocalStorage';
 import { fetchExampleSentences, TatoebaExample } from '@/lib/hanzipy';
 import { formatDefinition } from '@/lib/format';
-import { useOfflineDb, WordEntryWithPrimary, isDatabaseDownloaded } from '@/lib/offlineDb';
-import DatabaseDownloadPrompt from '@/components/DatabaseDownloadPrompt';
+import { useOfflineDb, WordEntryWithPrimary } from '@/lib/offlineDb';
+import { getCorpusWordState, setCorpusWordLearned, setCorpusWordReviewed } from '@/lib/storage';
 import Link from 'next/link';
-
-// Storage keys for learning state (matching the list page)
-const LEARNED_COMPOUNDS_KEY = 'hmm-learned-compounds';
-const REVIEWED_COMPOUNDS_KEY = 'hmm-reviewed-compounds';
 
 // Check if string looks like a UUID
 function isUUID(str: string): boolean {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str);
 }
 
-// Hook for corpus word learning state
+// Hook for corpus word learning state - uses the unified storage system
 function useCorpusLearningState(word: string) {
     const [isLearned, setIsLearned] = useState(false);
     const [isReviewed, setIsReviewed] = useState(false);
+    const [reviewCount, setReviewCount] = useState(0);
 
     useEffect(() => {
-        const learned = localStorage.getItem(LEARNED_COMPOUNDS_KEY);
-        const reviewed = localStorage.getItem(REVIEWED_COMPOUNDS_KEY);
-        if (learned) {
-            try {
-                const set = new Set(JSON.parse(learned));
-                setIsLearned(set.has(word));
-            } catch { }
-        }
-        if (reviewed) {
-            try {
-                const set = new Set(JSON.parse(reviewed));
-                setIsReviewed(set.has(word));
-            } catch { }
+        const state = getCorpusWordState(word);
+        if (state) {
+            setIsLearned(state.learned);
+            setIsReviewed(state.reviewed);
+            setReviewCount(state.reviewCount);
         }
     }, [word]);
 
     const toggleLearned = useCallback(() => {
-        const saved = localStorage.getItem(LEARNED_COMPOUNDS_KEY);
-        const set = new Set(saved ? JSON.parse(saved) : []);
-        if (set.has(word)) {
-            set.delete(word);
-            setIsLearned(false);
-        } else {
-            set.add(word);
-            setIsLearned(true);
-        }
-        localStorage.setItem(LEARNED_COMPOUNDS_KEY, JSON.stringify([...set]));
-    }, [word]);
+        const newState = setCorpusWordLearned(word, !isLearned);
+        setIsLearned(newState.learned);
+    }, [word, isLearned]);
 
     const toggleReviewed = useCallback(() => {
-        const saved = localStorage.getItem(REVIEWED_COMPOUNDS_KEY);
-        const set = new Set(saved ? JSON.parse(saved) : []);
-        if (set.has(word)) {
-            set.delete(word);
-            setIsReviewed(false);
-        } else {
-            set.add(word);
-            setIsReviewed(true);
-        }
-        localStorage.setItem(REVIEWED_COMPOUNDS_KEY, JSON.stringify([...set]));
-    }, [word]);
+        const newState = setCorpusWordReviewed(word, !isReviewed);
+        setIsReviewed(newState.reviewed);
+    }, [word, isReviewed]);
 
-    return { isLearned, isReviewed, toggleLearned, toggleReviewed };
+    return { isLearned, isReviewed, reviewCount, toggleLearned, toggleReviewed };
 }
 
 export default function CompoundDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -83,7 +56,6 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
     const [loadingExamples, setLoadingExamples] = useState(false);
     const [corpusWord, setCorpusWord] = useState<WordEntryWithPrimary | null>(null);
     const [corpusLoading, setCorpusLoading] = useState(!isLegacyId);
-    const [showDbPrompt, setShowDbPrompt] = useState(false);
 
     // For corpus words, use the learning state hook
     const corpusLearning = useCorpusLearningState(decodedId);
@@ -117,13 +89,6 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
         loadCorpusWord();
     }, [decodedId, isLegacyId, dbReady, getWord]);
 
-    // Check if db needs download for corpus words
-    useEffect(() => {
-        if (!isLegacyId && typeof window !== 'undefined' && !isDatabaseDownloaded()) {
-            setShowDbPrompt(true);
-        }
-    }, [isLegacyId]);
-
     // Get the word text to use for fetching examples
     const wordText = compound?.word || corpusWord?.word || decodedId;
 
@@ -136,17 +101,6 @@ export default function CompoundDetailPage({ params }: { params: Promise<{ id: s
                 .finally(() => setLoadingExamples(false));
         }
     }, [wordText]);
-
-    // Show database download prompt if needed
-    if (showDbPrompt) {
-        return (
-            <DatabaseDownloadPrompt>
-                <div className="flex items-center justify-center h-64">
-                    <div className="text-slate-400">Loading database...</div>
-                </div>
-            </DatabaseDownloadPrompt>
-        );
-    }
 
     if (loading || corpusLoading) {
         return (
