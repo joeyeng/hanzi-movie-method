@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Sidebar } from "@/components/Sidebar";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import DatabaseDownloadPrompt from "@/components/DatabaseDownloadPrompt";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -47,11 +48,13 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-white overflow-x-hidden`}
       >
-        <ScrollToTop />
-        <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
-          <Sidebar />
-          <main className="flex-1 p-4 lg:p-8 pt-20 lg:pt-8 min-w-0 overflow-x-hidden">{children}</main>
-        </div>
+        <DatabaseDownloadPrompt>
+          <ScrollToTop />
+          <div className="flex min-h-screen w-full max-w-full overflow-x-hidden">
+            <Sidebar />
+            <main className="flex-1 p-4 lg:p-8 pt-20 lg:pt-8 min-w-0 overflow-x-hidden">{children}</main>
+          </div>
+        </DatabaseDownloadPrompt>
       </body>
     </html>
   );

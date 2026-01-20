@@ -5,7 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "6000:6000"
+      - "6003:6003"
     environment:
       - NODE_ENV=development
       - HANZIPY_SERVER_URL=http://hanzipy:6001
