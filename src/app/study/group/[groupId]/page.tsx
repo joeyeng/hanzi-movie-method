@@ -93,23 +93,23 @@ export default function StudyGroupPage() {
     // Stats for this group
     const groupStats = useMemo(() => {
         if (groupWords.length === 0) return { learned: 0, reviewed: 0 };
-        
+
         let learned = 0;
         let reviewed = 0;
-        
+
         for (const word of groupWords) {
             const state = learningData.get(word.word);
             if (state?.learned) learned++;
             if (state?.reviewed) reviewed++;
         }
-        
+
         return { learned, reviewed };
     }, [groupWords, learningData]);
 
     // Calculate rank range
     const startRank = (groupId - 1) * WORDS_PER_GROUP + 1;
-    const endRank = totalWords > 0 
-        ? Math.min(groupId * WORDS_PER_GROUP, totalWords) 
+    const endRank = totalWords > 0
+        ? Math.min(groupId * WORDS_PER_GROUP, totalWords)
         : groupId * WORDS_PER_GROUP;
 
     if (dbLoading) {

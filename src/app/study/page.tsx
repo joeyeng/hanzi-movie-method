@@ -38,11 +38,10 @@ function GroupCard({ groupNumber, startRank, endRank, learnedCount, reviewedCoun
     return (
         <button
             onClick={onClick}
-            className={`p-3 sm:p-4 rounded-lg border transition-all text-left w-full ${
-                isComplete
+            className={`p-3 sm:p-4 rounded-lg border transition-all text-left w-full ${isComplete
                     ? 'bg-green-900/20 border-green-500/50 hover:border-green-500'
                     : 'bg-slate-800 border-slate-700 hover:border-amber-500/50'
-            }`}
+                }`}
         >
             <div className="flex justify-between items-start mb-1 sm:mb-2">
                 <h3 className="text-base sm:text-lg font-semibold text-amber-400">
@@ -55,7 +54,7 @@ function GroupCard({ groupNumber, startRank, endRank, learnedCount, reviewedCoun
             <p className="text-slate-400 text-xs sm:text-sm mb-2 sm:mb-3">
                 #{startRank.toLocaleString()} - #{endRank.toLocaleString()}
             </p>
-            
+
             {/* Progress bars */}
             <div className="space-y-1 sm:space-y-2">
                 <div>
@@ -64,7 +63,7 @@ function GroupCard({ groupNumber, startRank, endRank, learnedCount, reviewedCoun
                         <span>{learnedPercent}%</span>
                     </div>
                     <div className="h-1.5 sm:h-2 bg-slate-700 rounded-full overflow-hidden">
-                        <div 
+                        <div
                             className="h-full bg-green-500 transition-all duration-300"
                             style={{ width: `${learnedPercent}%` }}
                         />
@@ -76,7 +75,7 @@ function GroupCard({ groupNumber, startRank, endRank, learnedCount, reviewedCoun
                         <span>{reviewedPercent}%</span>
                     </div>
                     <div className="h-1.5 sm:h-2 bg-slate-700 rounded-full overflow-hidden">
-                        <div 
+                        <div
                             className="h-full bg-blue-500 transition-all duration-300"
                             style={{ width: `${reviewedPercent}%` }}
                         />
@@ -100,33 +99,33 @@ function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) 
     const getVisiblePages = () => {
         const pages: (number | 'ellipsis')[] = [];
         const showEllipsis = totalPages > 7;
-        
+
         if (!showEllipsis) {
             return Array.from({ length: totalPages }, (_, i) => i + 1);
         }
-        
+
         // Always show first page
         pages.push(1);
-        
+
         if (currentPage > 3) {
             pages.push('ellipsis');
         }
-        
+
         // Show pages around current
         const start = Math.max(2, currentPage - 1);
         const end = Math.min(totalPages - 1, currentPage + 1);
-        
+
         for (let i = start; i <= end; i++) {
             if (!pages.includes(i)) pages.push(i);
         }
-        
+
         if (currentPage < totalPages - 2) {
             pages.push('ellipsis');
         }
-        
+
         // Always show last page
         if (!pages.includes(totalPages)) pages.push(totalPages);
-        
+
         return pages;
     };
 
@@ -139,27 +138,26 @@ function Pagination({ currentPage, totalPages, onPageChange }: PaginationProps) 
             >
                 ←
             </button>
-            
+
             <div className="flex gap-1">
-                {getVisiblePages().map((page, i) => 
+                {getVisiblePages().map((page, i) =>
                     page === 'ellipsis' ? (
                         <span key={`ellipsis-${i}`} className="px-2 py-1.5 text-slate-500">...</span>
                     ) : (
                         <button
                             key={page}
                             onClick={() => onPageChange(page)}
-                            className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded text-sm min-w-[32px] sm:min-w-[40px] ${
-                                currentPage === page
+                            className={`px-2 sm:px-3 py-1.5 sm:py-2 rounded text-sm min-w-[32px] sm:min-w-[40px] ${currentPage === page
                                     ? 'bg-amber-500 text-slate-900 font-medium'
                                     : 'bg-slate-800 text-slate-400 hover:text-white'
-                            }`}
+                                }`}
                         >
                             {page}
                         </button>
                     )
                 )}
             </div>
-            
+
             <button
                 onClick={() => onPageChange(currentPage + 1)}
                 disabled={currentPage === totalPages}
@@ -206,27 +204,27 @@ export default function StudyPage() {
         async function loadPageStats() {
             setLoadingStats(true);
             const statsMap = new Map<number, { learned: number; reviewed: number; total: number }>();
-            
+
             for (const groupNum of currentPageGroups) {
                 const offset = (groupNum - 1) * WORDS_PER_GROUP;
                 const words = await getAllWords(offset, WORDS_PER_GROUP);
-                
+
                 let learnedCount = 0;
                 let reviewedCount = 0;
-                
+
                 for (const word of words) {
                     const state = learningData.get(word.word);
                     if (state?.learned) learnedCount++;
                     if (state?.reviewed) reviewedCount++;
                 }
-                
+
                 statsMap.set(groupNum, {
                     learned: learnedCount,
                     reviewed: reviewedCount,
                     total: words.length
                 });
             }
-            
+
             setPageGroupStats(prev => {
                 const newMap = new Map(prev);
                 statsMap.forEach((value, key) => newMap.set(key, value));
@@ -291,7 +289,7 @@ export default function StudyPage() {
                     const startRank = (groupNum - 1) * WORDS_PER_GROUP + 1;
                     const endRank = Math.min(groupNum * WORDS_PER_GROUP, totalWords);
                     const stats = pageGroupStats.get(groupNum) || { learned: 0, reviewed: 0, total: endRank - startRank + 1 };
-                    
+
                     return (
                         <GroupCard
                             key={groupNum}
