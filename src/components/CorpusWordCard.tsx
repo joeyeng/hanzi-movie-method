@@ -80,7 +80,9 @@ export const CorpusWordCard = memo(function CorpusWordCard({
             <div className="text-amber-300 text-base mb-1">{word.pinyin}</div>
 
             {primaryDefinition && (
-                <div className="hidden sm:block text-slate-300 text-sm line-clamp-2">{primaryDefinition}</div>
+                <div className="text-slate-300 text-sm">
+                    {primaryDefinition.length > 25 ? primaryDefinition.slice(0, 25) + '...' : primaryDefinition}
+                </div>
             )}
 
             <div className="mt-2 flex items-center gap-2 text-xs">
