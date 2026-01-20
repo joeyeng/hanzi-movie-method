@@ -130,21 +130,41 @@ def tone_number_to_diacritic(pinyin: str) -> str:
 
 
 def normalize_pinyin_for_comparison(pinyin: str) -> str:
-    """Remove tone marks from pinyin for comparison."""
-    tone_map = {
-        'ā': 'a', 'á': 'a', 'ǎ': 'a', 'à': 'a',
-        'ē': 'e', 'é': 'e', 'ě': 'e', 'è': 'e',
-        'ī': 'i', 'í': 'i', 'ǐ': 'i', 'ì': 'i',
-        'ō': 'o', 'ó': 'o', 'ǒ': 'o', 'ò': 'o',
-        'ū': 'u', 'ú': 'u', 'ǔ': 'u', 'ù': 'u',
-        'ǖ': 'v', 'ǘ': 'v', 'ǚ': 'v', 'ǜ': 'v', 'ü': 'v',
+    """
+    Normalize pinyin for comparison, converting to a consistent format.
+    Converts tone marks to tone numbers for consistent comparison.
+    e.g., 'shàng' -> 'shang4', 'shang4' -> 'shang4'
+    """
+    # Map tone marks to their tone numbers
+    tone_mark_to_number = {
+        'ā': ('a', '1'), 'á': ('a', '2'), 'ǎ': ('a', '3'), 'à': ('a', '4'),
+        'ē': ('e', '1'), 'é': ('e', '2'), 'ě': ('e', '3'), 'è': ('e', '4'),
+        'ī': ('i', '1'), 'í': ('i', '2'), 'ǐ': ('i', '3'), 'ì': ('i', '4'),
+        'ō': ('o', '1'), 'ó': ('o', '2'), 'ǒ': ('o', '3'), 'ò': ('o', '4'),
+        'ū': ('u', '1'), 'ú': ('u', '2'), 'ǔ': ('u', '3'), 'ù': ('u', '4'),
+        'ǖ': ('v', '1'), 'ǘ': ('v', '2'), 'ǚ': ('v', '3'), 'ǜ': ('v', '4'), 'ü': ('v', '5'),
     }
+    
     result = pinyin.lower()
-    for marked, plain in tone_map.items():
-        result = result.replace(marked, plain)
-    # Also remove tone numbers
-    result = re.sub(r'[1-5]', '', result)
-    return result
+    tone_number = '5'  # Default to neutral tone
+    
+    # Replace tone marks with base letters and extract tone number
+    for marked, (plain, tone) in tone_mark_to_number.items():
+        if marked in result:
+            result = result.replace(marked, plain, 1)
+            tone_number = tone
+            break
+    
+    # Replace ü with v for consistency
+    result = result.replace('ü', 'v')
+    
+    # If already has a tone number at end, keep it
+    match = re.match(r'^([a-z]+)([1-5])$', result)
+    if match:
+        return match.group(1) + match.group(2)
+    
+    # Otherwise append the extracted tone
+    return result + tone_number
 
 
 def get_pronunciation_rank(char: str, pinyin: str) -> int:
@@ -209,6 +229,40 @@ def convert_pinyin_tone_number_to_mark(pinyin: str) -> str:
     return ' '.join(converted)
 
 
+def prioritize_definitions(definitions_str: str) -> str:
+    """
+    Reorder definitions so that the most useful ones come first.
+    Definitions starting with "used in...", "surname...", etc. are moved to the end.
+    """
+    parts = [s.strip() for s in definitions_str.split('/') if s.strip()]
+    if len(parts) <= 1:
+        return definitions_str
+    
+    # Patterns that indicate less useful definitions
+    less_useful_patterns = [
+        'used in ',
+        'see ',
+        'surname ',
+        'variant of ',
+        'old variant of ',
+        'same as ',
+        'abbr.',
+        'abbr ',
+        'CL:',
+    ]
+    
+    def is_less_useful(text: str) -> bool:
+        text_lower = text.lower().strip()
+        return any(text_lower.startswith(pattern.lower()) for pattern in less_useful_patterns)
+    
+    # Separate into useful and less useful
+    useful = [p for p in parts if not is_less_useful(p)]
+    less_useful = [p for p in parts if is_less_useful(p)]
+    
+    # Recombine with useful first
+    return '/'.join(useful + less_useful)
+
+
 def get_cedict_definitions(word: str) -> list:
     """
     Get definitions from CC-CEDICT dictionary.
@@ -234,6 +288,10 @@ def get_cedict_definitions(word: str) -> list:
             pinyin_to_definition[pinyin] += '/' + definition
         else:
             pinyin_to_definition[pinyin] = definition
+    
+    # Prioritize definitions so useful ones come first (not "used in...", "surname...", etc.)
+    for pinyin in pinyin_to_definition:
+        pinyin_to_definition[pinyin] = prioritize_definitions(pinyin_to_definition[pinyin])
     
     result = []
     

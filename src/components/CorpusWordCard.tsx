@@ -2,6 +2,7 @@
 
 import { memo, useCallback } from 'react';
 import { WordEntryWithPrimary } from '@/lib/offlineDb';
+import { getBestDefinition } from '@/lib/format';
 import Link from 'next/link';
 
 interface CorpusWordCardProps {
@@ -34,8 +35,8 @@ export const CorpusWordCard = memo(function CorpusWordCard({
         e.stopPropagation();
         onToggleReviewed?.(word.word);
     }, [onToggleReviewed, word.word]);
-    // Get first/primary definition only
-    const primaryDefinition = word.definition ? word.definition.split('/')[0].trim() : '';
+    // Get best/primary definition (filters out less useful entries like "used in...", "surname...", etc.)
+    const primaryDefinition = getBestDefinition(word.definition);
 
     // Format rank with commas
     const formattedRank = (word.rank + 1).toLocaleString();
