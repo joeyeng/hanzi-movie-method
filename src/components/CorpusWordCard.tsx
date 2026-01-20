@@ -82,9 +82,19 @@ export const CorpusWordCard = memo(function CorpusWordCard({
                 <div className="hidden sm:block text-slate-300 text-sm line-clamp-2">{primaryDefinition}</div>
             )}
 
-            <div className="mt-2 flex items-center gap-2 text-xs text-slate-500">
-                <span title="Frequency rank">#{formattedRank}</span>
-                <span title="Corpus frequency">📊 {word.frequency.toLocaleString()}</span>
+            <div className="mt-2 flex items-center gap-2 text-xs">
+                <span 
+                    title="Frequency rank" 
+                    className="bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full"
+                >
+                    #{formattedRank}
+                </span>
+                <span 
+                    title="Corpus frequency" 
+                    className="bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full"
+                >
+                    📊 {word.frequency.toLocaleString()}
+                </span>
             </div>
         </>
     );
