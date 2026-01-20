@@ -66,6 +66,7 @@ export default function StudyGroupPage() {
 
     // Review mode state
     const [isReviewMode, setIsReviewMode] = useState(false);
+    const [reviewFilter, setReviewFilter] = useState<'reviewed' | 'unlearned' | 'all'>('reviewed');
 
     // Load total word count
     useEffect(() => {
@@ -114,6 +115,21 @@ export default function StudyGroupPage() {
         return { learned, reviewed };
     }, [groupWords, learningData]);
 
+    // Filter words based on selected filter
+    const filteredWords = useMemo(() => {
+        if (reviewFilter === 'all') return groupWords;
+
+        return groupWords.filter(word => {
+            const state = learningData.get(word.word);
+            if (reviewFilter === 'reviewed') {
+                return state?.reviewed === true;
+            } else if (reviewFilter === 'unlearned') {
+                return !state?.learned;
+            }
+            return true;
+        });
+    }, [groupWords, learningData, reviewFilter]);
+
     // Calculate rank range
     const startRank = (groupId - 1) * WORDS_PER_GROUP + 1;
     const endRank = totalWords > 0
@@ -152,7 +168,7 @@ export default function StudyGroupPage() {
         );
     }
 
-    // Review mode UI - use the GroupReview component
+    // Review mode - use the GroupReview component
     if (isReviewMode) {
         return (
             <GroupReview
@@ -161,6 +177,8 @@ export default function StudyGroupPage() {
                 onExit={() => setIsReviewMode(false)}
                 onDataChange={refreshData}
                 groupId={groupId}
+                initialFilter={reviewFilter}
+                autoStart={true}
             />
         );
     }
@@ -168,9 +186,9 @@ export default function StudyGroupPage() {
     // Normal group view
     return (
         <div className="max-w-6xl mx-auto px-2 sm:px-4">
-            {/* Header with back button and stats - mobile responsive */}
+            {/* Header with back button, group name, and start button */}
             <div className="mb-4 sm:mb-6 bg-slate-800 rounded-lg p-3 sm:p-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
+                <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3 sm:gap-4">
                         <button
                             onClick={() => router.push('/study')}
@@ -187,32 +205,38 @@ export default function StudyGroupPage() {
                             </p>
                         </div>
                     </div>
-                    <div className="flex justify-around sm:justify-end gap-4 sm:gap-6 text-sm border-t sm:border-t-0 border-slate-700 pt-3 sm:pt-0">
-                        <div className="text-center">
-                            <div className="text-xl sm:text-2xl font-bold text-green-400">{groupStats.learned}</div>
-                            <div className="text-slate-500 text-xs sm:text-sm">Learned</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-xl sm:text-2xl font-bold text-blue-400">{groupStats.reviewed}</div>
-                            <div className="text-slate-500 text-xs sm:text-sm">Review</div>
-                        </div>
-                        <div className="text-center">
-                            <div className="text-xl sm:text-2xl font-bold text-slate-400">{groupWords.length}</div>
-                            <div className="text-slate-500 text-xs sm:text-sm">Total</div>
-                        </div>
-                    </div>
+                    <button
+                        onClick={() => setIsReviewMode(true)}
+                        disabled={groupWords.length === 0}
+                        className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        ▶ Start Review
+                    </button>
                 </div>
             </div>
 
-            {/* Start Review button */}
+            {/* Filter buttons */}
             <div className="mb-4 bg-slate-800 rounded-lg p-4">
-                <button
-                    onClick={() => setIsReviewMode(true)}
-                    disabled={groupWords.length === 0}
-                    className="w-full sm:w-auto bg-amber-500 text-slate-900 px-6 py-3 rounded-lg font-medium hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    📝 Start Review
-                </button>
+                <div className="flex flex-wrap justify-center gap-2">
+                    <button
+                        onClick={() => setReviewFilter('reviewed')}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'reviewed' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                    >
+                        📚 Reviewed ({groupStats.reviewed})
+                    </button>
+                    <button
+                        onClick={() => setReviewFilter('unlearned')}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'unlearned' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                    >
+                        ○ Not Learned ({groupWords.length - groupStats.learned})
+                    </button>
+                    <button
+                        onClick={() => setReviewFilter('all')}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'all' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                    >
+                        All ({groupWords.length})
+                    </button>
+                </div>
             </div>
 
             {/* Words grid */}
@@ -220,9 +244,13 @@ export default function StudyGroupPage() {
                 <div className="flex items-center justify-center h-64">
                     <div className="text-slate-400">Loading words...</div>
                 </div>
+            ) : filteredWords.length === 0 ? (
+                <div className="flex items-center justify-center h-64">
+                    <div className="text-slate-400">No words match the current filter</div>
+                </div>
             ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
-                    {groupWords.map(word => (
+                    {filteredWords.map(word => (
                         <CorpusWordCard
                             key={word.id}
                             word={word}

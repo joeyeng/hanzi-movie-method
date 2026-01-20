@@ -98,7 +98,7 @@ function generateToneVariations(correctPinyin: string, count: number): string[] 
     return Array.from(variations);
 }
 
-type ReviewMode = 'reviewed' | 'all' | 'due';
+export type ReviewMode = 'reviewed' | 'all' | 'due' | 'unlearned';
 type AnswerState = 'answering' | 'correct' | 'incorrect';
 
 interface WordWithState extends WordEntryWithPrimary {
@@ -113,13 +113,16 @@ interface GroupReviewProps {
     onExit: () => void;
     onDataChange: () => void;
     groupId: number;
+    initialFilter?: ReviewMode;
+    autoStart?: boolean;
 }
 
-export function GroupReview({ groupWords, learningData, onExit, onDataChange, groupId }: GroupReviewProps) {
-    const [reviewFilter, setReviewFilter] = useState<ReviewMode>('reviewed');
+export function GroupReview({ groupWords, learningData, onExit, onDataChange, groupId, initialFilter = 'reviewed', autoStart = false }: GroupReviewProps) {
+    const [reviewFilter, setReviewFilter] = useState<ReviewMode>(initialFilter);
     const [reviewQueue, setReviewQueue] = useState<WordWithState[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [sessionStarted, setSessionStarted] = useState(false);
+    const [hasAutoStarted, setHasAutoStarted] = useState(false);
 
     // Quiz state
     const [answerState, setAnswerState] = useState<AnswerState>('answering');
@@ -150,6 +153,9 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
             case 'reviewed':
                 filtered = wordsWithState.filter(w => w.reviewed);
                 break;
+            case 'unlearned':
+                filtered = wordsWithState.filter(w => !w.learned);
+                break;
             case 'due':
                 const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
                 filtered = wordsWithState.filter(w => !w.lastReviewed || new Date(w.lastReviewed) < oneDayAgo);
@@ -177,6 +183,7 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
         return {
             all: groupWords.length,
             reviewed: wordsWithState.filter(w => w.reviewed).length,
+            unlearned: wordsWithState.filter(w => !w.learned).length,
             due: wordsWithState.filter(w => !w.lastReviewed || new Date(w.lastReviewed) < oneDayAgo).length,
         };
     }, [groupWords, learningData]);
@@ -238,6 +245,20 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
         const allChoices = shuffleArray([correctDef, ...wrongAnswers]);
         setDefinitionChoices(allChoices);
     }, [currentItem, groupWords]);
+
+    // Auto-start when autoStart prop is true
+    useEffect(() => {
+        if (autoStart && !hasAutoStarted && groupWords.length > 0) {
+            setHasAutoStarted(true);
+            const queue = buildReviewQueue();
+            if (queue.length > 0) {
+                setReviewQueue(queue);
+                setCurrentIndex(0);
+                resetQuizState();
+                setSessionStarted(true);
+            }
+        }
+    }, [autoStart, hasAutoStarted, groupWords.length, buildReviewQueue]);
 
     // Initialize choices when item changes
     useEffect(() => {
