@@ -5,10 +5,10 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "6003:6003"
+      - "6001:6001"
     environment:
       - NODE_ENV=development
-      - HANZIPY_SERVER_URL=http://hanzipy:6004
+      - HANZIPY_SERVER_URL=http://hanzipy:6002
       - WATCHPACK_POLLING=true
       - CHOKIDAR_USEPOLLING=true
     volumes:
@@ -25,9 +25,9 @@ services:
       context: ./hanzipy_server
       dockerfile: Dockerfile
     ports:
-      - "6004:6004"
+      - "6002:6002"
     environment:
-      - PORT=6004
+      - PORT=6002
     volumes:
       - ./public:/app/../public:delegated
       - ./hanzipy_server:/app:delegated

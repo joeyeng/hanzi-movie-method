@@ -15,6 +15,6 @@ COPY build_pronunciation_db.py .
 COPY subtlex_data/ ./subtlex_data/
 
 # Port is set via PORT environment variable (default: 5000)
-EXPOSE 6001
+EXPOSE 6002
 
 CMD ["python", "server.py"]

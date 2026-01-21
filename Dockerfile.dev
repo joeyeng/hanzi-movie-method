@@ -15,9 +15,9 @@ COPY next.config.ts tsconfig.json postcss.config.mjs eslint.config.mjs ./
 # COPY src ./src
 # COPY public ./public
 
-EXPOSE 3000
+EXPOSE 6001
 
-ENV PORT=3000
+ENV PORT=6001
 ENV HOSTNAME="0.0.0.0"
 
 # Run in development mode (Turbopack with polling for Docker)

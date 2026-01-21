@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const HANZIPY_SERVER_URL = process.env.HANZIPY_SERVER_URL || 'http://localhost:5000';
+const HANZIPY_SERVER_URL = process.env.HANZIPY_SERVER_URL || 'http://localhost:6002';
 
 export interface HanziLookupResult {
   character: string;
