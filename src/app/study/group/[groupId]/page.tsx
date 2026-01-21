@@ -185,7 +185,7 @@ export default function StudyGroupPage() {
 
     // Normal group view
     return (
-        <div className="max-w-6xl mx-auto px-2 sm:px-4">
+        <div className="max-w-6xl mx-auto">
             {/* Header with back button, group name, and start button */}
             <div className="mb-4 sm:mb-6 bg-slate-800 rounded-lg p-3 sm:p-4">
                 <div className="flex items-center justify-between">

@@ -39,11 +39,11 @@ export default function DatabaseDownloadPrompt({ children }: DatabaseDownloadPro
                     <div className="text-center space-y-2">
                         <div className="text-4xl mb-2">📚</div>
                         <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                            Download Offline Data
+                            Download Data
                         </h2>
                         <p className="text-gray-600 dark:text-gray-300 text-sm">
-                            This app needs a database (~13 MB) containing pronunciation frequencies
-                            and 63,000+ example sentences for offline use.
+                            This app needs to download a database (~26 MB) containing a corpus with word ranking, pinyin, definitions,
+                            and 63,000+ example sentences.
                         </p>
                     </div>
 
@@ -93,7 +93,7 @@ export default function DatabaseDownloadPrompt({ children }: DatabaseDownloadPro
                         </button>
 
                         <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-                            Data sourced from SUBTLEX-CH corpus and Tatoeba.
+                            Data sourced from CC-CEDICT (Community-maintained Chinese-English Dictionary), HanziPy, SUBTLEX-CH corpus, and Tatoeba.
                             <br />
                             The database is cached locally for offline use.
                         </p>
