@@ -66,7 +66,7 @@ export default function StudyGroupPage() {
 
     // Review mode state
     const [isReviewMode, setIsReviewMode] = useState(false);
-    const [reviewFilter, setReviewFilter] = useState<'all' | 'reviewed' | 'unlearned'>('all');
+    const [reviewFilter, setReviewFilter] = useState<'all' | 'reviewed' | 'unlearned'>('reviewed');
 
     // Load total word count
     useEffect(() => {

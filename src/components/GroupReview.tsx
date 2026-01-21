@@ -158,7 +158,7 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
                 break;
             case 'due':
                 const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-                filtered = wordsWithState.filter(w => !w.lastReviewed || new Date(w.lastReviewed) < oneDayAgo);
+                filtered = wordsWithState.filter(w => (w.reviewed || w.learned) && (!w.lastReviewed || new Date(w.lastReviewed) > oneDayAgo));
                 break;
             default:
                 filtered = wordsWithState;
@@ -184,7 +184,7 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
             all: groupWords.length,
             reviewed: wordsWithState.filter(w => w.reviewed && !w.learned).length,
             unlearned: wordsWithState.filter(w => !w.learned).length,
-            due: wordsWithState.filter(w => !w.lastReviewed || new Date(w.lastReviewed) < oneDayAgo).length,
+            due: wordsWithState.filter(w => !w.lastReviewed || new Date(w.lastReviewed) > oneDayAgo).length,
         };
     }, [groupWords, learningData]);
 
