@@ -8,17 +8,22 @@ import { parseFirstSyllable, findHmmMatches } from '@/lib/pinyinParser';
 // Component to display saved HMM data
 function HmmDisplay({
     wordHmm,
+    pinyin,
     actors,
     rooms,
     sets,
     props,
 }: {
     wordHmm: WordHmmData;
+    pinyin: string;
     actors: Actor[];
     rooms: Room[];
     sets: Set[];
     props: Prop[];
 }) {
+    // Parse pinyin to get auto-detected matches
+    const pinyinComponents = parseFirstSyllable(pinyin);
+
     const actor = actors.find(a => a.id === wordHmm.actorId);
     const room = rooms.find(r => r.id === wordHmm.roomId);
     const set = sets.find(s => s.id === wordHmm.setId);
@@ -43,17 +48,17 @@ function HmmDisplay({
                 <div className="bg-slate-800/50 rounded-lg p-4 text-center">
                     <div className="text-5xl mb-2">{actor?.emoji || '👤'}</div>
                     <div className="text-slate-400 text-xs">Actor</div>
-                    <div className="text-white font-medium">{actor?.name || 'None'}</div>
+                    <div className="text-white font-medium">{pinyinComponents.initial}</div>
                 </div>
                 <div className="bg-slate-800/50 rounded-lg p-4 text-center">
                     <div className="text-5xl mb-2">{set?.emoji || '📍'}</div>
                     <div className="text-slate-400 text-xs">Set</div>
-                    <div className="text-white font-medium">{set?.name || 'None'}</div>
+                    <div className="text-white font-medium">{pinyinComponents.final}</div>
                 </div>
                 <div className="bg-slate-800/50 rounded-lg p-4 text-center">
                     <div className="text-5xl mb-2">{room?.emoji || '🏠'}</div>
                     <div className="text-slate-400 text-xs">Room</div>
-                    <div className="text-white font-medium">{room?.name || 'None'}</div>
+                    <div className="text-white font-medium">{pinyinComponents.tone}</div>
                 </div>
             </div>
 
@@ -101,8 +106,6 @@ function HmmEditor({
     onSave: (updated: WordHmmData) => void;
     onCancel: () => void;
 }) {
-    // Parse pinyin to get auto-detected matches
-    const pinyinComponents = parseFirstSyllable(pinyin);
     const autoMatches = findHmmMatches(pinyin, actors, rooms, sets);
 
     const [actorId, setActorId] = useState(wordHmm?.actorId || autoMatches.actorId || '');
@@ -134,85 +137,6 @@ function HmmEditor({
 
     return (
         <div className="space-y-4">
-            {/* Pinyin breakdown info */}
-            <div className="text-xs text-slate-500 flex gap-4">
-                <span>Initial: <span className="text-amber-400">{pinyinComponents.initial}</span></span>
-                <span>Final: <span className="text-amber-400">{pinyinComponents.final}</span></span>
-                <span>Tone: <span className="text-amber-400">{pinyinComponents.tone}</span></span>
-            </div>
-
-            {/* Actor selector */}
-            <div>
-                <label className="block text-slate-400 text-sm mb-1">Actor (Initial: {pinyinComponents.initial})</label>
-                <select
-                    value={actorId}
-                    onChange={(e) => setActorId(e.target.value)}
-                    className="w-full bg-slate-700 rounded p-2 text-white"
-                >
-                    <option value="">Select actor...</option>
-                    {actors.map(actor => (
-                        <option key={actor.id} value={actor.id}>
-                            {actor.emoji || '👤'} {actor.name} ({actor.initial})
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Set selector */}
-            <div>
-                <label className="block text-slate-400 text-sm mb-1">Set (Final: {pinyinComponents.final})</label>
-                <select
-                    value={setId}
-                    onChange={(e) => setSetId(e.target.value)}
-                    className="w-full bg-slate-700 rounded p-2 text-white"
-                >
-                    <option value="">Select set...</option>
-                    {sets.map(set => (
-                        <option key={set.id} value={set.id}>
-                            {set.emoji || '📍'} {set.name} ({set.final})
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Room selector */}
-            <div>
-                <label className="block text-slate-400 text-sm mb-1">Room (Tone: {pinyinComponents.tone})</label>
-                <select
-                    value={roomId}
-                    onChange={(e) => setRoomId(e.target.value)}
-                    className="w-full bg-slate-700 rounded p-2 text-white"
-                >
-                    <option value="">Select room...</option>
-                    {rooms.map(room => (
-                        <option key={room.id} value={room.id}>
-                            {room.emoji || '🏠'} {room.name} (Tone {room.tone})
-                        </option>
-                    ))}
-                </select>
-            </div>
-
-            {/* Props selector */}
-            {props.length > 0 && (
-                <div>
-                    <label className="block text-slate-400 text-sm mb-1">Props</label>
-                    <div className="flex flex-wrap gap-2">
-                        {props.map(prop => (
-                            <button
-                                key={prop.id}
-                                onClick={() => toggleProp(prop.id)}
-                                className={`px-3 py-1 rounded text-sm transition-colors ${propIds.includes(prop.id)
-                                    ? 'bg-amber-500/30 text-amber-300 border border-amber-500'
-                                    : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
-                                    }`}
-                            >
-                                {prop.emoji || '🎭'} {prop.name}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
-
             {/* Scene description */}
             <div>
                 <label className="block text-slate-400 text-sm mb-1">Scene Description (optional)</label>
@@ -308,65 +232,68 @@ export default function MovieScene({ word, pinyin, actors, rooms, sets, props }:
                 <span>Tone: <span className="text-amber-400">{pinyinComponents.tone}</span></span>
             </div>
 
-            {isEditing ? (
-                <HmmEditor
-                    word={word}
-                    pinyin={pinyin}
-                    wordHmm={wordHmm}
-                    actors={actors}
-                    rooms={rooms}
-                    sets={sets}
-                    props={props}
-                    onSave={(updated) => {
-                        setWordHmmState(updated);
-                        setIsEditing(false);
-                    }}
-                    onCancel={() => setIsEditing(false)}
-                />
-            ) : wordHmm ? (
-                <HmmDisplay
-                    wordHmm={wordHmm}
-                    actors={actors}
-                    rooms={rooms}
-                    sets={sets}
-                    props={props}
-                />
-            ) : (
-                <div className="space-y-4">
-                    {/* Auto-generated template display */}
-                    <div className="bg-slate-800/50 rounded-lg p-4">
-                        <p className="text-white italic">{autoTemplate}</p>
-                        {(!autoActor || !autoRoom || !autoSet) && (
-                            <p className="text-amber-500/70 text-xs mt-2">
-                                ⚠️ Some matches not found. Add actors/rooms/sets in the settings to complete.
-                            </p>
-                        )}
-                    </div>
+            {
+                isEditing ? (
+                    <HmmEditor
+                        word={word}
+                        pinyin={pinyin}
+                        wordHmm={wordHmm}
+                        actors={actors}
+                        rooms={rooms}
+                        sets={sets}
+                        props={props}
+                        onSave={(updated) => {
+                            setWordHmmState(updated);
+                            setIsEditing(false);
+                        }}
+                        onCancel={() => setIsEditing(false)}
+                    />
+                ) : wordHmm ? (
+                    <HmmDisplay
+                        wordHmm={wordHmm}
+                        pinyin={pinyin}
+                        actors={actors}
+                        rooms={rooms}
+                        sets={sets}
+                        props={props}
+                    />
+                ) : (
+                    <div className="space-y-4">
+                        {/* Auto-generated template display */}
+                        <div className="bg-slate-800/50 rounded-lg p-4">
+                            <p className="text-white italic">{autoTemplate}</p>
+                            {(!autoActor || !autoRoom || !autoSet) && (
+                                <p className="text-amber-500/70 text-xs mt-2">
+                                    ⚠️ Some matches not found. Add actors/rooms/sets in the settings to complete.
+                                </p>
+                            )}
+                        </div>
 
-                    {/* Auto-detected Actor, Room, Set cards */}
-                    <div className="grid grid-cols-3 gap-3 text-sm">
-                        <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoActor ? '' : 'border border-dashed border-slate-600'}`}>
-                            <div className="text-5xl mb-2">{autoActor?.emoji || '👤'}</div>
-                            <div className="text-slate-400 text-xs">Actor ({pinyinComponents.initial})</div>
-                            <div className={`font-medium ${autoActor ? 'text-white' : 'text-slate-500'}`}>{autoActor?.name || 'Not found'}</div>
+                        {/* Auto-detected Actor, Room, Set cards */}
+                        <div className="grid grid-cols-3 gap-3 text-sm">
+                            <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoActor ? '' : 'border border-dashed border-slate-600'}`}>
+                                <div className="text-5xl mb-2">{autoActor?.emoji || '👤'}</div>
+                                <div className="text-slate-400 text-xs">Actor ({pinyinComponents.initial})</div>
+                                <div className={`font-medium ${autoActor ? 'text-white' : 'text-slate-500'}`}>{autoActor?.name || 'Not found'}</div>
+                            </div>
+                            <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoSet ? '' : 'border border-dashed border-slate-600'}`}>
+                                <div className="text-5xl mb-2">{autoSet?.emoji || '📍'}</div>
+                                <div className="text-slate-400 text-xs">Set ({pinyinComponents.final})</div>
+                                <div className={`font-medium ${autoSet ? 'text-white' : 'text-slate-500'}`}>{autoSet?.name || 'Not found'}</div>
+                            </div>
+                            <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoRoom ? '' : 'border border-dashed border-slate-600'}`}>
+                                <div className="text-5xl mb-2">{autoRoom?.emoji || '🏠'}</div>
+                                <div className="text-slate-400 text-xs">Room (Tone {pinyinComponents.tone})</div>
+                                <div className={`font-medium ${autoRoom ? 'text-white' : 'text-slate-500'}`}>{autoRoom?.name || 'Not found'}</div>
+                            </div>
                         </div>
-                        <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoSet ? '' : 'border border-dashed border-slate-600'}`}>
-                            <div className="text-5xl mb-2">{autoSet?.emoji || '📍'}</div>
-                            <div className="text-slate-400 text-xs">Set ({pinyinComponents.final})</div>
-                            <div className={`font-medium ${autoSet ? 'text-white' : 'text-slate-500'}`}>{autoSet?.name || 'Not found'}</div>
-                        </div>
-                        <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoRoom ? '' : 'border border-dashed border-slate-600'}`}>
-                            <div className="text-5xl mb-2">{autoRoom?.emoji || '🏠'}</div>
-                            <div className="text-slate-400 text-xs">Room (Tone {pinyinComponents.tone})</div>
-                            <div className={`font-medium ${autoRoom ? 'text-white' : 'text-slate-500'}`}>{autoRoom?.name || 'Not found'}</div>
-                        </div>
-                    </div>
 
-                    <p className="text-slate-500 text-sm text-center">
-                        Click &quot;Create Scene&quot; to customize and add a scene description.
-                    </p>
-                </div>
-            )}
-        </div>
+                        <p className="text-slate-500 text-sm text-center">
+                            Click &quot;Create Scene&quot; to customize and add a scene description.
+                        </p>
+                    </div>
+                )
+            }
+        </div >
     );
 }
