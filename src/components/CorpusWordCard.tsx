@@ -88,7 +88,7 @@ export const CorpusWordCard = memo(function CorpusWordCard({
                             ? 'bg-green-500/20 text-green-400 hover:bg-green-500/30'
                             : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                             }`}
-                        title={learned ? 'Mark as not learned' : 'Mark as learned'}
+                        title={learned ? 'Mark not learned' : 'Mark learned'}
                     >
                         {learned ? '✓ Learned' : '✗ Not Learned'}
                     </button>
@@ -98,7 +98,7 @@ export const CorpusWordCard = memo(function CorpusWordCard({
                             ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30'
                             : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
                             }`}
-                        title={reviewed ? 'Remove from review' : 'Add to review'}
+                        title={reviewed ? 'Mark not reviewed' : 'Mark reviewed'}
                     >
                         {reviewed ? '📚 Reviewed' : 'Not Reviewed'}
                     </button>

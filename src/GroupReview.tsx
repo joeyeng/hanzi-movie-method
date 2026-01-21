@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { WordEntryWithPrimary, getRandomWordsByLength } from '@/lib/offlineDb';
-import { CorpusWordState, getCorpusLearningData, recordReviewAttempt, markCorpusWordLearned } from '@/lib/storage';
+import { CorpusWordState, getCorpusLearningData, markCorpusWordReviewed } from '@/lib/storage';
 import { getBestDefinition } from '@/lib/format';
 
 // Normalize pinyin for comparison (remove tone marks, spaces, lowercase)
@@ -197,14 +197,14 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
 
         // Get random words with the same character length from the entire database
         const randomWords = await getRandomWordsByLength(charLength, 10, [currentItem.word]);
-
+        
         const otherPinyins = randomWords
             .map(w => normalizePinyin(w.pinyin))
             .filter(p => p && p !== correctPinyin);
 
         const uniqueWrongPinyins = [...new Set(otherPinyins)];
         const wrongAnswers = shuffleArray(uniqueWrongPinyins).slice(0, 3);
-
+        
         const allChoices = shuffleArray([correctPinyin, ...wrongAnswers]);
         setPinyinChoices(allChoices);
     }, [currentItem]);
@@ -288,18 +288,13 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
         const toneCorrect = selectedTone === correctPinyinWithTones;
         const definitionCorrect = selectedDefinition === correctDef;
 
-        // Always record the review attempt (increments count and updates timestamp)
-        recordReviewAttempt(currentItem.word);
-
         if (toneCorrect && definitionCorrect) {
             setAnswerState('correct');
-            // Mark as learned when answer is correct
-            markCorpusWordLearned(currentItem.word);
+            markCorpusWordReviewed(currentItem.word);
             onDataChange();
             setTimeout(() => handleNext(), 1500);
         } else {
             setAnswerState('incorrect');
-            onDataChange(); // Update data to reflect the review attempt
         }
     };
 

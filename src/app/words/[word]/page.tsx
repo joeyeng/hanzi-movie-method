@@ -159,11 +159,6 @@ export default function WordDetailPage({ params }: { params: Promise<{ word: str
 
     return (
         <div className="max-w-4xl mx-auto">
-            {/* Back link */}
-            <button onClick={() => router.back()} className="text-slate-400 hover:text-amber-400 mb-4 inline-block">
-                ← Back
-            </button>
-
             <div className="bg-slate-800 rounded-lg p-6">
                 {/* Status badges and Google Translate */}
                 <div className="flex items-center gap-2 mb-4">
@@ -292,7 +287,7 @@ export default function WordDetailPage({ params }: { params: Promise<{ word: str
                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             }`}
                     >
-                        {isLearned ? '✓ Learned' : 'Mark as Learned'}
+                        {isLearned ? '✓ Learned' : 'Mark Learned'}
                     </button>
                     <button
                         onClick={handleToggleReviewed}
@@ -301,7 +296,7 @@ export default function WordDetailPage({ params }: { params: Promise<{ word: str
                             : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                             }`}
                     >
-                        {isReviewed ? '📚 In Review' : 'Add to Review'}
+                        {isReviewed ? '📚 Reviewed' : 'Mark Reviewed'}
                     </button>
                 </div>
             </div>

@@ -700,6 +700,42 @@ export async function searchWords(
 }
 
 /**
+ * Get random words by character length for quiz options
+ * Returns words with their pinyin, excluding specified words
+ */
+export async function getRandomWordsByLength(
+  charLength: number,
+  limit: number = 10,
+  excludeWords: string[] = []
+): Promise<{ word: string; pinyin: string }[]> {
+  const db = await initDatabase();
+  
+  const excludePlaceholders = excludeWords.length > 0 
+    ? `AND w.word NOT IN (${excludeWords.map(() => '?').join(',')})` 
+    : '';
+  
+  // Get random words with the specified character length
+  const result = db.exec(
+    `SELECT w.word, wd.pinyin
+     FROM words w
+     INNER JOIN word_definitions wd ON w.word = wd.word AND wd.rank = 0
+     WHERE w.length = ? ${excludePlaceholders}
+     ORDER BY RANDOM()
+     LIMIT ?`,
+    [charLength, ...excludeWords, limit]
+  );
+  
+  if (result.length === 0 || !result[0].values) {
+    return [];
+  }
+  
+  return result[0].values.map((row: any[]) => ({
+    word: row[0] as string,
+    pinyin: row[1] as string
+  }));
+}
+
+/**
  * Get a specific word by its word text
  */
 export async function getWord(word: string): Promise<WordEntryWithPrimary | null> {
@@ -822,6 +858,7 @@ export function useOfflineDb() {
     getCharacterWordCount,
     getCompoundWordCount,
     getTotalWordCount,
+    getRandomWordsByLength,
     // Example sentence functions
     searchExamples,
     batchSearchExamples,

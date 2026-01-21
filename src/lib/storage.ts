@@ -484,6 +484,7 @@ export interface CorpusWordState {
   learned: boolean;
   reviewed: boolean;        // Whether it's in the review queue
   lastReviewed?: string;    // ISO timestamp of last review
+  reviewCount?: number;     // Number of times reviewed
 }
 
 const CORPUS_LEARNING_KEY = 'hmm-corpus-learning';
@@ -544,6 +545,37 @@ export function markCorpusWordReviewed(word: string): CorpusWordState {
     learned: existing?.learned ?? false,
     reviewed: existing?.reviewed ?? false,
     lastReviewed: new Date().toISOString(),
+    reviewCount: existing?.reviewCount,
+  };
+  data.set(word, updated);
+  saveCorpusLearningData(data);
+  return updated;
+}
+
+// Records a review attempt - always increments count and updates timestamp
+export function recordReviewAttempt(word: string): CorpusWordState {
+  const data = getCorpusLearningData();
+  const existing = data.get(word);
+  const updated: CorpusWordState = {
+    learned: existing?.learned ?? false,
+    reviewed: existing?.reviewed ?? true, // Mark as reviewed if not already
+    lastReviewed: new Date().toISOString(),
+    reviewCount: (existing?.reviewCount ?? 0) + 1,
+  };
+  data.set(word, updated);
+  saveCorpusLearningData(data);
+  return updated;
+}
+
+// Marks a word as learned (called when answer is correct)
+export function markCorpusWordLearned(word: string): CorpusWordState {
+  const data = getCorpusLearningData();
+  const existing = data.get(word);
+  const updated: CorpusWordState = {
+    learned: true,
+    reviewed: existing?.reviewed ?? true,
+    lastReviewed: existing?.lastReviewed,
+    reviewCount: existing?.reviewCount,
   };
   data.set(word, updated);
   saveCorpusLearningData(data);
