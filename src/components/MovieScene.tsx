@@ -35,6 +35,7 @@ function HmmDisplay({
     const setName = set?.name || '[Set]';
     const baseScene = `${actorName} is at ${setName} in the ${roomName}.`;
     const fullScene = wordHmm.movieScene ? `${baseScene} ${wordHmm.movieScene}` : baseScene;
+    const tone_marks = ['ā', 'á', 'ǎ', 'à', 'a'];
 
     return (
         <div className="space-y-4">
@@ -46,19 +47,19 @@ function HmmDisplay({
             {/* Actor, Room, Set cards */}
             <div className="grid grid-cols-3 gap-3 text-sm">
                 <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-                    <div className="text-5xl mb-2">{actor?.emoji || '👤'}</div>
+                    <div className="text-5xl mb-2" title={`${actor?.name} (${pinyinComponents.initial})`}>{actor?.emoji || '👤'}</div>
                     <div className="text-slate-400 text-xs">Actor</div>
                     <div className="text-white font-medium">{pinyinComponents.initial}</div>
                 </div>
                 <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-                    <div className="text-5xl mb-2">{set?.emoji || '📍'}</div>
+                    <div className="text-5xl mb-2" title={`${set?.name} (${pinyinComponents.final})`}>{set?.emoji || '📍'}</div>
                     <div className="text-slate-400 text-xs">Set</div>
                     <div className="text-white font-medium">{pinyinComponents.final}</div>
                 </div>
                 <div className="bg-slate-800/50 rounded-lg p-4 text-center">
-                    <div className="text-5xl mb-2">{room?.emoji || '🏠'}</div>
+                    <div className="text-5xl mb-2" title={`${room?.name} (${tone_marks[pinyinComponents.tone - 1]})`}>{room?.emoji || '🏠'}</div>
                     <div className="text-slate-400 text-xs">Room</div>
-                    <div className="text-white font-medium">{pinyinComponents.tone}</div>
+                    <div className="text-white font-medium">Tone {pinyinComponents.tone} ({tone_marks[pinyinComponents.tone - 1]})</div>
                 </div>
             </div>
 
