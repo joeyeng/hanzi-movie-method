@@ -66,7 +66,7 @@ export default function StudyGroupPage() {
 
     // Review mode state
     const [isReviewMode, setIsReviewMode] = useState(false);
-    const [reviewFilter, setReviewFilter] = useState<'reviewed' | 'unlearned' | 'all'>('reviewed');
+    const [reviewFilter, setReviewFilter] = useState<'all' | 'reviewed' | 'unlearned'>('all');
 
     // Load total word count
     useEffect(() => {
@@ -213,16 +213,16 @@ export default function StudyGroupPage() {
             <div className="mb-4 bg-slate-800 rounded-lg p-4">
                 <div className="flex flex-wrap justify-center gap-2">
                     <button
-                        onClick={() => setReviewFilter('reviewed')}
-                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'reviewed' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
-                    >
-                        📚 Reviewed ({groupStats.reviewed})
-                    </button>
-                    <button
                         onClick={() => setReviewFilter('all')}
                         className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'all' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                     >
                         All ({groupWords.length})
+                    </button>
+                    <button
+                        onClick={() => setReviewFilter('reviewed')}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'reviewed' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                    >
+                        📚 Reviewed ({groupStats.reviewed})
                     </button>
                     <button
                         onClick={() => setReviewFilter('unlearned')}
