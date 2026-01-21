@@ -216,21 +216,26 @@ export default function StudyGroupPage() {
                         onClick={() => setReviewFilter('all')}
                         className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'all' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                     >
-                        All ({groupWords.length})
+                        All
                     </button>
                     <button
                         onClick={() => setReviewFilter('reviewed')}
                         className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'reviewed' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                     >
-                        📚 Reviewed ({groupStats.reviewed})
+                        📚 Reviewed
                     </button>
                     <button
                         onClick={() => setReviewFilter('unlearned')}
                         className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'unlearned' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                     >
-                        ✗ Not Learned ({groupWords.length - groupStats.learned})
+                        ✗ Not Learned
                     </button>
                 </div>
+            </div>
+
+            {/* Filter result count */}
+            <div className="mb-4 text-center text-sm text-slate-400">
+                Showing {filteredWords.length} of {groupWords.length} words
             </div>
 
             {/* Words grid */}
@@ -243,7 +248,7 @@ export default function StudyGroupPage() {
                     <div className="text-slate-400">No words match the current filter</div>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
                     {filteredWords.map(word => (
                         <CorpusWordCard
                             key={word.id}

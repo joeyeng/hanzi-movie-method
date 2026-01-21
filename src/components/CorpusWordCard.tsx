@@ -69,14 +69,14 @@ export const CorpusWordCard = memo(function CorpusWordCard({
             </div>
 
             {/* Centered content */}
-            <div className="text-center pt-4">
+            <div className="text-center pt-8">
                 <div className="text-4xl text-amber-400 mb-2">{word.word}</div>
                 <div className="text-amber-300 text-base mb-1">{word.pinyin}</div>
-                {primaryDefinition && (
+                {/* {primaryDefinition && (
                     <div className="text-slate-300 text-sm">
                         {primaryDefinition.length > 25 ? primaryDefinition.slice(0, 25) + '...' : primaryDefinition}
                     </div>
-                )}
+                )} */}
             </div>
 
             {/* Footer with toggle buttons */}
@@ -90,7 +90,7 @@ export const CorpusWordCard = memo(function CorpusWordCard({
                             }`}
                         title={learned ? 'Mark not learned' : 'Mark learned'}
                     >
-                        {learned ? '✓ Learned' : '✗ Not Learned'}
+                        {learned ? ' ✓ ' : ' ✗ '}
                     </button>
                     <button
                         onClick={handleToggleReviewed}
