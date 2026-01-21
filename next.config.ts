@@ -2,8 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
-  // Empty turbopack config to silence warning when using turbopack locally
-  turbopack: {},
+  // Configure turbopack to handle sql.js Node.js module dependencies
+  turbopack: {
+    resolveAlias: {
+      fs: { browser: './src/lib/empty-module.js' },
+      path: { browser: './src/lib/empty-module.js' },
+      crypto: { browser: './src/lib/empty-module.js' },
+    },
+  },
   // Enable polling for Docker file watching (used with --webpack flag)
   webpack: (config, { dev, isServer }) => {
     if (dev) {
