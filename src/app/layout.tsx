@@ -5,6 +5,8 @@ import { Sidebar } from "@/components/Sidebar";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import DatabaseDownloadPrompt from "@/components/DatabaseDownloadPrompt";
 import { NavigationLoader } from "@/components/NavigationLoader";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { OfflineStatus } from "@/components/OfflineStatus";
 import { Suspense } from "react";
 
 const geistSans = Geist({
@@ -50,6 +52,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-950 text-white overflow-x-hidden`}
       >
+        <ServiceWorkerRegistration />
+        <OfflineStatus />
         <Suspense fallback={null}>
           <NavigationLoader />
         </Suspense>

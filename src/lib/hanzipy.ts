@@ -108,20 +108,73 @@ export async function extractCompoundWordsWithJieba(content: string): Promise<st
 
 /**
  * Extract compound words from text
- * Uses jieba for better word segmentation when available
+ * Uses jieba for better word segmentation when available, falls back to regex when offline
  */
 export async function extractCompoundWords(content: string): Promise<string[]> {
   return extractCompoundWordsWithJieba(content);
 }
 
+import { isDatabaseDownloaded, getWord, getWordAllDefinitions } from './offlineDb';
+
+/**
+ * Look up characters/words using the offline database
+ * Returns results from local SQLite database
+ */
+async function lookupFromOfflineDb(characters: string[]): Promise<Map<string, HanziEntry>> {
+  const results = new Map<string, HanziEntry>();
+  
+  for (const char of characters) {
+    try {
+      const word = await getWord(char);
+      if (word) {
+        // Get all definitions for the word
+        const allDefs = await getWordAllDefinitions(char);
+        results.set(char, {
+          character: char,
+          pinyin: word.pinyin,
+          definition: word.definition,
+          found: true,
+          all_definitions: allDefs.map(d => ({
+            pinyin: d.pinyin,
+            definition: d.definition
+          }))
+        });
+      } else {
+        results.set(char, {
+          character: char,
+          pinyin: null,
+          definition: null,
+          found: false
+        });
+      }
+    } catch (error) {
+      results.set(char, {
+        character: char,
+        pinyin: null,
+        definition: null,
+        found: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  }
+  
+  return results;
+}
+
 /**
  * Look up multiple Chinese characters via the HanziPy API
+ * Falls back to offline database when available
  */
 export async function lookupCharactersAPI(characters: string[]): Promise<Map<string, HanziEntry>> {
   const results = new Map<string, HanziEntry>();
   
   if (characters.length === 0) {
     return results;
+  }
+
+  // If offline database is available, use it directly (faster and works offline)
+  if (isDatabaseDownloaded()) {
+    return lookupFromOfflineDb(characters);
   }
 
   try {
@@ -135,6 +188,10 @@ export async function lookupCharactersAPI(characters: string[]): Promise<Map<str
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
+      // If offline, try to use offline database as fallback
+      if (errorData.offline && isDatabaseDownloaded()) {
+        return lookupFromOfflineDb(characters);
+      }
       throw new Error(errorData.error || `API error: ${response.status}`);
     }
 
@@ -153,6 +210,13 @@ export async function lookupCharactersAPI(characters: string[]): Promise<Map<str
     }
   } catch (error) {
     console.error('Error looking up characters:', error);
+    
+    // Try offline database as fallback on network errors
+    if (isDatabaseDownloaded()) {
+      console.log('Falling back to offline database');
+      return lookupFromOfflineDb(characters);
+    }
+    
     // Return entries marked as not found on error
     for (const char of characters) {
       results.set(char, {
@@ -177,13 +241,59 @@ export interface CompoundWordResult {
 }
 
 /**
+ * Look up compound words from offline database
+ */
+async function lookupCompoundWordsOffline(words: string[]): Promise<CompoundWordResult[]> {
+  const results: CompoundWordResult[] = [];
+  
+  for (const word of words) {
+    try {
+      const wordEntry = await getWord(word);
+      if (wordEntry) {
+        results.push({
+          word,
+          characters: Array.from(word),
+          pinyin: wordEntry.pinyin,
+          definition: wordEntry.definition,
+          found: true,
+        });
+      } else {
+        results.push({
+          word,
+          characters: Array.from(word),
+          pinyin: null,
+          definition: null,
+          found: false,
+        });
+      }
+    } catch {
+      results.push({
+        word,
+        characters: Array.from(word),
+        pinyin: null,
+        definition: null,
+        found: false,
+      });
+    }
+  }
+  
+  return results;
+}
+
+/**
  * Look up multiple compound words via the HanziPy API
+ * Falls back to offline database when available
  */
 export async function lookupCompoundWordsAPI(words: string[]): Promise<CompoundWordResult[]> {
   const results: CompoundWordResult[] = [];
   
   if (words.length === 0) {
     return results;
+  }
+
+  // If offline database is available, use it directly
+  if (isDatabaseDownloaded()) {
+    return lookupCompoundWordsOffline(words);
   }
 
   try {
@@ -215,6 +325,43 @@ export async function lookupCompoundWordsAPI(words: string[]): Promise<CompoundW
     }
   } catch (error) {
     console.error('Error looking up compound words:', error);
+    
+    // Try offline database as fallback on network errors
+    if (isDatabaseDownloaded()) {
+      console.log('Falling back to offline database for compound words');
+      for (const word of words) {
+        try {
+          const wordEntry = await getWord(word);
+          if (wordEntry) {
+            results.push({
+              word,
+              characters: Array.from(word),
+              pinyin: wordEntry.pinyin,
+              definition: wordEntry.definition,
+              found: true,
+            });
+          } else {
+            results.push({
+              word,
+              characters: Array.from(word),
+              pinyin: null,
+              definition: null,
+              found: false,
+            });
+          }
+        } catch {
+          results.push({
+            word,
+            characters: Array.from(word),
+            pinyin: null,
+            definition: null,
+            found: false,
+          });
+        }
+      }
+      return results;
+    }
+    
     // Return entries marked as not found on error
     for (const word of words) {
       results.push({
