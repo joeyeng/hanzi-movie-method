@@ -22,7 +22,7 @@ function OfflineDbSection() {
     }, [isReady]);
 
     const handleDelete = async () => {
-        if (confirm('Are you sure you want to delete the offline database? You will need to re-download it to use the characters and compounds pages.')) {
+        if (confirm('Are you sure you want to delete the offline database?')) {
             setIsDeleting(true);
             clearDatabaseCache();
             setDbDownloaded(false);
@@ -40,22 +40,23 @@ function OfflineDbSection() {
     }
 
     return (
-        <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-            <h2 className="text-xl font-semibold text-amber-400 mb-2">Offline Database</h2>
-            <p className="text-slate-400 text-sm mb-4">
-                The offline database contains word frequencies from SUBTLEX-CH corpus, definitions from CC-CEDICT,
-                and 63,000+ example sentences. It&apos;s cached locally for offline use.
-            </p>
-
-            <div className="flex items-center gap-3 mb-4">
+        <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 relative">
+            {/* Status badge - top right */}
+            <div className="absolute top-4 right-4">
                 <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm ${dbDownloaded
                     ? 'bg-green-500/20 text-green-400'
                     : 'bg-yellow-500/20 text-yellow-400'
                     }`}>
                     {dbDownloaded ? '✓ Downloaded' : '○ Not Downloaded'}
                 </span>
-                {isReady && <span className="text-slate-500 text-sm">~26 MB</span>}
             </div>
+
+            <h2 className="text-xl font-semibold text-amber-400 mb-2">Offline Database</h2>
+            <p className="text-slate-400 text-sm mb-4">
+                The offline database contains word frequencies from SUBTLEX-CH corpus, definitions from CC-CEDICT,
+                and 63,000+ example sentences. It&apos;s cached locally for offline use.
+                {isReady && <span className="text-slate-500"> (~26 MB)</span>}
+            </p>
 
             <div className="flex gap-3">
                 {!dbDownloaded ? (
@@ -67,22 +68,13 @@ function OfflineDbSection() {
                         {isLoading ? 'Downloading...' : '📥 Download Database'}
                     </button>
                 ) : (
-                    <>
-                        <button
-                            onClick={handleDownload}
-                            disabled={isLoading}
-                            className="flex-1 bg-slate-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-slate-500 transition-colors disabled:opacity-50"
-                        >
-                            {isLoading ? 'Downloading...' : '🔄 Re-download'}
-                        </button>
-                        <button
-                            onClick={handleDelete}
-                            disabled={isDeleting}
-                            className="bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-500 transition-colors disabled:opacity-50"
-                        >
-                            {isDeleting ? 'Deleting...' : '🗑️ Delete'}
-                        </button>
-                    </>
+                    <button
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="flex-1 bg-red-600 text-white py-2 px-4 rounded-lg font-medium hover:bg-red-500 transition-colors disabled:opacity-50"
+                    >
+                        {isDeleting ? 'Deleting...' : '🗑️ Delete Database'}
+                    </button>
                 )}
             </div>
         </div>
@@ -266,6 +258,13 @@ export default function SettingsPage() {
         setImportStatus(prev => [...prev, messages.join(' | ')]);
     };
 
+    const formatCompactNumber = (number: number) => {
+        return new Intl.NumberFormat('en-US', {
+            notation: 'compact',
+            maximumFractionDigits: 1 // Limits decimal places to one
+        }).format(number);
+    };
+
     const importBackup = (file: File) => {
         const reader = new FileReader();
         reader.onload = (e) => {
@@ -337,15 +336,15 @@ export default function SettingsPage() {
                 <h2 className="text-xl font-semibold mb-4">Current Database</h2>
                 <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 text-center">
                     <div>
-                        <div className="text-3xl font-bold text-amber-400">{dbCharCount !== null ? dbCharCount.toLocaleString() : '—'}</div>
+                        <div className="text-3xl font-bold text-amber-400">{dbCharCount !== null ? formatCompactNumber(dbCharCount) : '—'}</div>
                         <div className="text-slate-400 text-sm">Characters</div>
                     </div>
                     <div>
-                        <div className="text-3xl font-bold text-cyan-400">{dbCompoundCount !== null ? dbCompoundCount.toLocaleString() : '—'}</div>
+                        <div className="text-3xl font-bold text-cyan-400">{dbCompoundCount !== null ? formatCompactNumber(dbCompoundCount) : '—'}</div>
                         <div className="text-slate-400 text-sm">Compounds</div>
                     </div>
                     <div>
-                        <div className="text-3xl font-bold text-green-400">{dbExampleCount !== null ? dbExampleCount.toLocaleString() : '—'}</div>
+                        <div className="text-3xl font-bold text-green-400">{dbExampleCount !== null ? formatCompactNumber(dbExampleCount) : '—'}</div>
                         <div className="text-slate-400 text-sm">Examples</div>
                     </div>
                     <div>
