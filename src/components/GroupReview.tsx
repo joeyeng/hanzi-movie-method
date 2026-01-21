@@ -220,6 +220,7 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
             const variations = generateToneVariations(correctPinyinWithTones, 4);
             setToneChoices(shuffleArray(variations));
         } else {
+            // For incorrect pinyin selection, look for a word with that pinyin
             const matchingWord = groupWords.find(w =>
                 normalizePinyin(w.pinyin) === selectedPinyinBase && w.word !== currentItem.word
             );
@@ -228,7 +229,10 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
                 const variations = generateToneVariations(matchingWord.pinyin, 4);
                 setToneChoices(shuffleArray(variations));
             } else {
-                setToneChoices([selectedPinyinBase]);
+                // No matching word found - generate variations from the toneless base
+                // Apply random tones to the base pinyin to create 4 variations
+                const variations = generateToneVariations(selectedPinyinBase, 4);
+                setToneChoices(shuffleArray(variations));
             }
         }
     }, [currentItem, groupWords]);
