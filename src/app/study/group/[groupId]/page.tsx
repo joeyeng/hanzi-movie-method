@@ -64,9 +64,12 @@ export default function StudyGroupPage() {
     const [groupWords, setGroupWords] = useState<WordEntryWithPrimary[]>([]);
     const [loadingWords, setLoadingWords] = useState(true);
 
+    // Separate filters for group view and review mode
+    const [groupFilter, setGroupFilter] = useState<'all' | 'reviewed' | 'unlearned'>('all');
+    const [reviewFilter, setReviewFilter] = useState<'all' | 'reviewed' | 'unlearned'>('reviewed');
+
     // Review mode state
     const [isReviewMode, setIsReviewMode] = useState(false);
-    const [reviewFilter, setReviewFilter] = useState<'all' | 'reviewed' | 'unlearned'>('all');
 
     // Load total word count
     useEffect(() => {
@@ -115,20 +118,20 @@ export default function StudyGroupPage() {
         return { learned, reviewed };
     }, [groupWords, learningData]);
 
-    // Filter words based on selected filter
+    // Filter words based on selected group filter
     const filteredWords = useMemo(() => {
-        if (reviewFilter === 'all') return groupWords;
+        if (groupFilter === 'all') return groupWords;
 
         return groupWords.filter(word => {
             const state = learningData.get(word.word);
-            if (reviewFilter === 'reviewed') {
+            if (groupFilter === 'reviewed') {
                 return state?.reviewed === true;
-            } else if (reviewFilter === 'unlearned') {
+            } else if (groupFilter === 'unlearned') {
                 return !state?.learned;
             }
             return true;
         });
-    }, [groupWords, learningData, reviewFilter]);
+    }, [groupWords, learningData, groupFilter]);
 
     // Calculate rank range
     const startRank = (groupId - 1) * WORDS_PER_GROUP + 1;
@@ -213,20 +216,20 @@ export default function StudyGroupPage() {
             <div className="mb-4 bg-slate-800 rounded-lg p-4">
                 <div className="flex flex-wrap justify-center gap-2">
                     <button
-                        onClick={() => setReviewFilter('all')}
-                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'all' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                        onClick={() => setGroupFilter('all')}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${groupFilter === 'all' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                     >
                         All
                     </button>
                     <button
-                        onClick={() => setReviewFilter('reviewed')}
-                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'reviewed' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                        onClick={() => setGroupFilter('reviewed')}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${groupFilter === 'reviewed' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                     >
                         📚 Reviewed
                     </button>
                     <button
-                        onClick={() => setReviewFilter('unlearned')}
-                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${reviewFilter === 'unlearned' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
+                        onClick={() => setGroupFilter('unlearned')}
+                        className={`px-4 py-2 rounded-lg text-sm transition-colors ${groupFilter === 'unlearned' ? 'bg-amber-500 text-slate-900' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'}`}
                     >
                         ✗ Not Learned
                     </button>
