@@ -27,12 +27,16 @@ export const CorpusWordCard = memo(function CorpusWordCard({
     const handleToggleLearned = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        // Also stop the native event to prevent document listeners
+        e.nativeEvent.stopImmediatePropagation();
         onToggleLearned?.(word.word);
     }, [onToggleLearned, word.word]);
 
     const handleToggleReviewed = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        // Also stop the native event to prevent document listeners
+        e.nativeEvent.stopImmediatePropagation();
         onToggleReviewed?.(word.word);
     }, [onToggleReviewed, word.word]);
     // Get best/primary definition (filters out less useful entries like "used in...", "surname...", etc.)

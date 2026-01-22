@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { LoadingModal } from './LoadingModal';
 
@@ -25,6 +25,18 @@ export function NavigationLoader() {
     useEffect(() => {
         const handleClick = (e: MouseEvent) => {
             const target = e.target as HTMLElement;
+
+            // Ignore clicks on buttons or inside button elements
+            // Use multiple checks to be thorough
+            if (target.tagName === 'BUTTON' || target.closest('button')) {
+                return;
+            }
+
+            // Ignore clicks on interactive elements that aren't navigation
+            if (target.closest('[role="button"], input, select, textarea')) {
+                return;
+            }
+
             const link = target.closest('a');
 
             if (link && link.href && !link.target && !link.download) {
@@ -33,14 +45,14 @@ export function NavigationLoader() {
 
                 // Only show loading for same-origin navigation to different pages
                 if (url.origin === currentUrl.origin && url.pathname !== currentUrl.pathname) {
-                    setIsLoading(true);
+                    // Use microtask to check after all synchronous handlers have run
+                    Promise.resolve().then(() => {
+                        if (!e.defaultPrevented) {
+                            setIsLoading(true);
+                        }
+                    });
                 }
             }
-        };
-
-        // Also handle programmatic navigation via router.push
-        const handleBeforeUnload = () => {
-            setIsLoading(true);
         };
 
         document.addEventListener('click', handleClick);
