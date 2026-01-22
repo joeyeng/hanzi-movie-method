@@ -48,18 +48,15 @@ function HmmDisplay({
             <div className="grid grid-cols-3 gap-3 text-sm">
                 <div className="bg-slate-800/50 rounded-lg p-4 text-center">
                     <div className="text-5xl mb-2" title={`${actor?.name} (${pinyinComponents.initial})`}>{actor?.emoji || '👤'}</div>
-                    <div className="text-slate-400 text-xs">Actor</div>
-                    <div className="text-white font-medium">{pinyinComponents.initial}</div>
+                    <div className="text-slate-400 text-xs">Actor ({pinyinComponents.initial})</div>
                 </div>
                 <div className="bg-slate-800/50 rounded-lg p-4 text-center">
                     <div className="text-5xl mb-2" title={`${set?.name} (${pinyinComponents.final})`}>{set?.emoji || '📍'}</div>
-                    <div className="text-slate-400 text-xs">Set</div>
-                    <div className="text-white font-medium">{pinyinComponents.final}</div>
+                    <div className="text-slate-400 text-xs">Set ({pinyinComponents.final})</div>
                 </div>
                 <div className="bg-slate-800/50 rounded-lg p-4 text-center">
                     <div className="text-5xl mb-2" title={`${room?.name} (${tone_marks[pinyinComponents.tone - 1]})`}>{room?.emoji || '🏠'}</div>
-                    <div className="text-slate-400 text-xs">Room</div>
-                    <div className="text-white font-medium">Tone {pinyinComponents.tone} ({tone_marks[pinyinComponents.tone - 1]})</div>
+                    <div className="text-slate-400 text-xs">Tone {pinyinComponents.tone} ({tone_marks[pinyinComponents.tone - 1]})</div>
                 </div>
             </div>
 
@@ -204,15 +201,13 @@ export default function MovieScene({ word, pinyin, actors, rooms, sets, props }:
     // Parse pinyin to get auto-detected matches for default display
     const pinyinComponents = parseFirstSyllable(pinyin);
     const autoMatches = findHmmMatches(pinyin, actors, rooms, sets);
-    const autoActor = actors.find(a => a.id === autoMatches.actorId);
-    const autoRoom = rooms.find(r => r.id === autoMatches.roomId);
-    const autoSet = sets.find(s => s.id === autoMatches.setId);
 
-    // Build auto-generated scene template
-    const autoActorName = autoActor?.name || '[Actor]';
-    const autoRoomName = autoRoom?.name || '[Room]';
-    const autoSetName = autoSet?.name || '[Set]';
-    const autoTemplate = `${autoActorName} is at ${autoSetName} in the ${autoRoomName}.`;
+    // Create display data - use saved HMM or auto-detected matches
+    const displayHmm: WordHmmData = wordHmm || {
+        actorId: autoMatches.actorId,
+        roomId: autoMatches.roomId,
+        setId: autoMatches.setId,
+    };
 
     return (
         <div className="bg-slate-700/30 rounded-lg p-4 mb-6">
@@ -249,50 +244,15 @@ export default function MovieScene({ word, pinyin, actors, rooms, sets, props }:
                         }}
                         onCancel={() => setIsEditing(false)}
                     />
-                ) : wordHmm ? (
+                ) : (
                     <HmmDisplay
-                        wordHmm={wordHmm}
+                        wordHmm={displayHmm}
                         pinyin={pinyin}
                         actors={actors}
                         rooms={rooms}
                         sets={sets}
                         props={props}
                     />
-                ) : (
-                    <div className="space-y-4">
-                        {/* Auto-generated template display */}
-                        <div className="bg-slate-800/50 rounded-lg p-4">
-                            <p className="text-white italic">{autoTemplate}</p>
-                            {(!autoActor || !autoRoom || !autoSet) && (
-                                <p className="text-amber-500/70 text-xs mt-2">
-                                    ⚠️ Some matches not found. Add actors/rooms/sets in the settings to complete.
-                                </p>
-                            )}
-                        </div>
-
-                        {/* Auto-detected Actor, Room, Set cards */}
-                        <div className="grid grid-cols-3 gap-3 text-sm">
-                            <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoActor ? '' : 'border border-dashed border-slate-600'}`}>
-                                <div className="text-5xl mb-2">{autoActor?.emoji || '👤'}</div>
-                                <div className="text-slate-400 text-xs">Actor ({pinyinComponents.initial})</div>
-                                <div className={`font-medium ${autoActor ? 'text-white' : 'text-slate-500'}`}>{autoActor?.name || 'Not found'}</div>
-                            </div>
-                            <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoSet ? '' : 'border border-dashed border-slate-600'}`}>
-                                <div className="text-5xl mb-2">{autoSet?.emoji || '📍'}</div>
-                                <div className="text-slate-400 text-xs">Set ({pinyinComponents.final})</div>
-                                <div className={`font-medium ${autoSet ? 'text-white' : 'text-slate-500'}`}>{autoSet?.name || 'Not found'}</div>
-                            </div>
-                            <div className={`bg-slate-800/50 rounded-lg p-4 text-center ${autoRoom ? '' : 'border border-dashed border-slate-600'}`}>
-                                <div className="text-5xl mb-2">{autoRoom?.emoji || '🏠'}</div>
-                                <div className="text-slate-400 text-xs">Room (Tone {pinyinComponents.tone})</div>
-                                <div className={`font-medium ${autoRoom ? 'text-white' : 'text-slate-500'}`}>{autoRoom?.name || 'Not found'}</div>
-                            </div>
-                        </div>
-
-                        <p className="text-slate-500 text-sm text-center">
-                            Click &quot;Create Scene&quot; to customize and add a scene description.
-                        </p>
-                    </div>
                 )
             }
         </div >

@@ -7,8 +7,6 @@ import { useState } from 'react';
 const navItems = [
     { href: '/', label: 'Dashboard', icon: '🏠' },
     { href: '/study', label: 'Study', icon: '📚' },
-    { href: '/characters', label: 'Characters', icon: '字' },
-    { href: '/compounds', label: 'Compounds', icon: '词' },
     { href: '/actors', label: 'Actors', icon: '🎭' },
     { href: '/rooms', label: 'Rooms', icon: '🚪' },
     { href: '/sets', label: 'Sets', icon: '🎬' },
