@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { WordEntryWithPrimary, getRandomWordsByLength } from '@/lib/offlineDb';
-import { CorpusWordState, getCorpusLearningData, recordReviewAttempt, markCorpusWordLearned } from '@/lib/storage';
+import { CorpusWordState, getCorpusLearningData, recordReviewAttempt, markCorpusWordLearned, setCorpusWordLearned, setCorpusWordReviewed } from '@/lib/storage';
 import { getBestDefinition } from '@/lib/format';
 
 // Normalize pinyin for comparison (remove tone marks, spaces, lowercase)
@@ -303,6 +303,11 @@ export function GroupReview({ groupWords, learningData, onExit, onDataChange, gr
             setTimeout(() => handleNext(), 1500);
         } else {
             setAnswerState('incorrect');
+            // If word was learned and got it wrong, remove learned state and mark as reviewed
+            if (currentItem.learned) {
+                setCorpusWordLearned(currentItem.word, false);
+                setCorpusWordReviewed(currentItem.word, true);
+            }
             onDataChange(); // Update data to reflect the review attempt
         }
     };
