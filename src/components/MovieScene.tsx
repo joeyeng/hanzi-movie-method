@@ -204,9 +204,11 @@ export default function MovieScene({ word, pinyin, actors, rooms, sets, props }:
 
     // Create display data - use saved HMM or auto-detected matches
     const displayHmm: WordHmmData = wordHmm || {
+        word: word,
         actorId: autoMatches.actorId,
         roomId: autoMatches.roomId,
         setId: autoMatches.setId,
+        updatedAt: new Date(),
     };
 
     return (
